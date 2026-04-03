@@ -1,0 +1,25 @@
+{
+  "name": "freshup-ai",
+  "version": "1.0.0",
+  "description": "A Node.js application using Express, Twilio, ElevenLabs, and Claude AI.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://local_proxy@127.0.0.1:37183/git/sinonymNA/freshup-ai"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.82.0",
+    "axios": "^1.14.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.0",
+    "express": "^5.2.1",
+    "twilio": "^5.13.1",
+    "uuid": "^13.0.0"
+  }
+}
