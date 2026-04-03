@@ -15,6 +15,9 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Serve generated ElevenLabs audio files to Twilio
+app.use('/audio', express.static('/tmp'));
+
 app.use('/call', callRoutes);
 app.use('/webhook', webhookRoutes);
 
