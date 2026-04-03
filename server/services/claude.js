@@ -9,13 +9,16 @@ async function generateCustomerResponse(conversationHistory, persona) {
     persona.systemPrompt +
     '\nKeep responses to 1-3 sentences. You are on a phone call. Speak like a real human, not a chatbot. React directly to what was just said to you.';
 
+  const messages = conversationHistory && conversationHistory.length > 0
+    ? conversationHistory
+    : [{ role: 'user', content: 'Hello?' }];
+
   const message = await client.messages.create({
     model: 'claude-sonnet-4-5',
     max_tokens: 300,
     system: systemPrompt,
-    messages: conversationHistory,
+    messages: messages,
   });
-
   return message.content[0].text;
 }
 
