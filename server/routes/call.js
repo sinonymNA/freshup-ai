@@ -74,7 +74,8 @@ router.get('/test/persona/:personaId', async (req, res) => {
       return;
     }
 
-    const openingLine = await generateCustomerResponse([], persona);
+    const openingHistory = [{ role: 'user', content: 'Hello?' }];
+    const openingLine = await generateCustomerResponse(openingHistory, persona);
 
     res.json({
       persona: persona.name,

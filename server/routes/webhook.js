@@ -36,7 +36,8 @@ router.post('/voice', async (req, res) => {
       score: null,
     });
 
-    const rawResponse = await generateCustomerResponse([], persona);
+    const openingHistory = [{ role: 'user', content: 'Hello?' }];
+    const rawResponse = await generateCustomerResponse(openingHistory, persona);
     const spokenText = stripTags(rawResponse);
 
     const audioBuffer = await textToSpeech(spokenText, persona.voiceId);
