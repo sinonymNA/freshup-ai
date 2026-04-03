@@ -3,13 +3,11 @@
 const express = require('express');
 const router = express.Router();
 
-const { getAllPersonas, getPersonaById, getRandomPersona } = require('../personas');
+const { getPersonaById, getRandomPersona } = require('../personas');
 const { generateCustomerResponse, analyzeCall } = require('../services/claude');
 const { textToSpeech, saveAudioFile } = require('../services/elevenlabs');
 const { generateTwiML, generateEndTwiML } = require('../services/twilio');
-
-// In-memory call state store. Keyed by Twilio CallSid.
-const activeCalls = new Map();
+const { activeCalls } = require('../store');
 
 function stripTags(text) {
   return text.replace(/\[HANG_UP\]/g, '').replace(/\[APPOINTMENT_SET\]/g, '').trim();
@@ -38,12 +36,11 @@ router.post('/voice', async (req, res) => {
       score: null,
     });
 
-    // Generate opening line with empty history
     const rawResponse = await generateCustomerResponse([], persona);
     const spokenText = stripTags(rawResponse);
 
     const audioBuffer = await textToSpeech(spokenText, persona.voiceId);
-    const audioPath = saveAudioFile(audioBuffer, callSid);  // eslint-disable-line no-unused-vars
+    saveAudioFile(audioBuffer, callSid);
     const audioUrl = `${process.env.BASE_URL}/audio/${callSid}.mp3`;
 
     const nextWebhook = `${process.env.BASE_URL}/webhook/respond`;
@@ -73,7 +70,7 @@ router.post('/respond', async (req, res) => {
     const { persona, history } = callData;
     const nextWebhook = `${process.env.BASE_URL}/webhook/respond`;
 
-    // No speech detected — ask the rep to try again
+    // No speech detected — replay last audio and gather again
     if (!SpeechResult || SpeechResult.trim() === '') {
       const retryUrl = `${process.env.BASE_URL}/audio/${CallSid}.mp3`;
       const twiml = generateTwiML(retryUrl, nextWebhook);
@@ -82,13 +79,9 @@ router.post('/respond', async (req, res) => {
       return;
     }
 
-    // Append rep turn
     history.push({ role: 'user', content: SpeechResult.trim() });
 
-    // Generate customer response
     const rawResponse = await generateCustomerResponse(history, persona);
-
-    // Append customer turn
     history.push({ role: 'assistant', content: rawResponse });
 
     const hangUp = rawResponse.includes('[HANG_UP]');
@@ -160,4 +153,3 @@ router.get('/results/:callSid', (req, res) => {
 });
 
 module.exports = router;
-module.exports.activeCalls = activeCalls;

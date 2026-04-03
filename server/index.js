@@ -18,6 +18,10 @@ app.use(express.urlencoded({ extended: true }));
 // Serve generated ElevenLabs audio files to Twilio
 app.use('/audio', express.static('/tmp'));
 
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: Date.now() });
+});
+
 app.use('/api', callRoutes);
 app.use('/webhook', webhookRoutes);
 

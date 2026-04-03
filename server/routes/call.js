@@ -6,35 +6,40 @@ const router = express.Router();
 const { getAllPersonas, getPersonaById, getRandomPersona } = require('../personas');
 const { initiateCall } = require('../services/twilio');
 const { generateCustomerResponse } = require('../services/claude');
-const { activeCalls } = require('./webhook');
+const { activeCalls } = require('../store');
 
 // POST /api/call/start
 router.post('/call/start', async (req, res) => {
-  const { phoneNumber, personaId } = req.body;
+  try {
+    const { phoneNumber, personaId } = req.body;
 
-  if (!phoneNumber) {
-    res.status(400).json({ error: 'phoneNumber is required' });
-    return;
+    if (!phoneNumber) {
+      res.status(400).json({ error: 'phoneNumber is required' });
+      return;
+    }
+
+    const persona = personaId ? getPersonaById(personaId) : getRandomPersona();
+    if (!persona) {
+      res.status(404).json({ error: 'Persona not found' });
+      return;
+    }
+
+    const call = await initiateCall(phoneNumber, persona.id);
+
+    res.json({
+      success: true,
+      callSid: call.sid,
+      persona: {
+        name: persona.name,
+        difficulty: persona.difficulty,
+        mood: persona.mood,
+        intentScore: persona.intentScore,
+      },
+    });
+  } catch (err) {
+    console.error('[call/start] error:', err);
+    res.status(500).json({ error: 'Failed to initiate call', details: err.message });
   }
-
-  const persona = personaId ? getPersonaById(personaId) : getRandomPersona();
-  if (!persona) {
-    res.status(404).json({ error: 'Persona not found' });
-    return;
-  }
-
-  const call = await initiateCall(phoneNumber, persona.id);
-
-  res.json({
-    success: true,
-    callSid: call.sid,
-    persona: {
-      name: persona.name,
-      difficulty: persona.difficulty,
-      mood: persona.mood,
-      intentScore: persona.intentScore,
-    },
-  });
 });
 
 // GET /api/call/history
@@ -56,24 +61,29 @@ router.get('/call/history', (req, res) => {
 
 // GET /api/personas
 router.get('/personas', (req, res) => {
-  const result = getAllPersonas().map(({ systemPrompt, ...rest }) => rest);  // eslint-disable-line no-unused-vars
+  const result = getAllPersonas().map(({ systemPrompt, ...rest }) => rest); // eslint-disable-line no-unused-vars
   res.json(result);
 });
 
-// GET /api/test/persona/:personaId
+// GET /api/test/persona/:personaId — Claude only, no Twilio or ElevenLabs
 router.get('/test/persona/:personaId', async (req, res) => {
-  const persona = getPersonaById(req.params.personaId);
-  if (!persona) {
-    res.status(404).json({ error: 'Persona not found' });
-    return;
+  try {
+    const persona = getPersonaById(req.params.personaId);
+    if (!persona) {
+      res.status(404).json({ error: 'Persona not found' });
+      return;
+    }
+
+    const openingLine = await generateCustomerResponse([], persona);
+
+    res.json({
+      persona: persona.name,
+      openingLine,
+    });
+  } catch (err) {
+    console.error('[test/persona] error:', err);
+    res.status(500).json({ error: 'Failed to generate response', details: err.message });
   }
-
-  const openingLine = await generateCustomerResponse([], persona);
-
-  res.json({
-    persona: persona.name,
-    openingLine,
-  });
 });
 
 module.exports = router;
