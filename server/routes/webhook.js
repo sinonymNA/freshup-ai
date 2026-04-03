@@ -166,3 +166,4 @@ router.get('/results/:callSid', (req, res) => {
 });
 
 module.exports = router;
+module.exports.activeCalls = activeCalls;
