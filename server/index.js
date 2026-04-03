@@ -13,17 +13,16 @@ const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({ extended: true }));
 
 // Serve generated ElevenLabs audio files to Twilio
 app.use('/audio', express.static('/tmp'));
 
-app.use('/api/call', callRoutes);
-app.use('/api/personas', callRoutes);
+app.use('/api', callRoutes);
 app.use('/webhook', webhookRoutes);
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`FreshUp AI running on port ${PORT}`);
 });
 
 module.exports = app;

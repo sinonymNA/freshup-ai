@@ -3,15 +3,13 @@
 const express = require('express');
 const router = express.Router();
 
-const personas = require('../personas');
+const { getAllPersonas, getPersonaById, getRandomPersona } = require('../personas');
 const { generateCustomerResponse, analyzeCall } = require('../services/claude');
 const { textToSpeech, saveAudioFile } = require('../services/elevenlabs');
 const { generateTwiML, generateEndTwiML } = require('../services/twilio');
 
 // In-memory call state store. Keyed by Twilio CallSid.
 const activeCalls = new Map();
-
-const PERSONA_IDS = Object.keys(personas);
 
 function stripTags(text) {
   return text.replace(/\[HANG_UP\]/g, '').replace(/\[APPOINTMENT_SET\]/g, '').trim();
@@ -28,16 +26,12 @@ router.post('/voice', async (req, res) => {
   try {
     const callSid = req.body.CallSid;
 
-    let personaId = req.query.personaId;
-    if (!personaId || !personas[personaId]) {
-      personaId = PERSONA_IDS[Math.floor(Math.random() * PERSONA_IDS.length)];
-    }
-
-    const persona = personas[personaId];
+    const personaId = req.query.personaId;
+    const persona = (personaId && getPersonaById(personaId)) || getRandomPersona();
 
     activeCalls.set(callSid, {
       persona,
-      personaId,
+      personaId: persona.id,
       history: [],
       startTime: Date.now(),
       outcome: null,

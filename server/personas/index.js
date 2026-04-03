@@ -1,19 +1,27 @@
 'use strict';
 
-const marcusWebb = require('./data/marcus-webb.json');
-const rosaDelgado = require('./data/rosa-delgado.json');
-const tylerKowalski = require('./data/tyler-kowalski.json');
-const priyaChandrasekaran = require('./data/priya-chandrasekaran.json');
-const jamesOkafor = require('./data/james-okafor.json');
-const brittanyWalsh = require('./data/brittany-walsh.json');
+const fs = require('fs');
+const path = require('path');
 
-const personas = {
-  'marcus-webb': marcusWebb,
-  'rosa-delgado': rosaDelgado,
-  'tyler-kowalski': tylerKowalski,
-  'priya-chandrasekaran': priyaChandrasekaran,
-  'james-okafor': jamesOkafor,
-  'brittany-walsh': brittanyWalsh,
-};
+const DATA_DIR = path.join(__dirname, 'data');
 
-module.exports = personas;
+function getAllPersonas() {
+  return fs
+    .readdirSync(DATA_DIR)
+    .filter((f) => f.endsWith('.json'))
+    .map((f) => JSON.parse(fs.readFileSync(path.join(DATA_DIR, f), 'utf8')));
+}
+
+function getPersonaById(id) {
+  const filePath = path.join(DATA_DIR, `${id}.json`);
+  if (!fs.existsSync(filePath)) return null;
+  return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+}
+
+function getRandomPersona() {
+  const files = fs.readdirSync(DATA_DIR).filter((f) => f.endsWith('.json'));
+  const file = files[Math.floor(Math.random() * files.length)];
+  return JSON.parse(fs.readFileSync(path.join(DATA_DIR, file), 'utf8'));
+}
+
+module.exports = { getAllPersonas, getPersonaById, getRandomPersona };

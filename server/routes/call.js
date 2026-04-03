@@ -2,33 +2,28 @@
 
 const express = require('express');
 const router = express.Router();
-const path = require('path');
-const fs = require('fs');
 
-const personas = require('../personas');
+const { getAllPersonas, getPersonaById, getRandomPersona } = require('../personas');
 const { initiateCall } = require('../services/twilio');
 const { generateCustomerResponse } = require('../services/claude');
 const { activeCalls } = require('./webhook');
 
-const PERSONA_IDS = Object.keys(personas);
-
 // POST /api/call/start
-router.post('/start', async (req, res) => {
-  const { phoneNumber, personaId: requestedPersonaId } = req.body;
+router.post('/call/start', async (req, res) => {
+  const { phoneNumber, personaId } = req.body;
 
   if (!phoneNumber) {
     res.status(400).json({ error: 'phoneNumber is required' });
     return;
   }
 
-  const personaId =
-    requestedPersonaId && personas[requestedPersonaId]
-      ? requestedPersonaId
-      : PERSONA_IDS[Math.floor(Math.random() * PERSONA_IDS.length)];
+  const persona = personaId ? getPersonaById(personaId) : getRandomPersona();
+  if (!persona) {
+    res.status(404).json({ error: 'Persona not found' });
+    return;
+  }
 
-  const persona = personas[personaId];
-
-  const call = await initiateCall(phoneNumber, personaId);
+  const call = await initiateCall(phoneNumber, persona.id);
 
   res.json({
     success: true,
@@ -43,7 +38,7 @@ router.post('/start', async (req, res) => {
 });
 
 // GET /api/call/history
-router.get('/history', (req, res) => {
+router.get('/call/history', (req, res) => {
   const entries = Array.from(activeCalls.entries())
     .slice(-20)
     .map(([callSid, data]) => ({
@@ -60,22 +55,14 @@ router.get('/history', (req, res) => {
 });
 
 // GET /api/personas
-router.get('/', (req, res) => {
-  const dataDir = path.join(__dirname, '../personas/data');
-  const files = fs.readdirSync(dataDir).filter((f) => f.endsWith('.json'));
-
-  const result = files.map((file) => {
-    const raw = JSON.parse(fs.readFileSync(path.join(dataDir, file), 'utf8'));
-    const { systemPrompt, ...rest } = raw;  // eslint-disable-line no-unused-vars
-    return rest;
-  });
-
+router.get('/personas', (req, res) => {
+  const result = getAllPersonas().map(({ systemPrompt, ...rest }) => rest);  // eslint-disable-line no-unused-vars
   res.json(result);
 });
 
 // GET /api/test/persona/:personaId
-router.get('/test/:personaId', async (req, res) => {
-  const persona = personas[req.params.personaId];
+router.get('/test/persona/:personaId', async (req, res) => {
+  const persona = getPersonaById(req.params.personaId);
   if (!persona) {
     res.status(404).json({ error: 'Persona not found' });
     return;
