@@ -1,7 +1,7 @@
 'use strict';
 
-// Shared in-memory call state store.
-// Keyed by Twilio CallSid. Imported by both webhook and call routes.
-const activeCalls = new Map();
+// Thin wrapper over SQLite db — keeps the same API as the old in-memory Map
+// so all routes continue to work without changes.
+const { getCall, setCall, updateCall, getAllCalls } = require('./db');
 
-module.exports = { activeCalls };
+module.exports = { getCall, setCall, updateCall, getAllCalls };
