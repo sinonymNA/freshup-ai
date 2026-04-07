@@ -17,6 +17,11 @@ function navigate(path) {
 window.addEventListener('hashchange', render);
 window.addEventListener('load', render);
 
+// Scroll listener — adds shadow to nav when page scrolls
+window.addEventListener('scroll', () => {
+  document.getElementById('nav').classList.toggle('scrolled', window.scrollY > 4);
+}, { passive: true });
+
 function render() {
   const path = getRoute();
   updateNav(path);
@@ -65,13 +70,21 @@ async function api(path, opts = {}) {
 
 // ── HELPERS ─────────────────────────────────────────────────────────────────
 
+function initials(name = '') {
+  return name.split(' ').slice(0, 2).map(w => w[0] || '').join('').toUpperCase();
+}
+
+function avatar(name, size = '') {
+  return `<div class="avatar${size ? ' ' + size : ''}">${initials(name)}</div>`;
+}
+
 function difficultyBadge(d = '') {
   const cls = { Easy: 'badge-easy', Medium: 'badge-medium', Hard: 'badge-hard' }[d] || 'badge-medium';
   return `<span class="badge ${cls}">${d}</span>`;
 }
 
 function outcomePill(o) {
-  if (!o) return '<span class="text-muted">—</span>';
+  if (!o) return '<span style="color:var(--text-subtle)">—</span>';
   return `<span class="outcome-pill outcome-${o}">${o}</span>`;
 }
 
@@ -90,6 +103,10 @@ function formatDuration(s) {
   if (s == null) return '—';
   const m = Math.floor(s / 60), sec = s % 60;
   return m ? `${m}m ${sec}s` : `${sec}s`;
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 // ── DASHBOARD ───────────────────────────────────────────────────────────────
@@ -141,15 +158,21 @@ async function renderDashboard() {
 }
 
 function callRow(c) {
-  const score = c.score && c.score.overallScore != null
-    ? `<span style="color:${scoreColor(c.score.overallScore)};font-weight:700">${c.score.overallScore}</span>`
+  const scoreVal = c.score && c.score.overallScore != null ? c.score.overallScore : null;
+  const scoreHtml = scoreVal != null
+    ? `<span style="font-family:'Playfair Display',serif;font-weight:700;color:${scoreColor(scoreVal)}">${scoreVal}</span>`
     : '—';
   return `<tr>
-    <td><strong>${c.personaName || '—'}</strong></td>
+    <td>
+      <div style="display:flex;align-items:center;gap:10px">
+        ${avatar(c.personaName)}
+        <strong>${c.personaName || '—'}</strong>
+      </div>
+    </td>
     <td>${outcomePill(c.outcome)}</td>
-    <td>${score}</td>
-    <td>${formatDuration(c.duration)}</td>
-    <td style="font-size:12px;color:var(--text-muted)">${formatDate(c.timestamp)}</td>
+    <td>${scoreHtml}</td>
+    <td style="color:var(--text-muted)">${formatDuration(c.duration)}</td>
+    <td style="font-size:12px;color:var(--text-subtle)">${formatDate(c.timestamp)}</td>
     <td><a href="#/call/${c.callSid}" class="btn btn-secondary btn-sm">View</a></td>
   </tr>`;
 }
@@ -232,7 +255,10 @@ function updateStartBtn() {
 function personaSelectCard(p) {
   return `
     <button class="persona-card" data-id="${p.id}">
-      ${difficultyBadge(p.difficulty)}
+      <div class="persona-card-top">
+        ${avatar(p.name)}
+        ${difficultyBadge(p.difficulty)}
+      </div>
       <h3>${p.name}</h3>
       <div class="occupation">${p.occupation}</div>
       <div class="mood">${p.mood}</div>
@@ -273,7 +299,7 @@ async function renderHistory() {
 
 function renderCallResult(callSid) {
   app.innerHTML = `
-    <a href="#/history" class="link" style="font-size:13px;display:inline-block;margin-bottom:16px">← Back to history</a>
+    <a href="#/history" class="link" style="font-size:13px;display:inline-block;margin-bottom:20px">← Back to history</a>
     <div id="result-content"><div class="loading">Loading call results…</div></div>
   `;
   pollResults(callSid);
@@ -283,7 +309,6 @@ let pollTimer = null;
 
 function pollResults(callSid) {
   clearTimeout(pollTimer);
-
   api(`/webhook/results/${callSid}`).then(data => {
     renderResultData(data, callSid);
     if (!data.score) {
@@ -303,13 +328,18 @@ function renderResultData(data, callSid) {
   const history = data.history || [];
 
   el.innerHTML = `
-    <h1>${data.personaName || 'Unknown Persona'}</h1>
-    <p class="subtitle">Call ID: ${callSid} &nbsp;·&nbsp; ${outcomePill(data.outcome)} &nbsp;·&nbsp; ${formatDate(data.startTime)}</p>
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:4px">
+      ${avatar(data.personaName, 'avatar-lg')}
+      <div>
+        <h1>${data.personaName || 'Unknown Persona'}</h1>
+        <p class="subtitle" style="margin-bottom:0">${outcomePill(data.outcome)} &nbsp;·&nbsp; ${formatDate(data.startTime)}</p>
+      </div>
+    </div>
 
     ${score ? `
-      <div class="overall-score">
+      <div class="overall-score" style="margin-top:24px">
         <div class="number">${score.overallScore}</div>
-        <div class="label">Overall Score</div>
+        <div class="label">Overall Performance</div>
       </div>
 
       <div class="section-title">Dimension Scores</div>
@@ -325,9 +355,9 @@ function renderResultData(data, callSid) {
       </div>
 
       <div class="section-title">Feedback</div>
-      <div class="feedback-box">${score.feedback || '—'}</div>
+      <div class="feedback-box">${escHtml(score.feedback || '—')}</div>
     ` : `
-      <div class="card" style="text-align:center;color:var(--text-muted)">
+      <div class="card" style="text-align:center;color:var(--text-muted);margin-top:24px">
         <span class="spinner"></span>&nbsp; Analyzing call… results will appear shortly.
       </div>
     `}
@@ -344,10 +374,6 @@ function renderResultData(data, callSid) {
       </div>
     ` : ''}
   `;
-}
-
-function escHtml(str) {
-  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 // ── PERSONAS ─────────────────────────────────────────────────────────────────
@@ -372,21 +398,24 @@ async function renderPersonas() {
 }
 
 function personaDetailCard(p) {
+  const traits = (p.personalityTraits || []).slice(0, 4);
   return `
-    <div class="card" style="cursor:default">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+    <div class="card">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
+        ${avatar(p.name, 'avatar-lg')}
         ${difficultyBadge(p.difficulty)}
-        <span style="font-size:12px;color:var(--text-muted)">Intent ${p.intentScore}/10</span>
       </div>
-      <h3 style="font-size:16px;font-weight:700;margin-bottom:2px">${p.name}</h3>
-      <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">${p.occupation}${p.age ? ', ' + p.age : ''}</div>
-      <div style="font-size:13px;color:var(--text-muted);margin-bottom:10px">${p.mood}</div>
+      <h3 style="font-family:'Playfair Display',serif;font-size:17px;font-weight:700;margin-bottom:2px">${p.name}</h3>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">${p.occupation}${p.age ? ', ' + p.age : ''}</div>
+      <div style="font-size:13px;color:var(--text-subtle);font-style:italic;margin-bottom:10px">${p.mood}</div>
       <div class="intent-bar-wrap" style="margin-bottom:12px">
+        <div class="intent-label"><span>Purchase Intent</span><span>${p.intentScore}/10</span></div>
         <div class="intent-bar"><div class="intent-fill" style="width:${p.intentScore * 10}%"></div></div>
       </div>
-      ${p.background ? `<p style="font-size:12px;color:var(--text-muted);line-height:1.5">${escHtml(p.background)}</p>` : ''}
-      <div style="margin-top:12px">
-        <a href="#/start" onclick="event.preventDefault();navigate('/start');setTimeout(()=>{const btn=document.querySelector('[data-id=\\'${p.id}\\']');if(btn){btn.click();}},300)" class="btn btn-secondary btn-sm">Use this persona</a>
+      ${traits.length ? `<div class="trait-chips">${traits.map(t => `<span class="trait-chip">${t}</span>`).join('')}</div>` : ''}
+      ${p.background ? `<p style="font-size:12px;color:var(--text-muted);line-height:1.6;margin-top:12px">${escHtml(p.background)}</p>` : ''}
+      <div style="margin-top:14px">
+        <a href="#/start" onclick="event.preventDefault();navigate('/start');setTimeout(()=>{const btn=document.querySelector('[data-id=\\'${p.id}\\']');if(btn){btn.click();}},300)" class="btn btn-secondary btn-sm">Train with ${p.name.split(' ')[0]}</a>
       </div>
     </div>
   `;
