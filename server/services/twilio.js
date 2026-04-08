@@ -7,14 +7,14 @@ const client = twilio(
   process.env.TWILIO_AUTH_TOKEN
 );
 
-async function initiateCall(toPhoneNumber, personaId) {
+async function initiateCall(toPhoneNumber, personaId, userId) {
+  const base = (process.env.BASE_URL || '').replace(/\/$/, '');
   const call = await client.calls.create({
     from: process.env.TWILIO_PHONE_NUMBER,
     to: toPhoneNumber,
-    url: `${process.env.BASE_URL}/webhook/voice?personaId=${personaId}`,
-    statusCallback: `${process.env.BASE_URL}/webhook/status`,
+    url: `${base}/webhook/voice?personaId=${personaId}&userId=${userId || ''}`,
+    statusCallback: `${base}/webhook/status`,
   });
-
   return call;
 }
 

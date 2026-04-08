@@ -38,7 +38,7 @@ function handleMediaStream(twilioWs, rawUrl) {
   openAiWs.on('open', () => {
     const instructions =
       persona.systemPrompt +
-      '\n\nYou are on a real phone call right now. Keep responses natural and concise — 1 to 3 sentences, spoken aloud. Do NOT use bracketed text markers like [HANG_UP] or [APPOINTMENT_SET]. Instead, when you want to end the call for any reason, call the end_call function with the appropriate reason.';
+      '\n\nYou are on a real phone call right now. Speak exactly as a real person would on the phone — use natural filler words ("um", "uh", "you know", "I mean"), react emotionally, pause naturally, vary your pacing, and mirror the energy of the conversation. Never sound scripted or robotic. Express genuine reactions — surprise, skepticism, warmth, impatience — whatever fits your character in the moment. Do NOT use bracketed text markers like [HANG_UP] or [APPOINTMENT_SET]. Instead, when you want to end the call for any reason, call the end_call function with the appropriate reason.';
 
     openAiWs.send(
       JSON.stringify({
@@ -52,9 +52,9 @@ function handleMediaStream(twilioWs, rawUrl) {
           input_audio_transcription: { model: 'whisper-1' },
           turn_detection: {
             type: 'server_vad',
-            threshold: 0.5,
-            prefix_padding_ms: 300,
-            silence_duration_ms: 500,
+            threshold: 0.4,
+            prefix_padding_ms: 200,
+            silence_duration_ms: 700,
           },
           tools: [
             {

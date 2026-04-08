@@ -1,0 +1,70 @@
+{
+  "id": "breakthrough",
+  "order": 2,
+  "title": "Breaking Through Resistance",
+  "description": "Step up your game against buyers who push back harder. Learn to handle price objections, comparison shoppers, busy professionals, analytical buyers, and deep skeptics.",
+  "level": "Intermediate",
+  "color": "#8b5cf6",
+  "modules": [
+    {
+      "id": "breakthrough-1",
+      "order": 1,
+      "title": "The Price Objection",
+      "objective": "Shift the conversation from price to value before price is even discussed",
+      "lesson": "<h2>The Price Objection</h2><p>\"That's too expensive\" is the most common objection in car sales — and the one most reps handle worst. The mistake is defending the price. The solution is making price irrelevant by the time it comes up.</p><h3>Why Price Objections Happen</h3><p>Price objections are almost never purely about money. They're usually about: (1) not yet seeing enough value, (2) fear of making the wrong decision, or (3) a negotiation tactic. Identify which one you're dealing with before responding.</p><h3>Value Before Price</h3><p>Build so much value in the vehicle and the experience that price feels like a secondary concern. By the time you talk numbers, the customer should already be picturing themselves in the car.</p><h3>The Trade-Up Question</h3><p>When price comes up: <em>\"I hear you — can I ask, what's the most important thing to you in this purchase? Is it the monthly payment, the total price, or what you're getting for your money?\"</em> This separates financial concern from value concern.</p><h3>Reframing the Number</h3><p>Break large numbers into small ones: <em>\"We're talking about $15 a day — about the cost of lunch. For a vehicle you're going to drive for the next 7 years.\"</em></p><h3>Practice Goal</h3><p>Brittany is a nurse who's rushed and direct. She'll bring up price early and expects a straight answer. Your job is to build enough value that she stops leading with price and starts leading with excitement.</p>",
+      "challenge": {
+        "personaId": "brittany-walsh",
+        "minScore": 65,
+        "label": "Brittany Walsh — Medium"
+      }
+    },
+    {
+      "id": "breakthrough-2",
+      "order": 2,
+      "title": "The Comparison Shopper",
+      "objective": "Become the rep they choose even when competitors offer a lower price",
+      "lesson": "<h2>The Comparison Shopper</h2><p>\"I'm getting quotes from three other dealerships\" is not a threat — it's an opportunity. It means they're serious buyers. Your job is to make them feel like coming to you is the obvious choice regardless of what the competition offers.</p><h3>The Loyalty Differentiator</h3><p>You can't always win on price. But you can win on: trust, convenience, responsiveness, and how you make them feel. Most buyers buy from the rep who makes the process feel easiest and most trustworthy.</p><h3>The Comparison Flip</h3><p>When they mention a competitor: <em>\"Smart to compare — I'd do the same. Can I ask what's most important to you in making this decision? Because I want to make sure you have all the right information regardless of where you end up going.\"</em> This builds trust and often keeps them talking to you.</p><h3>The Commitment Question</h3><p>Gently test their timeline and seriousness: <em>\"Are you looking to make a decision this week, or are you still in early research mode?\"</em> This tells you how hard to close and shapes your approach.</p><h3>Practice Goal</h3><p>Carlos is a small business owner — he's shrewd, friendly but guarded, and will mention other dealerships. Win him over by being the most trustworthy rep he's spoken to, not the cheapest.</p>",
+      "challenge": {
+        "personaId": "carlos-mendoza",
+        "minScore": 65,
+        "label": "Carlos Mendoza — Medium"
+      }
+    },
+    {
+      "id": "breakthrough-3",
+      "order": 3,
+      "title": "The Busy Buyer",
+      "objective": "Respect their time while still moving the sale forward",
+      "lesson": "<h2>The Busy Buyer</h2><p>Some buyers are genuinely time-pressured. Others use \"I'm busy\" as a polite shield. Either way, your response is the same: respect the constraint and be extremely efficient with every second they give you.</p><h3>The Time Contract</h3><p>Open with a clear time commitment: <em>\"I only need about 3 minutes — if it's not a fit, I'll let you go. Fair enough?\"</em> This lowers resistance immediately. Most people will say yes to 3 minutes.</p><h3>Speed Discovery</h3><p>Ask high-yield questions that give you the most information quickly:<br>\"What's your current vehicle?\" (baseline)<br>\"What's the #1 thing pushing you to change?\" (urgency and pain)<br>\"What does your ideal timeline look like?\" (commitment signal)</p><h3>The Efficient Close</h3><p>Skip the long pitch. Go straight to the vehicle match: <em>\"Based on what you just told me, I actually have something specific in mind. Can I send you the details right now while we're on the phone?\"</em></p><h3>The Follow-Up Hook</h3><p>If they have to go: <em>\"Totally understand — what's the best way to reach you? I'll send you a link to the vehicle and you can look whenever you have 5 minutes.\"</em></p><h3>Practice Goal</h3><p>Rosa is a catering business owner — always juggling. She'll feel hurried. Show her you respect her time by being sharp, focused, and getting to the point fast without losing the human touch.</p>",
+      "challenge": {
+        "personaId": "rosa-delgado",
+        "minScore": 65,
+        "label": "Rosa Delgado — Medium"
+      }
+    },
+    {
+      "id": "breakthrough-4",
+      "order": 4,
+      "title": "The Analytical Buyer",
+      "objective": "Earn trust through data and precision, not personality",
+      "lesson": "<h2>The Analytical Buyer</h2><p>Analytical buyers — engineers, doctors, lawyers, finance professionals — make decisions based on information, not charm. The tactics that work on emotional buyers can actually backfire here. Precision and credibility are everything.</p><h3>What They Want</h3><p>Data. Specifics. Comparisons. They want to know you've done your homework and that you won't waste their time with vague claims. \"It's our best model\" means nothing to them. Fuel economy stats, safety ratings, depreciation curves — that's what moves them.</p><h3>Credibility Signals</h3><p>Use specific numbers whenever possible: <em>\"The '24 RAV4 Hybrid gets 41 MPG combined — that's about $800 a year in fuel savings over your current vehicle based on the average commute.\"</em></p><h3>Acknowledge What You Don't Know</h3><p>Analytical buyers can smell overconfidence. If you don't know something, say so: <em>\"I want to make sure I give you the right number on that — let me pull it up and confirm.\"</em> This builds more trust than guessing.</p><h3>Handle Pushback with Logic</h3><p>When they challenge you: don't get emotional, don't double down without data. Ask: <em>\"That's a fair point — what are you comparing it against?\"</em> Then use their comparison against itself if you can.</p><h3>Practice Goal</h3><p>Priya is a software engineer who's done more research than most sales reps. Be precise, be humble about what you don't know, and earn her trust through substance over style.</p>",
+      "challenge": {
+        "personaId": "priya-chandrasekaran",
+        "minScore": 65,
+        "label": "Priya Chandrasekaran — Hard"
+      }
+    },
+    {
+      "id": "breakthrough-5",
+      "order": 5,
+      "title": "The Skeptical Professional",
+      "objective": "Break through deep distrust and still close for the appointment",
+      "lesson": "<h2>The Skeptical Professional</h2><p>Some buyers have been burned by dealerships before — or they've simply built a wall of skepticism as their default mode. Getting through it requires patience, authenticity, and a fundamentally different energy than a normal sales call.</p><h3>Why Skeptics Are Hard</h3><p>They're testing you constantly. Every claim you make is being fact-checked internally. Any hint of pressure, exaggeration, or sales-speak confirms their suspicion that you're just like every other rep they've dealt with.</p><h3>The Anti-Pitch Pitch</h3><p>Don't pitch. Ask instead. Skeptics hate pitches but respond well to curiosity: <em>\"I'm actually not going to try to sell you anything today — I just want to understand what you're looking for and see if we'd even be a good fit.\"</em></p><h3>Concede Strategically</h3><p>Agree with their criticisms of the industry when they're valid: <em>\"You're right — a lot of dealerships do make this process more painful than it needs to be. That's honestly why I try to do things differently.\"</em> This disarms them because you're not defending the enemy.</p><h3>The Long Game</h3><p>With deep skeptics, the goal isn't always to close on the first call. Sometimes planting a seed of trust and ending on a positive note is the win — it gets you the callback.</p><h3>Practice Goal</h3><p>Marcus is a sharp, skeptical accountant from Atlanta. He's heard every line before and won't be moved by enthusiasm alone. Earn his trust through honesty, not hustle.</p>",
+      "challenge": {
+        "personaId": "marcus-webb",
+        "minScore": 65,
+        "label": "Marcus Webb — Hard"
+      }
+    }
+  ]
+}

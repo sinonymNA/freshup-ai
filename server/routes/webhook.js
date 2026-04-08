@@ -7,7 +7,7 @@ const router = express.Router();
 const { getPersonaById, getRandomPersona } = require('../personas');
 const { analyzeCall } = require('../services/claude');
 const { getCall, setCall, updateCall } = require('../store');
-const { requireApiKey } = require('../middleware/auth');
+const { requireAuth } = require('../middleware/requireAuth');
 
 function formatTranscript(history) {
   return history
@@ -15,16 +15,16 @@ function formatTranscript(history) {
     .join('\n');
 }
 
-// POST /webhook/voice — Twilio calls this to start the call.
-// Returns TwiML that connects Twilio to our OpenAI Realtime WebSocket bridge.
+// POST /webhook/voice — returns TwiML connecting Twilio to the OpenAI Realtime WebSocket bridge
 router.post('/voice', (req, res) => {
   try {
     const callSid = req.body.CallSid;
     const personaId = req.query.personaId;
+    const userId = req.query.userId ? parseInt(req.query.userId, 10) : null;
     const persona = (personaId && getPersonaById(personaId)) || getRandomPersona();
 
-    // Initialise call record so the frontend can poll for results
     setCall(callSid, {
+      userId,
       personaId: persona.id,
       personaName: persona.name,
       history: [],
@@ -34,7 +34,6 @@ router.post('/voice', (req, res) => {
       audioFiles: [],
     });
 
-    // Build the WebSocket URL from BASE_URL (https → wss)
     const wsBase = (process.env.BASE_URL || '')
       .replace(/\/$/, '')
       .replace(/^https:\/\//, 'wss://')
@@ -55,8 +54,7 @@ router.post('/voice', (req, res) => {
   }
 });
 
-// POST /webhook/status — Twilio call lifecycle events.
-// Used as a fallback to score the call if the AI didn't call end_call.
+// POST /webhook/status — fallback scoring when AI doesn't call end_call
 router.post('/status', async (req, res) => {
   const { CallSid, CallStatus } = req.body;
   console.log(`[webhook/status] CallSid=${CallSid} status=${CallStatus}`);
@@ -72,8 +70,7 @@ router.post('/status', async (req, res) => {
         try {
           const persona = getPersonaById(callData.personaId);
           if (persona) {
-            const transcript = formatTranscript(callData.history);
-            updates.score = await analyzeCall(transcript, persona);
+            updates.score = await analyzeCall(formatTranscript(callData.history), persona);
           }
         } catch (err) {
           console.error('[webhook/status] analyzeCall error:', err);
@@ -87,11 +84,16 @@ router.post('/status', async (req, res) => {
   res.sendStatus(204);
 });
 
-// GET /webhook/results/:callSid — frontend polls this to get the score
-router.get('/results/:callSid', requireApiKey, (req, res) => {
+// GET /webhook/results/:callSid — frontend polls this after the call
+router.get('/results/:callSid', requireAuth, (req, res) => {
   const callData = getCall(req.params.callSid);
   if (!callData) {
     res.status(404).json({ error: 'Call not found' });
+    return;
+  }
+  // Only return calls belonging to this user
+  if (callData.userId && callData.userId !== req.user.id) {
+    res.status(403).json({ error: 'Forbidden' });
     return;
   }
   const { audioFiles, ...publicData } = callData; // eslint-disable-line no-unused-vars

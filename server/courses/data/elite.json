@@ -1,0 +1,70 @@
+{
+  "id": "elite",
+  "order": 3,
+  "title": "Elite Closer",
+  "description": "Face the hardest buyers in the game. These are the calls that separate good reps from great ones — guarded veterans, ultra-skeptics, and the near-impossible sell that will push you to your absolute limit.",
+  "level": "Advanced",
+  "color": "#f59e0b",
+  "modules": [
+    {
+      "id": "elite-1",
+      "order": 1,
+      "title": "Reading Resistance",
+      "objective": "Decode what a guarded buyer is really telling you — and respond accordingly",
+      "lesson": "<h2>Reading Resistance</h2><p>At the elite level, what a customer says and what they mean are two different things. \"I'm not interested\" might mean \"I don't trust you yet.\" \"Call me back next month\" might mean \"I want to buy but I'm afraid of making a mistake.\" Learning to read resistance is the difference between elite closers and everyone else.</p><h3>Resistance Patterns</h3><p><strong>Deflection:</strong> \"Send me an email\" — they want to end the conversation without conflict<br><strong>Delays:</strong> \"Call me in a few weeks\" — there's interest but also hesitation<br><strong>Silence:</strong> Short answers, minimal engagement — they're withholding, not uninterested<br><strong>Aggression:</strong> Pushback, challenging questions — they're engaged but testing you</p><h3>The Empathy Mirror</h3><p>Instead of countering resistance, reflect it back: <em>\"It sounds like you've had some experiences that made this feel like more trouble than it's worth. Am I reading that right?\"</em> This is disarming because you're not fighting — you're understanding.</p><h3>The Permission Question</h3><p>Ask before you push: <em>\"Can I ask you one quick question before you go?\"</em> Almost no one says no to this. It resets the dynamic and buys you one more chance to connect.</p><h3>Practice Goal</h3><p>Robert is a retired detective — perceptive, guarded, and will see through any scripted approach. Read his resistance correctly and respond with genuine empathy, not pressure. Your \"Rapport\" and \"Objections\" scores are what matter here.</p>",
+      "challenge": {
+        "personaId": "robert-hayes",
+        "minScore": 70,
+        "label": "Robert Hayes — Hard"
+      }
+    },
+    {
+      "id": "elite-2",
+      "order": 2,
+      "title": "The Ultra-Skeptic",
+      "objective": "Sell to someone who starts the call not wanting to talk to you",
+      "lesson": "<h2>The Ultra-Skeptic</h2><p>David Chen starts every sales call with the assumption that the rep is about to waste his time. He's a startup founder — he's optimized everything in his life and he has zero patience for anything that doesn't deliver immediate value.</p><h3>The Startup Mindset</h3><p>Founders think in terms of ROI, speed, and simplicity. Apply that language: <em>\"I'll be direct — I think I can save you about two hours of research and potentially a few thousand dollars. Give me 90 seconds.\"</em></p><h3>Pattern Interrupts</h3><p>Ultra-skeptics have heard every opener. Interrupt the pattern: instead of a standard opener, be radically honest — <em>\"I'm going to be upfront: I know you've probably gotten three calls like this today and most of them were a waste of time. I'm going to try to be the one that isn't.\"</em></p><h3>The Speed Close</h3><p>Don't meander. Get to the ask fast. Founders respect efficiency — a concise, confident close shows you understand their time is valuable.</p><h3>Expect Low Intent</h3><p>David's intent score is 2/10. That doesn't mean he won't buy — it means he'll need to be genuinely convinced, not just persuaded. Be different, be real, be fast.</p><h3>Practice Goal</h3><p>This is your first genuinely hard challenge. Getting David to agree to an appointment is a real win. Focus on being direct, different, and time-efficient.</p>",
+      "challenge": {
+        "personaId": "david-chen",
+        "minScore": 70,
+        "label": "David Chen — Hard"
+      }
+    },
+    {
+      "id": "elite-3",
+      "order": 3,
+      "title": "The Power Play",
+      "objective": "Maintain control and confidence when a buyer tries to dominate the call",
+      "lesson": "<h2>The Power Play</h2><p>Some buyers actively try to take control of the conversation — they interrupt, they deflect, they test your confidence. This isn't hostility; it's a power dynamic. If you let them take control, you lose the sale. If you fight back directly, you lose the sale. The answer is a third way: confident, grounded presence.</p><h3>Holding Your Ground</h3><p>When interrupted or challenged: don't get flustered, don't apologize, and don't immediately concede. Pause. Breathe. Respond from a place of calm confidence: <em>\"That's a fair point — let me address that directly.\"</em></p><h3>The Re-Route</h3><p>When the buyer takes the conversation somewhere unproductive, gently re-route: <em>\"I hear you on that — I want to make sure we get to what matters most to you. Can I ask...\"</em></p><h3>The Disqualifier</h3><p>Counterintuitively, being willing to walk away builds power: <em>\"Look, if this isn't the right fit I'd rather we both know now than waste your time. But I do think there's something here worth exploring.\"</em></p><h3>Practice Goal</h3><p>Marcus will try to redirect, deflect, and test your patience. Stay grounded, stay curious, and never let him feel like he's won by getting you flustered. Your \"Objections\" and \"Closing\" scores matter most.</p>",
+      "challenge": {
+        "personaId": "marcus-webb",
+        "minScore": 70,
+        "label": "Marcus Webb — Hard"
+      }
+    },
+    {
+      "id": "elite-4",
+      "order": 4,
+      "title": "Under Pressure",
+      "objective": "Perform at your best when a buyer applies maximum pressure",
+      "lesson": "<h2>Under Pressure</h2><p>You've learned the techniques. Now you need to execute them when a buyer is testing every single one. Robert Hayes is back — and this time the bar is higher. You need to score 80 or above to pass this module.</p><h3>Pressure as Signal</h3><p>When buyers apply pressure, it often signals they're close to buying — they just want to know you can handle it. A rep who crumbles under pressure doesn't inspire confidence. A rep who stays calm and confident under fire earns respect.</p><h3>The Composure Principle</h3><p>Your tone of voice is more important than your words. A perfectly worded response delivered with nerves or defensiveness will fail. A simple, direct response delivered with calm confidence will land.</p><h3>Recovery Moves</h3><p>When you fumble an answer (and you will): <em>\"Let me back up — I want to make sure I'm giving you the right answer on that.\"</em> Recovery shows emotional intelligence. Buyers forgive mistakes more than they forgive defensiveness.</p><h3>The Elite Standard</h3><p>To pass this module you need an overall score of 80+. That means strong performance across all four dimensions: rapport, discovery, objections, and closing. There are no shortcuts here.</p><h3>Practice Goal</h3><p>Robert is coming back harder. Use everything you've learned. Stay calm. Focus on all four dimensions. Score 80 or above.</p>",
+      "challenge": {
+        "personaId": "robert-hayes",
+        "minScore": 80,
+        "label": "Robert Hayes — Hard (Elite)"
+      }
+    },
+    {
+      "id": "elite-5",
+      "order": 5,
+      "title": "The Near-Impossible Close",
+      "objective": "Sell to the unsellable — the ultimate test",
+      "lesson": "<h2>The Near-Impossible Close</h2><p>This is the final test. David Chen, intent score 2/10, is back. He's busier than ever, more skeptical than before, and has explicitly said he's not interested in buying a car this year. Your job is to change his mind — or at least get a firm appointment commitment.</p><h3>Why This Matters</h3><p>In real-world car sales, you will regularly face calls where the odds are stacked against you. The reps who build extraordinary careers aren't the ones who only perform well with easy buyers — they're the ones who can consistently find a crack in the wall even with the hardest prospects.</p><h3>The Final Framework</h3><p><strong>1. Radical honesty</strong> — admit the situation is a long shot and that you respect his time<br><strong>2. Specific value hook</strong> — have one concrete, specific reason he should give you 2 more minutes<br><strong>3. Plant a seed</strong> — even if he says no today, leave something in his mind that makes him want to call back<br><strong>4. The graceful exit</strong> — end on your terms, not his</p><h3>Success Redefined</h3><p>A score of 75+ against David Chen in this scenario is extraordinary. Many experienced reps can't do it. If you can, you've genuinely mastered the fundamentals of elite car sales.</p><h3>Practice Goal</h3><p>Everything you've learned comes down to this call. Be real, be quick, be different. Score 75 or above to complete the Elite track and earn the top of the leaderboard.</p>",
+      "challenge": {
+        "personaId": "david-chen",
+        "minScore": 75,
+        "label": "David Chen — Hard (Near-Impossible)"
+      }
+    }
+  ]
+}

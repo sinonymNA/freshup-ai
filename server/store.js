@@ -1,7 +1,15 @@
 'use strict';
 
-// Thin wrapper over SQLite db — keeps the same API as the old in-memory Map
-// so all routes continue to work without changes.
-const { getCall, setCall, updateCall, getAllCalls } = require('./db');
+const {
+  createUser, getUserById, getUserByEmail,
+  getCall, setCall, updateCall, getAllCalls,
+  completeModule, getProgress,
+  getLeaderboard,
+} = require('./db');
 
-module.exports = { getCall, setCall, updateCall, getAllCalls };
+module.exports = {
+  createUser, getUserById, getUserByEmail,
+  getCall, setCall, updateCall, getAllCalls,
+  completeModule, getProgress,
+  getLeaderboard,
+};

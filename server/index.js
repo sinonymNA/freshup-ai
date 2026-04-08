@@ -10,6 +10,8 @@ const cors = require('cors');
 
 const callRoutes = require('./routes/call');
 const webhookRoutes = require('./routes/webhook');
+const authRoutes = require('./routes/auth');
+const coursesRoutes = require('./routes/courses');
 const { handleMediaStream } = require('./services/openai-realtime');
 
 const app = express();
@@ -19,12 +21,6 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Expose APP_API_KEY to the browser so it can authenticate API calls
-app.get('/config.js', (req, res) => {
-  const key = process.env.APP_API_KEY || '';
-  res.type('js').send(`window.FRESHUP_API_KEY = ${JSON.stringify(key)};`);
-});
-
 // Serve the frontend SPA
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -32,6 +28,8 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: Date.now() });
 });
 
+app.use('/api/auth', authRoutes);
+app.use('/api/courses', coursesRoutes);
 app.use('/api', callRoutes);
 app.use('/webhook', webhookRoutes);
 
