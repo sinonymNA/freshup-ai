@@ -45,8 +45,6 @@ async function api(path, opts = {}) {
 // ── ROUTER ────────────────────────────────────────────────────────────────────
 
 const app = document.getElementById('app');
-const PROTECTED = ['/', '/start', '/history', '/call/'];
-
 function getRoute() {
   const hash = location.hash || '#/';
   return hash.slice(1) || '/';
@@ -67,7 +65,7 @@ function render() {
   const path = getRoute();
   const token = getToken();
 
-  const needsAuth = PROTECTED.some(p => path === p || (p.endsWith('/') && path.startsWith(p)));
+  const needsAuth = path === '/' || path === '/start' || path === '/history' || path.startsWith('/call/');
   if (needsAuth && !token) {
     navigate('/login');
     return;
