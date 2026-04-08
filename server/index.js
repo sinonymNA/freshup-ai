@@ -2,6 +2,7 @@
 
 require('dotenv').config();
 
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 
@@ -18,12 +19,20 @@ app.use(express.urlencoded({ extended: true }));
 // Serve generated ElevenLabs audio files to Twilio
 app.use('/audio', express.static('/tmp'));
 
+// Serve the frontend SPA
+app.use(express.static(path.join(__dirname, 'public')));
+
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: Date.now() });
 });
 
 app.use('/api', callRoutes);
 app.use('/webhook', webhookRoutes);
+
+// SPA fallback — serve index.html for any unmatched GET
+app.get('/{*path}', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 app.listen(PORT, () => {
   console.log(`FreshUp AI running on port ${PORT}`);

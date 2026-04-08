@@ -6,7 +6,7 @@ const router = express.Router();
 const { getAllPersonas, getPersonaById, getRandomPersona } = require('../personas');
 const { initiateCall } = require('../services/twilio');
 const { generateCustomerResponse } = require('../services/claude');
-const { activeCalls } = require('../store');
+const { getAllCalls } = require('../store');
 
 // POST /api/call/start
 router.post('/call/start', async (req, res) => {
@@ -44,17 +44,15 @@ router.post('/call/start', async (req, res) => {
 
 // GET /api/call/history
 router.get('/call/history', (req, res) => {
-  const entries = Array.from(activeCalls.entries())
-    .slice(-20)
-    .map(([callSid, data]) => ({
-      callSid,
-      personaName: data.persona.name,
-      outcome: data.outcome,
-      score: data.score,
-      duration:
-        data.endTime != null ? Math.round((data.endTime - data.startTime) / 1000) : null,
-      timestamp: data.startTime,
-    }));
+  const entries = getAllCalls(50).map((data) => ({
+    callSid: data.callSid,
+    personaName: data.personaName,
+    personaId: data.personaId,
+    outcome: data.outcome,
+    score: data.score,
+    duration: data.endTime != null ? Math.round((data.endTime - data.startTime) / 1000) : null,
+    timestamp: data.startTime,
+  }));
 
   res.json(entries);
 });
