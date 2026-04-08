@@ -72,7 +72,7 @@ async function api(path, opts = {}) {
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
     if (res.status === 401) {
-      throw new Error('Unauthorized: set freshup_api_key in localStorage or window.FRESHUP_API_KEY');
+      throw new Error('Unauthorized: invalid API key');
     }
     throw new Error(err.error || res.statusText);
   }
