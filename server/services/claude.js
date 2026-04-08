@@ -5,6 +5,9 @@ const Anthropic = require('@anthropic-ai/sdk');
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 async function generateCustomerResponse(conversationHistory, persona) {
+  if (!persona || !persona.systemPrompt) {
+    throw new Error('Persona is required to generate customer response');
+  }
   const systemPrompt =
     persona.systemPrompt +
     '\nKeep responses to 1-3 sentences. You are on a phone call. Speak like a real human, not a chatbot. React directly to what was just said to you.';
@@ -23,6 +26,9 @@ async function generateCustomerResponse(conversationHistory, persona) {
 }
 
 async function analyzeCall(transcript, persona) {
+  if (!persona || !persona.name) {
+    throw new Error('Persona is required to analyze call');
+  }
   const prompt =
     `You are a sales training coach. Analyze this car dealership phone call transcript. ` +
     `The sales rep was speaking with a customer named ${persona.name}. ` +

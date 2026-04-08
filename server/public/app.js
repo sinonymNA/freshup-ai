@@ -59,10 +59,21 @@ function showToast(msg, type = 'default') {
 
 // ── API HELPERS ─────────────────────────────────────────────────────────────
 
+function getApiKey() {
+  return localStorage.getItem('freshup_api_key') || window.FRESHUP_API_KEY || '';
+}
+
 async function api(path, opts = {}) {
-  const res = await fetch(path, opts);
+  const headers = new Headers(opts.headers || {});
+  const apiKey = getApiKey();
+  if (apiKey) headers.set('x-api-key', apiKey);
+
+  const res = await fetch(path, { ...opts, headers });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
+    if (res.status === 401) {
+      throw new Error('Unauthorized: set freshup_api_key in localStorage or window.FRESHUP_API_KEY');
+    }
     throw new Error(err.error || res.statusText);
   }
   return res.json();

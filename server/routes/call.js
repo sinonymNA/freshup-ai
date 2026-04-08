@@ -7,14 +7,18 @@ const { getAllPersonas, getPersonaById, getRandomPersona } = require('../persona
 const { initiateCall } = require('../services/twilio');
 const { generateCustomerResponse } = require('../services/claude');
 const { getAllCalls } = require('../store');
+const { requireApiKey } = require('../middleware/auth');
+const { startCallRateLimit } = require('../middleware/rateLimit');
+const { parseAndValidatePhone } = require('../utils/phone');
 
 // POST /api/call/start
-router.post('/call/start', async (req, res) => {
+router.post('/call/start', requireApiKey, startCallRateLimit, async (req, res) => {
   try {
     const { phoneNumber, personaId } = req.body;
 
-    if (!phoneNumber) {
-      res.status(400).json({ error: 'phoneNumber is required' });
+    const parsedPhone = parseAndValidatePhone(phoneNumber);
+    if (!parsedPhone.ok) {
+      res.status(400).json({ error: parsedPhone.error });
       return;
     }
 
@@ -24,7 +28,7 @@ router.post('/call/start', async (req, res) => {
       return;
     }
 
-    const call = await initiateCall(phoneNumber, persona.id);
+    const call = await initiateCall(parsedPhone.phoneNumber, persona.id);
 
     res.json({
       success: true,
@@ -43,7 +47,7 @@ router.post('/call/start', async (req, res) => {
 });
 
 // GET /api/call/history
-router.get('/call/history', (req, res) => {
+router.get('/call/history', requireApiKey, (req, res) => {
   const entries = getAllCalls(50).map((data) => ({
     callSid: data.callSid,
     personaName: data.personaName,

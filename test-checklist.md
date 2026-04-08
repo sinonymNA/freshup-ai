@@ -28,7 +28,7 @@ Expected response `200 OK`:
 GET /api/personas
 ```
 
-Expected response `200 OK` — array of 6 objects, each with these fields and **no** `systemPrompt`:
+Expected response `200 OK` — array of persona objects (count may change over time), each with these fields and **no** `systemPrompt`:
 ```json
 [
   {
@@ -50,7 +50,7 @@ Expected response `200 OK` — array of 6 objects, each with these fields and **
 ]
 ```
 
-Verify: exactly 6 entries, no `systemPrompt` field on any of them.
+Verify: at least one entry and no `systemPrompt` field on any of them.
 
 ---
 
@@ -95,10 +95,11 @@ Expected `404`:
 
 ## 4. Call History (empty)
 
-**No credentials required.**
+**Requires `x-api-key` matching `APP_API_KEY`.**
 
 ```
 GET /api/call/history
+Header: x-api-key: <APP_API_KEY>
 ```
 
 Expected response `200 OK` before any calls have been placed:
@@ -110,11 +111,12 @@ Expected response `200 OK` before any calls have been placed:
 
 ## 5. Start a Call
 
-**Requires all env vars. Only run this when ready to use real Twilio/ElevenLabs credits.**
+**Requires all env vars and `x-api-key` header. Only run this when ready to use real Twilio/ElevenLabs credits.**
 
 ```
 POST /api/call/start
 Content-Type: application/json
+Header: x-api-key: <APP_API_KEY>
 
 { "phoneNumber": "+1XXXXXXXXXX", "personaId": "tyler-kowalski" }
 ```
@@ -138,13 +140,14 @@ Test missing phone number:
 ```
 POST /api/call/start
 Content-Type: application/json
+Header: x-api-key: <APP_API_KEY>
 
 {}
 ```
 
 Expected `400`:
 ```json
-{ "error": "phoneNumber is required" }
+{ "error": "phoneNumber must be valid E.164 format (e.g. +15551234567)" }
 ```
 
 Test random persona (omit `personaId`):
@@ -152,6 +155,7 @@ Test random persona (omit `personaId`):
 ```
 POST /api/call/start
 Content-Type: application/json
+Header: x-api-key: <APP_API_KEY>
 
 { "phoneNumber": "+1XXXXXXXXXX" }
 ```
@@ -164,9 +168,10 @@ Expected `200` with a random persona in the response.
 
 ```
 GET /api/call/history
+Header: x-api-key: <APP_API_KEY>
 ```
 
-Expected response — array with one entry per call, up to 20:
+Expected response — array with one entry per call, up to 50:
 ```json
 [
   {
@@ -188,6 +193,7 @@ Once the call ends, `outcome` will be `"HangUp"`, `"Appointment"`, or `"Complete
 
 ```
 GET /webhook/results/:callSid
+Header: x-api-key: <APP_API_KEY>
 ```
 
 Replace `:callSid` with a real SID from step 5.

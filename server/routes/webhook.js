@@ -9,6 +9,7 @@ const { generateCustomerResponse, analyzeCall } = require('../services/claude');
 const { textToSpeech, saveAudioFile } = require('../services/elevenlabs');
 const { generateTwiML, generateEndTwiML } = require('../services/twilio');
 const { getCall, setCall, updateCall } = require('../store');
+const { requireApiKey } = require('../middleware/auth');
 
 function stripTags(text) {
   return text.replace(/\[HANG_UP\]/g, '').replace(/\[APPOINTMENT_SET\]/g, '').trim();
@@ -88,6 +89,17 @@ router.post('/respond', async (req, res) => {
     }
 
     const persona = getPersonaById(callData.personaId);
+    if (!persona) {
+      updateCall(CallSid, {
+        outcome: callData.outcome || 'InternalError',
+        endTime: Date.now(),
+      });
+      console.error(`[webhook/respond] persona not found for CallSid=${CallSid} personaId=${callData.personaId}`);
+      res.set('Content-Type', 'text/xml');
+      res.send('<Response><Say>Sorry, we could not load your session.</Say><Hangup/></Response>');
+      return;
+    }
+
     const history = callData.history;
     const nextWebhook = `${process.env.BASE_URL}/webhook/respond`;
 
@@ -168,6 +180,16 @@ router.post('/status', async (req, res) => {
     if (callData && !callData.score) {
       try {
         const persona = getPersonaById(callData.personaId);
+        if (!persona) {
+          updateCall(CallSid, {
+            outcome: callData.outcome || 'InternalError',
+            endTime: Date.now(),
+          });
+          console.error(`[webhook/status] persona not found for CallSid=${CallSid} personaId=${callData.personaId}`);
+          res.sendStatus(204);
+          return;
+        }
+
         const transcript = formatTranscript(callData.history);
         const score = await analyzeCall(transcript, persona);
         updateCall(CallSid, {
@@ -188,7 +210,7 @@ router.post('/status', async (req, res) => {
 });
 
 // GET /webhook/results/:callSid — retrieve stored call data and score
-router.get('/results/:callSid', (req, res) => {
+router.get('/results/:callSid', requireApiKey, (req, res) => {
   const callData = getCall(req.params.callSid);
   if (!callData) {
     res.status(404).json({ error: 'Call not found' });
