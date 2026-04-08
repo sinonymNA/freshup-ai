@@ -5,7 +5,7 @@ const twilio = require('twilio');
 
 const { getCall, setCall, updateCall } = require('../store');
 const { analyzeCall } = require('./claude');
-const { getPersonaById, getRandomPersona } = require('../personas');
+const { getPersonaById } = require('../personas');
 
 function formatTranscript(history) {
   return history
@@ -18,7 +18,15 @@ function handleMediaStream(twilioWs, rawUrl) {
   const callSidParam = searchParams.get('callSid');
   const personaIdParam = searchParams.get('personaId');
 
-  const persona = (personaIdParam && getPersonaById(personaIdParam)) || getRandomPersona();
+  // Trust DB-stored personaId (pre-stored by call.js); only use URL param as fallback
+  const storedCall = callSidParam ? getCall(callSidParam) : null;
+  const personaId = (storedCall && storedCall.personaId) || personaIdParam;
+  const persona = personaId ? getPersonaById(personaId) : null;
+  if (!persona) {
+    console.error(`[openai-realtime] Persona not found: ${personaId} for callSid=${callSidParam}`);
+    twilioWs.close(1008, 'Persona not found');
+    return;
+  }
 
   let callSid = callSidParam;
   let streamSid = null;
@@ -26,7 +34,7 @@ function handleMediaStream(twilioWs, rawUrl) {
 
   // ── Connect to OpenAI Realtime API ──────────────────────────────────────────
   const openAiWs = new WebSocket(
-    'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17',
+    'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2025-06-03',
     {
       headers: {
         Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,

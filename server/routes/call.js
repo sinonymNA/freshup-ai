@@ -5,7 +5,7 @@ const router = express.Router();
 
 const { getAllPersonas, getPersonaById, getRandomPersona } = require('../personas');
 const { initiateCall } = require('../services/twilio');
-const { getAllCalls } = require('../store');
+const { getAllCalls, setCall } = require('../store');
 const { requireAuth } = require('../middleware/requireAuth');
 const { startCallRateLimit } = require('../middleware/rateLimit');
 const { parseAndValidatePhone } = require('../utils/phone');
@@ -28,6 +28,18 @@ router.post('/call/start', requireAuth, startCallRateLimit, async (req, res) => 
     }
 
     const call = await initiateCall(parsedPhone.phoneNumber, persona.id, req.user.id);
+
+    // Pre-store with validated persona so webhook reads from DB instead of re-resolving URL params
+    setCall(call.sid, {
+      userId: req.user.id,
+      personaId: persona.id,
+      personaName: persona.name,
+      history: [],
+      startTime: Date.now(),
+      outcome: null,
+      score: null,
+      audioFiles: [],
+    });
 
     res.json({
       success: true,

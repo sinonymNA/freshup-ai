@@ -881,6 +881,26 @@ function renderResultData(data, callSid) {
       </div>
     </div>
 
+    ${!score ? (() => {
+      let pendingLabel = '';
+      try {
+        const pm = JSON.parse(sessionStorage.getItem('pendingModule') || 'null');
+        if (pm && pm.title) {
+          pendingLabel = `<div class="analyzing-module">Scoring module: <strong>${escHtml(pm.title)}</strong> &nbsp;·&nbsp; min score ${pm.minScore}</div>`;
+        }
+      } catch { /* ignore */ }
+      return `
+      <div class="analyzing-card">
+        ${avatar(data.personaName, 'avatar-sm')}
+        <div>
+          <strong>Analyzing call with ${escHtml(data.personaName || 'persona')}…</strong>
+          <div class="analyzing-sub">Results appear within 30 seconds of hanging up.</div>
+          ${pendingLabel}
+        </div>
+      </div>
+    `;
+    })() : ''}
+
     ${score ? `
       <div class="overall-score-wrap">
         <div class="score-big">${score.overallScore}</div>
@@ -904,12 +924,7 @@ function renderResultData(data, callSid) {
 
       <h2 class="section-label">Feedback</h2>
       <div class="feedback-box">${escHtml(score.feedback || '—')}</div>
-    ` : `
-      <div class="analyzing-card">
-        <span class="spinner"></span>
-        <span>Analyzing call… results will appear shortly.</span>
-      </div>
-    `}
+    ` : ''}
 
     ${history.length > 0 ? `
       <h2 class="section-label">Transcript</h2>

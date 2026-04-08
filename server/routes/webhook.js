@@ -4,7 +4,7 @@ const express = require('express');
 const twilio = require('twilio');
 const router = express.Router();
 
-const { getPersonaById, getRandomPersona } = require('../personas');
+const { getPersonaById } = require('../personas');
 const { analyzeCall } = require('../services/claude');
 const { getCall, setCall, updateCall } = require('../store');
 const { requireAuth } = require('../middleware/requireAuth');
@@ -19,16 +19,27 @@ function formatTranscript(history) {
 router.post('/voice', (req, res) => {
   try {
     const callSid = req.body.CallSid;
-    const personaId = req.query.personaId;
-    const userId = req.query.userId ? parseInt(req.query.userId, 10) : null;
-    const persona = (personaId && getPersonaById(personaId)) || getRandomPersona();
 
+    // Read pre-stored call data (written by call.js before Twilio called back)
+    const storedCall = getCall(callSid);
+    // Trust DB-stored personaId; only fall back to URL param for edge cases
+    const personaId = (storedCall && storedCall.personaId) || req.query.personaId;
+    const persona = personaId ? getPersonaById(personaId) : null;
+
+    if (!persona) {
+      console.error(`[webhook/voice] Persona not found: ${personaId} for callSid=${callSid}`);
+      res.set('Content-Type', 'text/xml');
+      res.send('<Response><Say>Sorry, we could not set up your training session. Please try again.</Say><Hangup/></Response>');
+      return;
+    }
+
+    // Update stored record (preserves pre-stored data; confirms persona)
     setCall(callSid, {
-      userId,
+      userId: (storedCall && storedCall.userId) || (req.query.userId ? parseInt(req.query.userId, 10) : null),
       personaId: persona.id,
       personaName: persona.name,
-      history: [],
-      startTime: Date.now(),
+      history: (storedCall && storedCall.history) || [],
+      startTime: (storedCall && storedCall.startTime) || Date.now(),
       outcome: null,
       score: null,
       audioFiles: [],
@@ -91,8 +102,8 @@ router.get('/results/:callSid', requireAuth, (req, res) => {
     res.status(404).json({ error: 'Call not found' });
     return;
   }
-  // Only return calls belonging to this user
-  if (callData.userId && callData.userId !== req.user.id) {
+  // Only return calls belonging to this user (strict check — null userId also denied)
+  if (callData.userId !== req.user.id) {
     res.status(403).json({ error: 'Forbidden' });
     return;
   }

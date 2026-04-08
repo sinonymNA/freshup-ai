@@ -578,14 +578,24 @@ tr:hover td { background: var(--accent-light); }
 .analyzing-card {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 24px;
-  color: var(--text-muted);
+  color: var(--text);
   font-size: 14px;
   margin: 24px 0;
+}
+.analyzing-sub {
+  color: var(--text-muted);
+  margin-top: 4px;
+  font-size: 13px;
+}
+.analyzing-module {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--accent);
 }
 
 /* ── TRANSCRIPT ──────────────────────────────────────────────────────────── */
