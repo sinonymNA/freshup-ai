@@ -88,7 +88,14 @@ function render() {
   const path = getRoute();
   const token = getToken();
 
-  const needsAuth = path === '/' || path === '/start' || path === '/history' || path.startsWith('/call/');
+  // Root: show landing page for guests, dashboard for logged-in users
+  if (path === '/') {
+    updateNav(path);
+    return token ? renderDashboard() : renderLanding();
+  }
+
+  const needsAuth = path === '/start' || path === '/history' || path === '/team'
+    || path.startsWith('/call/') || path.startsWith('/team/');
   if (needsAuth && !token) {
     navigate('/login');
     return;
@@ -96,7 +103,6 @@ function render() {
 
   updateNav(path);
 
-  if (path === '/') return renderDashboard();
   if (path === '/login') return renderLogin();
   if (path === '/register') return renderRegister();
   if (path === '/start') return renderStart();
@@ -104,7 +110,9 @@ function render() {
   if (path === '/personas') return renderPersonas();
   if (path === '/courses') return renderCourses();
   if (path === '/leaderboard') return renderLeaderboard();
+  if (path === '/team') return renderTeam();
   if (path.startsWith('/call/')) return renderCallResult(path.slice('/call/'.length));
+  if (path.startsWith('/team/rep/')) return renderRepDetail(path.slice('/team/rep/'.length));
 
   const courseModuleMatch = path.match(/^\/courses\/([^/]+)\/([^/]+)$/);
   if (courseModuleMatch) return renderModule(courseModuleMatch[1], courseModuleMatch[2]);
@@ -126,7 +134,8 @@ function updateNav(path) {
       (key === 'courses' && (path === '/courses' || path.startsWith('/courses/'))) ||
       (key === 'start' && path === '/start') ||
       (key === 'history' && path === '/history') ||
-      (key === 'leaderboard' && path === '/leaderboard')
+      (key === 'leaderboard' && path === '/leaderboard') ||
+      (key === 'team' && (path === '/team' || path.startsWith('/team/')))
     ) ? 'active' : '';
     return `<a href="#${href}" data-nav="${key}" class="nav-link ${active}">${label}</a>`;
   }
@@ -134,11 +143,12 @@ function updateNav(path) {
   const drawer = document.getElementById('nav-drawer');
 
   if (user) {
+    const isManager = user.role === 'manager';
     const links = `
       ${navLink('/', 'dashboard', 'Dashboard')}
       ${navLink('/courses', 'courses', 'Courses')}
       ${navLink('/start', 'start', 'Practice')}
-      ${navLink('/history', 'history', 'History')}
+      ${isManager ? navLink('/team', 'team', 'My Team') : navLink('/history', 'history', 'History')}
       ${navLink('/leaderboard', 'leaderboard', 'Leaderboard')}
     `;
     linksEl.innerHTML = links;
@@ -229,6 +239,99 @@ function formatDuration(s) {
   return m ? `${m}m ${sec}s` : `${sec}s`;
 }
 
+// ── LANDING PAGE ──────────────────────────────────────────────────────────────
+
+function renderLanding() {
+  app.innerHTML = `
+    <div class="landing">
+
+      <div class="landing-hero">
+        <div class="landing-hero-inner">
+          <div class="landing-badge">AI Sales Training for Car Dealerships</div>
+          <h1 class="landing-headline">Train on Real AI Customers.<br>Close More Real Deals.</h1>
+          <p class="landing-sub">Your sales reps practice on AI personas that push back, object, and hang up — just like real buyers. Every call is scored. Every rep improves.</p>
+          <div class="landing-ctas">
+            <a href="#/register" class="btn btn-primary btn-lg">Start Free Trial</a>
+            <a href="#/register?role=manager" class="btn btn-secondary btn-lg" id="gm-cta">I'm a Sales Manager →</a>
+          </div>
+          <p class="landing-note">No credit card required · Setup in 2 minutes</p>
+        </div>
+      </div>
+
+      <div class="landing-stats">
+        <div class="landing-stat"><div class="ls-val">12</div><div class="ls-lbl">Buyer Personas</div></div>
+        <div class="landing-stat"><div class="ls-val">15</div><div class="ls-lbl">Training Modules</div></div>
+        <div class="landing-stat"><div class="ls-val">4</div><div class="ls-lbl">Scored Dimensions</div></div>
+        <div class="landing-stat"><div class="ls-val">∞</div><div class="ls-lbl">Practice Calls</div></div>
+      </div>
+
+      <div class="landing-section">
+        <h2 class="landing-section-title">How It Works</h2>
+        <div class="landing-steps">
+          <div class="landing-step">
+            <div class="step-num">1</div>
+            <h3>Pick a Persona</h3>
+            <p>Choose from 12 buyer types — nervous first-timers, analytical skeptics, ultra-busy professionals, and more.</p>
+          </div>
+          <div class="landing-step">
+            <div class="step-num">2</div>
+            <h3>Get a Real Phone Call</h3>
+            <p>Your phone rings. An AI customer picks up. The conversation is live, unscripted, and pressure-filled — just like the real thing.</p>
+          </div>
+          <div class="landing-step">
+            <div class="step-num">3</div>
+            <h3>See Your Score</h3>
+            <p>AI coaching grades every call on rapport, discovery, objection handling, and closing. You get specific, actionable feedback.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="landing-section landing-section-alt">
+        <h2 class="landing-section-title">Built for Dealership GMs</h2>
+        <div class="landing-features">
+          <div class="landing-feature">
+            <div class="lf-icon">📊</div>
+            <h3>Team Dashboard</h3>
+            <p>See every rep's call volume, scores, and training progress — all in one place. No more guessing who's practicing.</p>
+          </div>
+          <div class="landing-feature">
+            <div class="lf-icon">🏆</div>
+            <h3>Live Leaderboard</h3>
+            <p>Friendly competition drives engagement. Reps can see how they rank across the team, motivating daily practice.</p>
+          </div>
+          <div class="landing-feature">
+            <div class="lf-icon">🎓</div>
+            <h3>Structured Curriculum</h3>
+            <p>Three progressive courses take reps from basics to elite-level closing — with real lesson content before each challenge call.</p>
+          </div>
+          <div class="landing-feature">
+            <div class="lf-icon">📞</div>
+            <h3>Real Phone Calls</h3>
+            <p>Not roleplay exercises. Actual phone calls that ring your rep's cell. The pressure is real — so the training sticks.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="landing-cta-footer">
+        <h2>Ready to close more deals?</h2>
+        <p>Get your team trained on AI personas that fight back.</p>
+        <div class="landing-ctas">
+          <a href="#/register" class="btn btn-primary btn-lg">Create Free Account</a>
+          <a href="#/login" class="btn btn-ghost btn-lg">Sign In</a>
+        </div>
+      </div>
+
+    </div>
+  `;
+
+  // Pre-fill role=manager if CTA clicked
+  document.getElementById('gm-cta')?.addEventListener('click', e => {
+    e.preventDefault();
+    sessionStorage.setItem('register_role', 'manager');
+    navigate('/register');
+  });
+}
+
 // ── LOGIN ─────────────────────────────────────────────────────────────────────
 
 function renderLogin() {
@@ -291,12 +394,20 @@ function renderLogin() {
 // ── REGISTER ──────────────────────────────────────────────────────────────────
 
 function renderRegister() {
+  const defaultRole = sessionStorage.getItem('register_role') || 'rep';
+  sessionStorage.removeItem('register_role');
+
   app.innerHTML = `
     <div class="auth-wrap">
-      <div class="auth-card">
+      <div class="auth-card auth-card-wide">
         <div class="auth-brand">FreshUp<span> AI</span></div>
         <h2>Create account</h2>
-        <p class="subtitle">Start your sales training journey</p>
+
+        <div class="role-toggle" id="role-toggle">
+          <button type="button" class="role-btn${defaultRole === 'rep' ? ' active' : ''}" data-role="rep">Sales Rep</button>
+          <button type="button" class="role-btn${defaultRole === 'manager' ? ' active' : ''}" data-role="manager">Sales Manager / GM</button>
+        </div>
+
         <form id="register-form">
           <div class="form-group">
             <label for="reg-name">Full Name</label>
@@ -310,6 +421,22 @@ function renderRegister() {
             <label for="reg-password">Password</label>
             <input type="password" id="reg-password" placeholder="At least 6 characters" required minlength="6" autocomplete="new-password" />
           </div>
+
+          <div id="manager-fields" style="display:${defaultRole === 'manager' ? 'block' : 'none'}">
+            <div class="form-group">
+              <label for="reg-team">Team / Dealership Name</label>
+              <input type="text" id="reg-team" placeholder="Metro Ford Sales Team" autocomplete="organization" />
+            </div>
+          </div>
+
+          <div id="rep-fields" style="display:${defaultRole === 'rep' ? 'block' : 'none'}">
+            <div class="form-group">
+              <label for="reg-invite">Team Invite Code <span class="label-optional">(optional)</span></label>
+              <input type="text" id="reg-invite" placeholder="Enter code from your manager" autocomplete="off" style="text-transform:uppercase" />
+              <p class="input-hint">Ask your manager for your team's invite code to join their dashboard.</p>
+            </div>
+          </div>
+
           <div id="auth-error" class="auth-error" style="display:none"></div>
           <button type="submit" class="btn btn-primary btn-full" id="register-btn">Create Account</button>
         </form>
@@ -317,6 +444,17 @@ function renderRegister() {
       </div>
     </div>
   `;
+
+  let currentRole = defaultRole;
+
+  document.getElementById('role-toggle').addEventListener('click', e => {
+    const btn = e.target.closest('.role-btn');
+    if (!btn) return;
+    currentRole = btn.dataset.role;
+    document.querySelectorAll('.role-btn').forEach(b => b.classList.toggle('active', b.dataset.role === currentRole));
+    document.getElementById('manager-fields').style.display = currentRole === 'manager' ? 'block' : 'none';
+    document.getElementById('rep-fields').style.display = currentRole === 'rep' ? 'block' : 'none';
+  });
 
   document.getElementById('register-form').addEventListener('submit', async e => {
     e.preventDefault();
@@ -326,15 +464,24 @@ function renderRegister() {
     btn.textContent = 'Creating account…';
     errEl.style.display = 'none';
 
+    const body = {
+      name: document.getElementById('reg-name').value.trim(),
+      email: document.getElementById('reg-email').value.trim(),
+      password: document.getElementById('reg-password').value,
+      role: currentRole,
+    };
+    if (currentRole === 'manager') {
+      body.team_name = document.getElementById('reg-team').value.trim();
+    } else {
+      const code = document.getElementById('reg-invite').value.trim();
+      if (code) body.invite_code = code;
+    }
+
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: document.getElementById('reg-name').value.trim(),
-          email: document.getElementById('reg-email').value.trim(),
-          password: document.getElementById('reg-password').value,
-        }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: res.statusText }));
@@ -354,29 +501,83 @@ function renderRegister() {
 
 // ── DASHBOARD ─────────────────────────────────────────────────────────────────
 
+// Certification module ID sets
+const CERT_IDS = {
+  foundations:  ['foundations-1','foundations-2','foundations-3','foundations-4','foundations-5'],
+  breakthrough: ['breakthrough-1','breakthrough-2','breakthrough-3','breakthrough-4','breakthrough-5'],
+  elite:        ['elite-1','elite-2','elite-3','elite-4','elite-5'],
+};
+
+function calcStreak(calls) {
+  if (!calls.length) return 0;
+  const callDays = new Set(calls.map(c => {
+    const d = new Date(c.startTime || c.timestamp || 0);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  }));
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  let streak = 0, day = today.getTime();
+  // Count from today backward; if today is empty try from yesterday
+  if (!callDays.has(day)) day -= 86400000;
+  while (callDays.has(day)) { streak++; day -= 86400000; }
+  return streak;
+}
+
 async function renderDashboard() {
   app.innerHTML = '<div class="loading">Loading…</div>';
   const user = getUser();
-  let history = [], progress = [];
+  let history = [], progress = [], courses = [];
   try { history = await api('/api/call/history'); } catch (e) { /* empty */ }
   try { progress = await api('/api/courses/progress'); } catch (e) { /* empty */ }
+  try { courses = await api('/api/courses'); } catch (e) { /* empty */ }
 
   const total = history.length;
   const scored = history.filter(c => c.score && c.score.overallScore != null);
   const avgScore = scored.length
     ? Math.round(scored.reduce((s, c) => s + c.score.overallScore, 0) / scored.length)
     : null;
-  const bestScore = scored.length
-    ? Math.max(...scored.map(c => c.score.overallScore))
-    : null;
+  const bestScore = scored.length ? Math.max(...scored.map(c => c.score.overallScore)) : null;
   const modulesCompleted = progress.length;
   const recent = history.slice(0, 8);
+
+  // Certifications
+  const progressSet = new Set(progress);
+  const certs = {
+    foundations:  CERT_IDS.foundations.every(id => progressSet.has(id)),
+    breakthrough: CERT_IDS.breakthrough.every(id => progressSet.has(id)),
+    elite:        CERT_IDS.elite.every(id => progressSet.has(id)),
+  };
+  const allCertified = certs.foundations && certs.breakthrough && certs.elite;
+
+  // Continue learning: first incomplete module in first incomplete course
+  let nextModule = null;
+  for (const course of courses) {
+    if (!course.modules) continue;
+    const firstIncomplete = course.modules.find(m => !progressSet.has(m.id));
+    if (firstIncomplete) {
+      nextModule = { course, module: firstIncomplete };
+      break;
+    }
+  }
+
+  // Score trend: last 5 vs previous 5
+  let trend = null;
+  if (scored.length >= 5) {
+    const last5avg = scored.slice(0, 5).reduce((s, c) => s + c.score.overallScore, 0) / 5;
+    if (scored.length >= 10) {
+      const prev5avg = scored.slice(5, 10).reduce((s, c) => s + c.score.overallScore, 0) / 5;
+      trend = Math.round(last5avg - prev5avg);
+    }
+  }
+
+  // Streak
+  const streak = calcStreak(history);
 
   app.innerHTML = `
     <div class="page-header">
       <div>
         <h1>Dashboard</h1>
-        <p class="subtitle">Welcome back, ${escHtml(user ? user.name.split(' ')[0] : '')}!</p>
+        <p class="subtitle">Welcome back, ${escHtml(user ? user.name.split(' ')[0] : '')}!${streak >= 2 ? ` &nbsp;🔥 ${streak}-day streak` : ''}</p>
       </div>
       <a class="btn btn-primary" href="#/start">+ Start Call</a>
     </div>
@@ -387,7 +588,7 @@ async function renderDashboard() {
         <div class="stat-lbl">Total Calls</div>
       </div>
       <div class="stat-card">
-        <div class="stat-val">${avgScore != null ? avgScore : '—'}</div>
+        <div class="stat-val">${avgScore != null ? avgScore : '—'}${trend != null ? `<span class="trend ${trend >= 0 ? 'trend-up' : 'trend-down'}">${trend >= 0 ? '↑' : '↓'}${Math.abs(trend)}</span>` : ''}</div>
         <div class="stat-lbl">Avg Score</div>
       </div>
       <div class="stat-card">
@@ -395,12 +596,35 @@ async function renderDashboard() {
         <div class="stat-lbl">Best Score</div>
       </div>
       <div class="stat-card">
-        <div class="stat-val">${modulesCompleted}</div>
+        <div class="stat-val">${modulesCompleted}<span class="stat-denom">/15</span></div>
         <div class="stat-lbl">Modules Done</div>
       </div>
     </div>
 
-    <div class="section-header">
+    <div class="cert-strip">
+      ${certBadge('foundations', 'Foundations', certs.foundations)}
+      ${certBadge('breakthrough', 'Breakthrough', certs.breakthrough)}
+      ${certBadge('elite', 'Elite Closer', certs.elite)}
+    </div>
+
+    ${allCertified ? `
+      <div class="all-cert-banner">
+        <span class="all-cert-star">★</span>
+        <div>
+          <strong>FreshUp Elite Certified</strong>
+          <div>You've mastered all 15 modules — you're in the top tier of dealership sales reps.</div>
+        </div>
+      </div>
+    ` : nextModule ? `
+      <a href="#/courses/${nextModule.course.id}/${nextModule.module.id}" class="continue-card" style="--course-color:${nextModule.course.color || '#3b82f6'}">
+        <div class="continue-label">Continue Learning</div>
+        <div class="continue-title">${escHtml(nextModule.module.title)}</div>
+        <div class="continue-course">${escHtml(nextModule.course.title)}</div>
+        <span class="continue-arrow">→</span>
+      </a>
+    ` : ''}
+
+    <div class="section-header" style="margin-top:24px">
       <h2>Recent Calls</h2>
       ${total > 8 ? '<a href="#/history" class="link-sm">View all →</a>' : ''}
     </div>
@@ -414,6 +638,15 @@ async function renderDashboard() {
           <tbody>${recent.map(callRow).join('')}</tbody>
         </table></div>`
     }
+  `;
+}
+
+function certBadge(courseId, label, earned) {
+  return `
+    <a href="#/courses/${courseId}" class="cert-badge ${earned ? 'cert-earned' : 'cert-locked'}">
+      <span class="cert-icon">${earned ? '✓' : '○'}</span>
+      <span class="cert-label">${label}</span>
+    </a>
   `;
 }
 
@@ -964,5 +1197,165 @@ function leaderboardRow(r, user) {
       <td>${r.totalCalls}</td>
       <td>${r.modulesCompleted}</td>
     </tr>
+  `;
+}
+
+// ── TEAM DASHBOARD (Manager only) ─────────────────────────────────────────────
+
+async function renderTeam() {
+  app.innerHTML = '<div class="loading">Loading team…</div>';
+  let data;
+  try { data = await api('/api/team'); } catch (e) {
+    app.innerHTML = `<div class="empty-state">${escHtml(e.message)}</div>`;
+    return;
+  }
+
+  const { team, members } = data;
+  const now = Date.now();
+  const WEEK = 7 * 24 * 60 * 60 * 1000;
+  const MONTH = 30 * 24 * 60 * 60 * 1000;
+
+  const teamAvg = members.length
+    ? Math.round(members.filter(m => m.avgScore).reduce((s, m) => s + m.avgScore, 0) / members.filter(m => m.avgScore).length) || '—'
+    : '—';
+  const activeThisWeek = members.filter(m => m.lastActive && now - m.lastActive < WEEK).length;
+  const totalCerts = members.reduce((s, m) => s + (m.modulesCompleted >= 15 ? 1 : 0), 0);
+
+  app.innerHTML = `
+    <div class="page-header">
+      <div>
+        <h1>${escHtml(team.name)}</h1>
+        <p class="subtitle">${members.length} rep${members.length !== 1 ? 's' : ''}</p>
+      </div>
+      <button class="btn btn-secondary" id="invite-btn">Copy Invite Link</button>
+    </div>
+
+    <div class="stats-strip">
+      <div class="stat-card"><div class="stat-val">${members.length}</div><div class="stat-lbl">Total Reps</div></div>
+      <div class="stat-card"><div class="stat-val">${activeThisWeek}</div><div class="stat-lbl">Active This Week</div></div>
+      <div class="stat-card"><div class="stat-val">${teamAvg}</div><div class="stat-lbl">Team Avg Score</div></div>
+      <div class="stat-card"><div class="stat-val">${totalCerts}</div><div class="stat-lbl">Certified Reps</div></div>
+    </div>
+
+    ${members.length === 0 ? `
+      <div class="empty-state">
+        No reps on your team yet. Share your invite link so reps can join when they sign up.
+      </div>
+    ` : `
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Rep</th><th>Last Active</th><th>Calls</th><th>Avg Score</th><th>Best Score</th><th>Modules</th><th></th>
+          </tr></thead>
+          <tbody>${members.map(m => teamRepRow(m, now, WEEK, MONTH)).join('')}</tbody>
+        </table>
+      </div>
+    `}
+  `;
+
+  document.getElementById('invite-btn')?.addEventListener('click', async () => {
+    try {
+      const inv = await api('/api/team/invite');
+      await navigator.clipboard.writeText(inv.invite_url);
+      showToast('Invite link copied to clipboard!', 'success');
+    } catch {
+      showToast('Could not copy link. Check browser permissions.', 'error');
+    }
+  });
+}
+
+function teamRepRow(m, now, WEEK, MONTH) {
+  const activeClass = !m.lastActive ? 'rep-inactive'
+    : now - m.lastActive < WEEK ? 'rep-active'
+    : now - m.lastActive < MONTH ? 'rep-recent'
+    : 'rep-inactive';
+  const lastActiveText = m.lastActive ? formatDate(m.lastActive) : 'Never';
+  const avgDisplay = m.avgScore != null ? `<span style="color:${scoreColor(m.avgScore)}">${m.avgScore}</span>` : '—';
+  const bestDisplay = m.bestScore != null ? `<span style="color:${scoreColor(m.bestScore)}">${m.bestScore}</span>` : '—';
+  const modProgress = `${m.modulesCompleted}/15`;
+
+  return `
+    <tr class="${activeClass}">
+      <td>
+        <div class="cell-with-avatar">
+          ${avatar(m.name)}
+          <span>${escHtml(m.name)}</span>
+        </div>
+      </td>
+      <td class="text-muted text-sm">${lastActiveText}</td>
+      <td>${m.totalCalls}</td>
+      <td class="score-num">${avgDisplay}</td>
+      <td class="score-num">${bestDisplay}</td>
+      <td>
+        <div class="rep-modules">
+          <span>${modProgress}</span>
+          <div class="rep-module-bar"><div class="rep-module-fill" style="width:${Math.round(m.modulesCompleted / 15 * 100)}%"></div></div>
+        </div>
+      </td>
+      <td><a href="#/team/rep/${m.id}" class="btn btn-secondary btn-sm">View</a></td>
+    </tr>
+  `;
+}
+
+async function renderRepDetail(userId) {
+  app.innerHTML = '<div class="loading">Loading…</div>';
+  let data;
+  try { data = await api(`/api/team/rep/${userId}`); } catch (e) {
+    app.innerHTML = `<div class="empty-state">${escHtml(e.message)}</div>`;
+    return;
+  }
+
+  const { rep, calls, progress } = data;
+  const scored = calls.filter(c => c.score && c.score.overallScore != null);
+  const avgScore = scored.length
+    ? Math.round(scored.reduce((s, c) => s + c.score.overallScore, 0) / scored.length) : null;
+  const bestScore = scored.length ? Math.max(...scored.map(c => c.score.overallScore)) : null;
+  const progressSet = new Set(progress);
+  const certs = {
+    foundations:  CERT_IDS.foundations.every(id => progressSet.has(id)),
+    breakthrough: CERT_IDS.breakthrough.every(id => progressSet.has(id)),
+    elite:        CERT_IDS.elite.every(id => progressSet.has(id)),
+  };
+
+  app.innerHTML = `
+    <a href="#/team" class="back-link">← Team Dashboard</a>
+    <div class="result-header">
+      ${avatar(rep.name, 'avatar-lg')}
+      <div>
+        <h1>${escHtml(rep.name)}</h1>
+        <p class="subtitle">${escHtml(rep.email)}</p>
+      </div>
+    </div>
+
+    <div class="stats-strip">
+      <div class="stat-card"><div class="stat-val">${calls.length}</div><div class="stat-lbl">Total Calls</div></div>
+      <div class="stat-card"><div class="stat-val">${avgScore ?? '—'}</div><div class="stat-lbl">Avg Score</div></div>
+      <div class="stat-card"><div class="stat-val">${bestScore ?? '—'}</div><div class="stat-lbl">Best Score</div></div>
+      <div class="stat-card"><div class="stat-val">${progress.length}<span class="stat-denom">/15</span></div><div class="stat-lbl">Modules Done</div></div>
+    </div>
+
+    <div class="cert-strip">
+      ${certBadge('foundations', 'Foundations', certs.foundations)}
+      ${certBadge('breakthrough', 'Breakthrough', certs.breakthrough)}
+      ${certBadge('elite', 'Elite Closer', certs.elite)}
+    </div>
+
+    <div class="section-header" style="margin-top:24px"><h2>Call History</h2></div>
+    ${calls.length === 0
+      ? '<div class="empty-state">No calls yet.</div>'
+      : `<div class="table-wrap"><table>
+          <thead><tr><th>Persona</th><th>Outcome</th><th>Score</th><th>Duration</th><th>Date</th></tr></thead>
+          <tbody>${calls.map(c => {
+            const sv = c.score?.overallScore;
+            return `<tr>
+              <td><div class="cell-with-avatar">${avatar(c.personaName)}<strong>${escHtml(c.personaName||'—')}</strong></div></td>
+              <td>${outcomePill(c.outcome)}</td>
+              <td>${sv != null ? `<span class="score-num" style="color:${scoreColor(sv)}">${sv}</span>` : '—'}</td>
+              <td class="text-muted">${formatDuration(c.duration)}</td>
+              <td class="text-subtle text-sm">${formatDate(c.startTime)}</td>
+            </tr>`;
+          }).join('')}</tbody>
+        </table></div>`
+    }
   `;
 }

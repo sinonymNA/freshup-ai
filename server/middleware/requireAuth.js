@@ -15,11 +15,19 @@ function requireAuth(req, res, next) {
 
   try {
     const payload = jwt.verify(token, JWT_SECRET);
-    req.user = { id: payload.id, email: payload.email, name: payload.name };
+    req.user = { id: payload.id, email: payload.email, name: payload.name, role: payload.role || 'rep', teamId: payload.teamId || null };
     next();
   } catch {
     res.status(401).json({ error: 'Invalid or expired token' });
   }
 }
 
-module.exports = { requireAuth, JWT_SECRET };
+function requireManager(req, res, next) {
+  if (!req.user || req.user.role !== 'manager') {
+    res.status(403).json({ error: 'Manager access required' });
+    return;
+  }
+  next();
+}
+
+module.exports = { requireAuth, requireManager, JWT_SECRET };

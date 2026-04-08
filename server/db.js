@@ -15,6 +15,14 @@ db.exec(`
     created_at   INTEGER NOT NULL
   );
 
+  CREATE TABLE IF NOT EXISTS teams (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT NOT NULL,
+    manager_id  INTEGER NOT NULL REFERENCES users(id),
+    invite_code TEXT UNIQUE NOT NULL,
+    created_at  INTEGER NOT NULL
+  );
+
   CREATE TABLE IF NOT EXISTS calls (
     callSid     TEXT PRIMARY KEY,
     userId      INTEGER REFERENCES users(id),
@@ -41,22 +49,84 @@ db.exec(`
   );
 `);
 
+// ── Migrations (safe column additions) ──────────────────────────────────────
+
+const existingUserCols = db.prepare('PRAGMA table_info(users)').all().map(r => r.name);
+if (!existingUserCols.includes('role')) {
+  db.exec("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'rep'");
+}
+if (!existingUserCols.includes('team_id')) {
+  db.exec('ALTER TABLE users ADD COLUMN team_id INTEGER');
+}
+
 // ── Users ────────────────────────────────────────────────────────────────────
 
-function createUser({ email, name, password_hash }) {
+function createUser({ email, name, password_hash, role = 'rep', team_id = null }) {
   const stmt = db.prepare(
-    'INSERT INTO users (email, name, password_hash, created_at) VALUES (?, ?, ?, ?)'
+    'INSERT INTO users (email, name, password_hash, role, team_id, created_at) VALUES (?, ?, ?, ?, ?, ?)'
   );
-  const result = stmt.run(email, name, password_hash, Date.now());
+  const result = stmt.run(email, name, password_hash, role, team_id, Date.now());
   return getUserById(result.lastInsertRowid);
 }
 
+function updateUser(id, updates) {
+  const fields = Object.keys(updates).map(k => `${k} = ?`).join(', ');
+  db.prepare(`UPDATE users SET ${fields} WHERE id = ?`).run(...Object.values(updates), id);
+  return getUserById(id);
+}
+
 function getUserById(id) {
-  return db.prepare('SELECT id, email, name, created_at FROM users WHERE id = ?').get(id);
+  return db.prepare('SELECT id, email, name, role, team_id, created_at FROM users WHERE id = ?').get(id);
 }
 
 function getUserByEmail(email) {
   return db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+}
+
+// ── Teams ─────────────────────────────────────────────────────────────────────
+
+function makeInviteCode() {
+  return Math.random().toString(36).slice(2, 10).toUpperCase();
+}
+
+function createTeam({ name, managerId }) {
+  let code;
+  // Retry until unique code is found
+  for (let i = 0; i < 10; i++) {
+    code = makeInviteCode();
+    const existing = db.prepare('SELECT id FROM teams WHERE invite_code = ?').get(code);
+    if (!existing) break;
+  }
+  const result = db.prepare(
+    'INSERT INTO teams (name, manager_id, invite_code, created_at) VALUES (?, ?, ?, ?)'
+  ).run(name, managerId, code, Date.now());
+  return db.prepare('SELECT * FROM teams WHERE id = ?').get(result.lastInsertRowid);
+}
+
+function getTeamByCode(code) {
+  return db.prepare('SELECT * FROM teams WHERE invite_code = ?').get(code.toUpperCase());
+}
+
+function getTeamByManagerId(managerId) {
+  return db.prepare('SELECT * FROM teams WHERE manager_id = ?').get(managerId);
+}
+
+function getTeamMembers(teamId) {
+  return db.prepare(`
+    SELECT
+      u.id, u.name, u.email, u.created_at,
+      COUNT(DISTINCT c.callSid) AS totalCalls,
+      ROUND(AVG(CASE WHEN c.score IS NOT NULL THEN CAST(json_extract(c.score, '$.overallScore') AS REAL) END), 1) AS avgScore,
+      MAX(CASE WHEN c.score IS NOT NULL THEN CAST(json_extract(c.score, '$.overallScore') AS INTEGER) END) AS bestScore,
+      COUNT(DISTINCT CASE WHEN mc.passed = 1 THEN mc.moduleId END) AS modulesCompleted,
+      MAX(c.startTime) AS lastActive
+    FROM users u
+    LEFT JOIN calls c ON c.userId = u.id
+    LEFT JOIN module_completions mc ON mc.userId = u.id
+    WHERE u.team_id = ?
+    GROUP BY u.id
+    ORDER BY avgScore DESC, totalCalls DESC
+  `).all(teamId);
 }
 
 // ── Calls ─────────────────────────────────────────────────────────────────────
@@ -159,7 +229,8 @@ function getLeaderboard(limit = 20) {
 }
 
 module.exports = {
-  createUser, getUserById, getUserByEmail,
+  createUser, updateUser, getUserById, getUserByEmail,
+  createTeam, getTeamByCode, getTeamByManagerId, getTeamMembers,
   getCall, setCall, updateCall, getAllCalls,
   completeModule, getProgress,
   getLeaderboard,

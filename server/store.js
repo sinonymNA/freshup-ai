@@ -1,14 +1,16 @@
 'use strict';
 
 const {
-  createUser, getUserById, getUserByEmail,
+  createUser, updateUser, getUserById, getUserByEmail,
+  createTeam, getTeamByCode, getTeamByManagerId, getTeamMembers,
   getCall, setCall, updateCall, getAllCalls,
   completeModule, getProgress,
   getLeaderboard,
 } = require('./db');
 
 module.exports = {
-  createUser, getUserById, getUserByEmail,
+  createUser, updateUser, getUserById, getUserByEmail,
+  createTeam, getTeamByCode, getTeamByManagerId, getTeamMembers,
   getCall, setCall, updateCall, getAllCalls,
   completeModule, getProgress,
   getLeaderboard,

@@ -12,6 +12,7 @@ const callRoutes = require('./routes/call');
 const webhookRoutes = require('./routes/webhook');
 const authRoutes = require('./routes/auth');
 const coursesRoutes = require('./routes/courses');
+const teamRoutes = require('./routes/team');
 const { handleMediaStream } = require('./services/openai-realtime');
 
 const app = express();
@@ -30,6 +31,7 @@ app.get('/health', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/courses', coursesRoutes);
+app.use('/api/team', teamRoutes);
 app.use('/api', callRoutes);
 app.use('/webhook', webhookRoutes);
 

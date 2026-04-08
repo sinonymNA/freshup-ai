@@ -5,28 +5,36 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const router = express.Router();
 
-const { createUser, getUserByEmail } = require('../store');
+const { createUser, updateUser, getUserByEmail, createTeam, getTeamByCode } = require('../store');
 const { requireAuth, JWT_SECRET } = require('../middleware/requireAuth');
 
 function makeToken(user) {
   return jwt.sign(
-    { id: user.id, email: user.email, name: user.name },
+    { id: user.id, email: user.email, name: user.name, role: user.role || 'rep', teamId: user.team_id || null },
     JWT_SECRET,
     { expiresIn: '30d' }
   );
 }
 
+function userPayload(user) {
+  return { id: user.id, email: user.email, name: user.name, role: user.role || 'rep', teamId: user.team_id || null };
+}
+
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
   try {
-    const { email, name, password } = req.body;
+    const { email, name, password, role = 'rep', team_name, invite_code } = req.body;
 
     if (!email || !name || !password) {
       res.status(400).json({ error: 'Email, name, and password are required' });
       return;
     }
-    if (password.length < 8) {
-      res.status(400).json({ error: 'Password must be at least 8 characters' });
+    if (password.length < 6) {
+      res.status(400).json({ error: 'Password must be at least 6 characters' });
+      return;
+    }
+    if (!['rep', 'manager'].includes(role)) {
+      res.status(400).json({ error: 'Role must be rep or manager' });
       return;
     }
 
@@ -37,8 +45,20 @@ router.post('/register', async (req, res) => {
     }
 
     const password_hash = await bcrypt.hash(password, 12);
-    const user = createUser({ email: email.toLowerCase().trim(), name: name.trim(), password_hash });
-    res.json({ token: makeToken(user), user: { id: user.id, email: user.email, name: user.name } });
+    let user = createUser({ email: email.toLowerCase().trim(), name: name.trim(), password_hash, role });
+
+    if (role === 'manager') {
+      // Create a team automatically
+      const tName = (team_name && team_name.trim()) || `${name.trim()}'s Team`;
+      const team = createTeam({ name: tName, managerId: user.id });
+      user = updateUser(user.id, { team_id: team.id });
+    } else if (invite_code && invite_code.trim()) {
+      // Join an existing team via invite code
+      const team = getTeamByCode(invite_code.trim());
+      if (team) user = updateUser(user.id, { team_id: team.id });
+    }
+
+    res.json({ token: makeToken(user), user: userPayload(user) });
   } catch (err) {
     console.error('[auth/register] error:', err);
     res.status(500).json({ error: 'Registration failed' });
@@ -67,7 +87,7 @@ router.post('/login', async (req, res) => {
       return;
     }
 
-    res.json({ token: makeToken(user), user: { id: user.id, email: user.email, name: user.name } });
+    res.json({ token: makeToken(user), user: userPayload(user) });
   } catch (err) {
     console.error('[auth/login] error:', err);
     res.status(500).json({ error: 'Login failed' });
