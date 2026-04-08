@@ -3,8 +3,7 @@
 require('dotenv').config();
 
 if (process.env.NODE_ENV === 'production' && !process.env.APP_API_KEY) {
-  console.error('FATAL: APP_API_KEY is required in production. Set it in your Railway environment variables.');
-  process.exit(1);
+  console.error('WARNING: APP_API_KEY is not set. Protected endpoints will return 500 until it is configured in Railway.');
 }
 
 const fs = require('fs');
@@ -18,18 +17,27 @@ const webhookRoutes = require('./routes/webhook');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Read and cache index.html with the API key injected so every browser
-// automatically gets window.FRESHUP_API_KEY without manual localStorage setup.
-const indexPath = path.join(__dirname, 'public', 'index.html');
-const rawHtml = fs.readFileSync(indexPath, 'utf8');
-const key = process.env.APP_API_KEY || '';
-const indexHtml = rawHtml.replace(
-  '</head>',
-  `<script>window.FRESHUP_API_KEY = ${JSON.stringify(key)};</script></head>`
-);
+// Build index.html with APP_API_KEY injected so every browser gets
+// window.FRESHUP_API_KEY automatically — no localStorage setup needed.
+let indexHtml = null;
+try {
+  const indexPath = path.join(__dirname, 'public', 'index.html');
+  const rawHtml = fs.readFileSync(indexPath, 'utf8');
+  const key = process.env.APP_API_KEY || '';
+  indexHtml = rawHtml.replace(
+    '</head>',
+    `<script>window.FRESHUP_API_KEY = ${JSON.stringify(key)};</script></head>`
+  );
+} catch (err) {
+  console.error('Could not inject API key into index.html:', err.message);
+}
 
 function serveIndex(req, res) {
-  res.type('html').send(indexHtml);
+  if (indexHtml) {
+    res.type('html').send(indexHtml);
+  } else {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  }
 }
 
 app.use(cors());
