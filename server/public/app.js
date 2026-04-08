@@ -61,6 +61,29 @@ window.addEventListener('scroll', () => {
   document.getElementById('nav').classList.toggle('scrolled', window.scrollY > 4);
 }, { passive: true });
 
+// ── MOBILE NAV DRAWER ────────────────────────────────────────────────────────
+
+document.addEventListener('DOMContentLoaded', () => {
+  const toggle = document.getElementById('nav-toggle');
+  const drawer = document.getElementById('nav-drawer');
+  if (!toggle || !drawer) return;
+
+  toggle.addEventListener('click', () => {
+    const open = drawer.classList.toggle('open');
+    toggle.setAttribute('aria-expanded', open);
+  });
+
+  // Close drawer when clicking a link inside it or outside the nav
+  drawer.addEventListener('click', e => {
+    if (e.target.closest('a, button')) drawer.classList.remove('open');
+  });
+  document.addEventListener('click', e => {
+    if (!e.target.closest('#nav') && !e.target.closest('#nav-drawer')) {
+      drawer.classList.remove('open');
+    }
+  });
+});
+
 function render() {
   const path = getRoute();
   const token = getToken();
@@ -108,14 +131,17 @@ function updateNav(path) {
     return `<a href="#${href}" data-nav="${key}" class="nav-link ${active}">${label}</a>`;
   }
 
+  const drawer = document.getElementById('nav-drawer');
+
   if (user) {
-    linksEl.innerHTML = `
+    const links = `
       ${navLink('/', 'dashboard', 'Dashboard')}
       ${navLink('/courses', 'courses', 'Courses')}
       ${navLink('/start', 'start', 'Practice')}
       ${navLink('/history', 'history', 'History')}
       ${navLink('/leaderboard', 'leaderboard', 'Leaderboard')}
     `;
+    linksEl.innerHTML = links;
     authEl.innerHTML = `
       <span class="nav-user">${escHtml(user.name)}</span>
       <button class="btn btn-ghost btn-sm" id="logout-btn">Log Out</button>
@@ -124,13 +150,32 @@ function updateNav(path) {
       clearAuth();
       navigate('/login');
     });
+    if (drawer) {
+      drawer.innerHTML = links + `
+        <span class="nav-user">${escHtml(user.name)}</span>
+        <button class="btn btn-ghost btn-sm" id="drawer-logout-btn">Log Out</button>
+      `;
+      drawer.querySelector('#drawer-logout-btn')?.addEventListener('click', () => {
+        clearAuth();
+        navigate('/login');
+        drawer.classList.remove('open');
+      });
+    }
   } else {
     linksEl.innerHTML = '';
     authEl.innerHTML = `
       <a href="#/login" class="btn btn-ghost btn-sm">Log In</a>
       <a href="#/register" class="btn btn-primary btn-sm">Sign Up</a>
     `;
+    if (drawer) {
+      drawer.innerHTML = `
+        <a href="#/login" class="nav-link">Log In</a>
+        <a href="#/register" class="nav-link">Sign Up</a>
+      `;
+    }
   }
+  // Close drawer on every nav update (page change)
+  drawer?.classList.remove('open');
 }
 
 // ── TOAST ─────────────────────────────────────────────────────────────────────

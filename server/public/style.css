@@ -924,16 +924,70 @@ a.link:hover { text-decoration: underline; }
 .link-sm { font-size: 13px; color: var(--accent); text-decoration: none; font-weight: 500; }
 .link-sm:hover { text-decoration: underline; }
 
+/* ── HAMBURGER / MOBILE NAV ──────────────────────────────────────────────── */
+
+.nav-toggle {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px 4px;
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+.nav-toggle span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: var(--text);
+  border-radius: 2px;
+  transition: transform 0.2s, opacity 0.2s;
+}
+
+.nav-drawer {
+  display: none;
+  flex-direction: column;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow-md);
+  padding: 8px 16px 16px;
+  position: sticky;
+  top: 60px;
+  z-index: 99;
+}
+.nav-drawer.open { display: flex; }
+.nav-drawer .nav-link {
+  padding: 12px 8px;
+  border-bottom: 1px solid var(--border);
+  font-size: 15px;
+}
+.nav-drawer .nav-link:last-child { border-bottom: none; }
+.nav-drawer .nav-user {
+  padding: 12px 8px 4px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.nav-drawer .btn { margin-top: 8px; width: 100%; justify-content: center; }
+
 /* ── MOBILE ──────────────────────────────────────────────────────────────── */
 
 @media (max-width: 768px) {
   main { padding: 24px 16px 60px; }
   nav  { padding: 0 16px; }
   #nav-links { display: none; }
+  #nav-auth  { display: none; }
+  .nav-toggle { display: flex; }
   .stats-strip { grid-template-columns: repeat(2, 1fr); }
   .persona-grid { grid-template-columns: repeat(2, 1fr); }
   .courses-grid { grid-template-columns: 1fr; }
   h1 { font-size: 23px; }
+  .page-header { flex-direction: column; align-items: flex-start; }
+  .page-header .btn { align-self: flex-start; }
+  .module-item { padding: 14px 16px; }
+  .mod-status { display: none; }
 }
 
 @media (max-width: 480px) {
