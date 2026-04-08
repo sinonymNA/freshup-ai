@@ -22,5 +22,7 @@ services:
         sync: false
       - key: BASE_URL
         sync: false
+      - key: APP_API_KEY
+        sync: false
       - key: DB_PATH
         value: /tmp/calls.db
