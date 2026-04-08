@@ -5,7 +5,6 @@ const router = express.Router();
 
 const { getAllPersonas, getPersonaById, getRandomPersona } = require('../personas');
 const { initiateCall } = require('../services/twilio');
-const { generateCustomerResponse } = require('../services/claude');
 const { getAllCalls } = require('../store');
 const { requireApiKey } = require('../middleware/auth');
 const { startCallRateLimit } = require('../middleware/rateLimit');
@@ -65,28 +64,6 @@ router.get('/call/history', requireApiKey, (req, res) => {
 router.get('/personas', (req, res) => {
   const result = getAllPersonas().map(({ systemPrompt, ...rest }) => rest); // eslint-disable-line no-unused-vars
   res.json(result);
-});
-
-// GET /api/test/persona/:personaId — Claude only, no Twilio or ElevenLabs
-router.get('/test/persona/:personaId', async (req, res) => {
-  try {
-    const persona = getPersonaById(req.params.personaId);
-    if (!persona) {
-      res.status(404).json({ error: 'Persona not found' });
-      return;
-    }
-
-    const openingHistory = [{ role: 'user', content: 'Hello?' }];
-    const openingLine = await generateCustomerResponse(openingHistory, persona);
-
-    res.json({
-      persona: persona.name,
-      openingLine,
-    });
-  } catch (err) {
-    console.error('[test/persona] error:', err);
-    res.status(500).json({ error: 'Failed to generate response', details: err.message });
-  }
 });
 
 module.exports = router;

@@ -4,27 +4,6 @@ const Anthropic = require('@anthropic-ai/sdk');
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-async function generateCustomerResponse(conversationHistory, persona) {
-  if (!persona || !persona.systemPrompt) {
-    throw new Error('Persona is required to generate customer response');
-  }
-  const systemPrompt =
-    persona.systemPrompt +
-    '\nKeep responses to 1-3 sentences. You are on a phone call. Speak like a real human, not a chatbot. React directly to what was just said to you.';
-
-  const messages = conversationHistory && conversationHistory.length > 0
-    ? conversationHistory
-    : [{ role: 'user', content: 'Hello?' }];
-
-  const message = await client.messages.create({
-    model: 'claude-sonnet-4-5',
-    max_tokens: 300,
-    system: systemPrompt,
-    messages: messages,
-  });
-  return message.content[0].text;
-}
-
 async function analyzeCall(transcript, persona) {
   if (!persona || !persona.name) {
     throw new Error('Persona is required to analyze call');
@@ -69,4 +48,4 @@ async function analyzeCall(transcript, persona) {
   }
 }
 
-module.exports = { generateCustomerResponse, analyzeCall };
+module.exports = { analyzeCall };

@@ -16,12 +16,13 @@
   "license": "ISC",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.82.0",
-    "axios": "^1.14.0",
     "better-sqlite3": "^12.8.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.0",
     "express": "^5.2.1",
+    "openai": "^4.96.0",
     "twilio": "^5.13.1",
-    "uuid": "^13.0.0"
+    "uuid": "^13.0.0",
+    "ws": "^8.18.2"
   }
 }

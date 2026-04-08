@@ -18,30 +18,4 @@ async function initiateCall(toPhoneNumber, personaId) {
   return call;
 }
 
-function generateTwiML(audioUrl, nextWebhook) {
-  const response = new twilio.twiml.VoiceResponse();
-
-  response.play(audioUrl);
-
-  const gather = response.gather({
-    input: 'speech',
-    timeout: 5,
-    speechTimeout: 'auto',
-    action: nextWebhook,
-  });
-
-  gather.say('...');
-
-  return response.toString();
-}
-
-function generateEndTwiML(audioUrl) {
-  const response = new twilio.twiml.VoiceResponse();
-
-  response.play(audioUrl);
-  response.hangup();
-
-  return response.toString();
-}
-
-module.exports = { initiateCall, generateTwiML, generateEndTwiML };
+module.exports = { initiateCall };

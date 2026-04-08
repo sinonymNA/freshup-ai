@@ -2,12 +2,15 @@
 
 require('dotenv').config();
 
+const { createServer } = require('http');
+const { WebSocketServer } = require('ws');
 const path = require('path');
 const express = require('express');
 const cors = require('cors');
 
 const callRoutes = require('./routes/call');
 const webhookRoutes = require('./routes/webhook');
+const { handleMediaStream } = require('./services/openai-realtime');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -16,10 +19,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve generated ElevenLabs audio files to Twilio
-app.use('/audio', express.static('/tmp'));
-
-// Expose APP_API_KEY to the browser as a JS file loaded by index.html
+// Expose APP_API_KEY to the browser so it can authenticate API calls
 app.get('/config.js', (req, res) => {
   const key = process.env.APP_API_KEY || '';
   res.type('js').send(`window.FRESHUP_API_KEY = ${JSON.stringify(key)};`);
@@ -40,7 +40,20 @@ app.get('/{*path}', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.listen(PORT, () => {
+// ── WebSocket server (Twilio Media Streams) ──────────────────────────────────
+const server = createServer(app);
+const wss = new WebSocketServer({ server });
+
+wss.on('connection', (ws, req) => {
+  const url = req.url || '';
+  if (url.startsWith('/webhook/media-stream')) {
+    handleMediaStream(ws, url);
+  } else {
+    ws.close(1008, 'Unknown endpoint');
+  }
+});
+
+server.listen(PORT, () => {
   console.log(`FreshUp AI running on port ${PORT}`);
 });
 
