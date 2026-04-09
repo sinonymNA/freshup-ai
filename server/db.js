@@ -59,6 +59,11 @@ if (!existingUserCols.includes('team_id')) {
   db.exec('ALTER TABLE users ADD COLUMN team_id INTEGER');
 }
 
+const existingCallCols = db.prepare('PRAGMA table_info(calls)').all().map(r => r.name);
+if (!existingCallCols.includes('contactInfo')) {
+  db.exec('ALTER TABLE calls ADD COLUMN contactInfo TEXT');
+}
+
 // ── Users ────────────────────────────────────────────────────────────────────
 
 function createUser({ email, name, password_hash, role = 'rep', team_id = null }) {
@@ -139,13 +144,14 @@ function getCall(callSid) {
     history: JSON.parse(row.history || '[]'),
     score: row.score ? JSON.parse(row.score) : null,
     audioFiles: JSON.parse(row.audioFiles || '[]'),
+    contactInfo: row.contactInfo ? JSON.parse(row.contactInfo) : null,
   };
 }
 
 function setCall(callSid, data) {
   db.prepare(`
-    INSERT INTO calls (callSid, userId, personaId, personaName, history, outcome, score, startTime, endTime, audioFiles)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO calls (callSid, userId, personaId, personaName, history, outcome, score, startTime, endTime, audioFiles, contactInfo)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(callSid) DO UPDATE SET
       userId      = excluded.userId,
       personaId   = excluded.personaId,
@@ -155,7 +161,8 @@ function setCall(callSid, data) {
       score       = excluded.score,
       startTime   = excluded.startTime,
       endTime     = excluded.endTime,
-      audioFiles  = excluded.audioFiles
+      audioFiles  = excluded.audioFiles,
+      contactInfo = excluded.contactInfo
   `).run(
     callSid,
     data.userId ?? null,
@@ -166,7 +173,8 @@ function setCall(callSid, data) {
     data.score ? JSON.stringify(data.score) : null,
     data.startTime ?? null,
     data.endTime ?? null,
-    JSON.stringify(data.audioFiles ?? [])
+    JSON.stringify(data.audioFiles ?? []),
+    data.contactInfo ? JSON.stringify(data.contactInfo) : null
   );
 }
 

@@ -1270,3 +1270,140 @@ a.link:hover { text-decoration: underline; }
   .score-big { font-size: 56px; }
   .auth-card { padding: 28px 20px; }
 }
+
+/* ── ENTRANCE ANIMATIONS ─────────────────────────────────────────────────── */
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Page-level entrance — apply to top-level page sections */
+.page-header          { animation: fadeInUp 0.32s ease both; }
+.stats-strip          { animation: fadeInUp 0.32s ease 0.06s both; }
+.cert-strip           { animation: fadeInUp 0.32s ease 0.08s both; }
+.continue-card        { animation: fadeInUp 0.32s ease 0.10s both; }
+.result-header        { animation: fadeInUp 0.30s ease both; }
+.contact-reveal       { animation: fadeInUp 0.30s ease 0.08s both; }
+.analyzing-card       { animation: fadeInUp 0.30s ease 0.08s both; }
+.overall-score-wrap   { animation: fadeInUp 0.30s ease 0.10s both; }
+.score-grid           { animation: fadeInUp 0.30s ease 0.16s both; }
+.feedback-box         { animation: fadeInUp 0.30s ease 0.22s both; }
+.transcript           { animation: fadeInUp 0.30s ease 0.28s both; }
+.auth-card            { animation: fadeInUp 0.35s ease both; }
+.landing-hero         { animation: fadeInUp 0.50s ease both; }
+.landing-stats        { animation: fadeInUp 0.40s ease 0.12s both; }
+.landing-section:nth-child(1) { animation: fadeInUp 0.40s ease 0.08s both; }
+.landing-section:nth-child(2) { animation: fadeInUp 0.40s ease 0.16s both; }
+.landing-cta-footer   { animation: fadeInUp 0.40s ease 0.12s both; }
+.table-wrap           { animation: fadeInUp 0.35s ease 0.08s both; }
+.course-card          { animation: fadeInUp 0.30s ease both; }
+.module-item          { animation: fadeInUp 0.28s ease both; }
+
+/* Staggered stat cards */
+.stats-strip .stat-card:nth-child(1) { animation: fadeInUp 0.30s ease 0.04s both; }
+.stats-strip .stat-card:nth-child(2) { animation: fadeInUp 0.30s ease 0.08s both; }
+.stats-strip .stat-card:nth-child(3) { animation: fadeInUp 0.30s ease 0.12s both; }
+.stats-strip .stat-card:nth-child(4) { animation: fadeInUp 0.30s ease 0.16s both; }
+
+/* Staggered persona grid */
+.persona-grid .persona-card:nth-child(1)  { animation: fadeInUp 0.28s ease 0.02s both; }
+.persona-grid .persona-card:nth-child(2)  { animation: fadeInUp 0.28s ease 0.05s both; }
+.persona-grid .persona-card:nth-child(3)  { animation: fadeInUp 0.28s ease 0.08s both; }
+.persona-grid .persona-card:nth-child(4)  { animation: fadeInUp 0.28s ease 0.11s both; }
+.persona-grid .persona-card:nth-child(5)  { animation: fadeInUp 0.28s ease 0.14s both; }
+.persona-grid .persona-card:nth-child(6)  { animation: fadeInUp 0.28s ease 0.17s both; }
+.persona-grid .persona-card:nth-child(7)  { animation: fadeInUp 0.28s ease 0.20s both; }
+.persona-grid .persona-card:nth-child(8)  { animation: fadeInUp 0.28s ease 0.23s both; }
+.persona-grid .persona-card:nth-child(9)  { animation: fadeInUp 0.28s ease 0.26s both; }
+.persona-grid .persona-card:nth-child(10) { animation: fadeInUp 0.28s ease 0.29s both; }
+.persona-grid .persona-card:nth-child(11) { animation: fadeInUp 0.28s ease 0.32s both; }
+.persona-grid .persona-card:nth-child(12) { animation: fadeInUp 0.28s ease 0.35s both; }
+
+/* Staggered course cards */
+.courses-grid .course-card:nth-child(1) { animation: fadeInUp 0.30s ease 0.04s both; }
+.courses-grid .course-card:nth-child(2) { animation: fadeInUp 0.30s ease 0.10s both; }
+.courses-grid .course-card:nth-child(3) { animation: fadeInUp 0.30s ease 0.16s both; }
+
+/* Staggered module items */
+.module-list .module-item:nth-child(n+2) { animation-delay: calc((var(--idx, 0) + 1) * 0.05s); }
+
+/* Smoother button press */
+.btn:active { transform: scale(0.97); }
+
+/* ── CALL ARENA ──────────────────────────────────────────────────────────── */
+
+.arena-header {
+  border-bottom: 2px solid var(--accent-light);
+  padding-bottom: 16px;
+  margin-bottom: 8px;
+}
+
+.arena-tip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--warning-bg);
+  border: 1px solid #fde68a;
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #92400e;
+  margin-top: 4px;
+  animation: fadeIn 0.4s ease 0.3s both;
+}
+.arena-tip-icon { font-size: 16px; flex-shrink: 0; }
+
+.btn-arena {
+  font-size: 17px;
+  padding: 14px 24px;
+  letter-spacing: 0.02em;
+}
+
+.call-form-card { animation: fadeInUp 0.32s ease 0.4s both; }
+
+/* ── CONTACT REVEAL ──────────────────────────────────────────────────────── */
+
+.contact-reveal {
+  padding: 20px 24px;
+  border-left: 4px solid var(--accent);
+  margin-bottom: 20px;
+}
+.contact-reveal-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.contact-reveal-icon { font-size: 22px; flex-shrink: 0; margin-top: 1px; }
+.contact-reveal-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.contact-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+.contact-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.cf-lbl {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+.cf-val {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
+}

@@ -146,10 +146,10 @@ function updateNav(path) {
     const isManager = user.role === 'manager';
     const links = `
       ${navLink('/', 'dashboard', 'Dashboard')}
-      ${navLink('/courses', 'courses', 'Courses')}
-      ${navLink('/start', 'start', 'Practice')}
+      ${navLink('/start', 'start', 'Call Arena')}
       ${isManager ? navLink('/team', 'team', 'My Team') : navLink('/history', 'history', 'History')}
       ${navLink('/leaderboard', 'leaderboard', 'Leaderboard')}
+      ${navLink('/courses', 'courses', 'Courses')}
     `;
     linksEl.innerHTML = links;
     authEl.innerHTML = `
@@ -247,9 +247,9 @@ function renderLanding() {
 
       <div class="landing-hero">
         <div class="landing-hero-inner">
-          <div class="landing-badge">AI Sales Training for Car Dealerships</div>
-          <h1 class="landing-headline">Train on Real AI Customers.<br>Close More Real Deals.</h1>
-          <p class="landing-sub">Your sales reps practice on AI personas that push back, object, and hang up — just like real buyers. Every call is scored. Every rep improves.</p>
+          <div class="landing-badge">Phone Sales Training for Car Dealerships</div>
+          <h1 class="landing-headline">Train on Real Customers.<br>Close More Real Deals.</h1>
+          <p class="landing-sub">Your sales reps practice on simulated buyers that push back, object, and hang up — just like real phone-ups. Every call is scored. Every rep improves.</p>
           <div class="landing-ctas">
             <a href="#/register" class="btn btn-primary btn-lg">Start Free Trial</a>
             <a href="#/register?role=manager" class="btn btn-secondary btn-lg" id="gm-cta">I'm a Sales Manager →</a>
@@ -262,7 +262,7 @@ function renderLanding() {
         <div class="landing-stat"><div class="ls-val">12</div><div class="ls-lbl">Buyer Personas</div></div>
         <div class="landing-stat"><div class="ls-val">15</div><div class="ls-lbl">Training Modules</div></div>
         <div class="landing-stat"><div class="ls-val">4</div><div class="ls-lbl">Scored Dimensions</div></div>
-        <div class="landing-stat"><div class="ls-val">∞</div><div class="ls-lbl">Practice Calls</div></div>
+        <div class="landing-stat"><div class="ls-val">∞</div><div class="ls-lbl">Training Calls</div></div>
       </div>
 
       <div class="landing-section">
@@ -276,12 +276,12 @@ function renderLanding() {
           <div class="landing-step">
             <div class="step-num">2</div>
             <h3>Get a Real Phone Call</h3>
-            <p>Your phone rings. An AI customer picks up. The conversation is live, unscripted, and pressure-filled — just like the real thing.</p>
+            <p>Your phone rings. A simulated buyer picks up. The conversation is live, unscripted, and pressure-filled — just like a real phone-up.</p>
           </div>
           <div class="landing-step">
             <div class="step-num">3</div>
             <h3>See Your Score</h3>
-            <p>AI coaching grades every call on rapport, discovery, objection handling, and closing. You get specific, actionable feedback.</p>
+            <p>Instant coaching grades every call on rapport, discovery, objection handling, and closing. You get specific, actionable feedback.</p>
           </div>
         </div>
       </div>
@@ -314,7 +314,7 @@ function renderLanding() {
 
       <div class="landing-cta-footer">
         <h2>Ready to close more deals?</h2>
-        <p>Get your team trained on AI personas that fight back.</p>
+        <p>Get your team trained on simulated buyers that push back.</p>
         <div class="landing-ctas">
           <a href="#/register" class="btn btn-primary btn-lg">Create Free Account</a>
           <a href="#/login" class="btn btn-ghost btn-lg">Sign In</a>
@@ -579,7 +579,7 @@ async function renderDashboard() {
         <h1>Dashboard</h1>
         <p class="subtitle">Welcome back, ${escHtml(user ? user.name.split(' ')[0] : '')}!${streak >= 2 ? ` &nbsp;🔥 ${streak}-day streak` : ''}</p>
       </div>
-      <a class="btn btn-primary" href="#/start">+ Start Call</a>
+      <a class="btn btn-primary" href="#/start">+ Take a Call</a>
     </div>
 
     <div class="stats-strip">
@@ -687,14 +687,18 @@ async function renderStart() {
   if (preselectId) sessionStorage.removeItem('preselect_persona');
 
   app.innerHTML = `
-    <div class="page-header">
+    <div class="page-header arena-header">
       <div>
-        <h1>Practice Call</h1>
-        <p class="subtitle">Select a persona and enter your phone number to begin.</p>
+        <h1>Call Arena</h1>
+        <p class="subtitle">Pick a buyer type, enter your number, and take a call.</p>
+      </div>
+      <div class="arena-tip">
+        <span class="arena-tip-icon">📋</span>
+        <span>Have a pen ready — you'll need to capture the caller's info.</span>
       </div>
     </div>
 
-    <h2 class="section-label">Select Persona</h2>
+    <h2 class="section-label">Choose Your Challenger</h2>
     <div class="persona-grid" id="persona-grid">
       ${personas.map(p => personaSelectCard(p, p.id === selectedPersonaId)).join('')}
     </div>
@@ -702,10 +706,10 @@ async function renderStart() {
     <div class="card call-form-card">
       <div class="form-group">
         <label for="phone">Your Phone Number</label>
-        <p class="input-hint">You will receive the call at this number</p>
+        <p class="input-hint">We'll call you at this number — answer when it rings</p>
         <input type="tel" id="phone" placeholder="+1 555 000 0000" autocomplete="tel" />
       </div>
-      <button class="btn btn-primary btn-full" id="start-btn" disabled>Start Call</button>
+      <button class="btn btn-primary btn-full btn-arena" id="start-btn" disabled>Take a Call</button>
     </div>
   `;
 
@@ -739,12 +743,12 @@ async function renderStart() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phoneNumber: phone, personaId: selectedPersonaId }),
       });
-      showToast(`Calling you now! Persona: ${data.persona.name}`, 'success');
+      showToast(`Calling you now — answer when your phone rings!`, 'success');
       setTimeout(() => navigate(`/call/${data.callSid}`), 800);
     } catch (err) {
       showToast(err.message, 'error');
       btn.disabled = false;
-      btn.textContent = 'Start Call';
+      btn.textContent = 'Take a Call';
       updateStartBtn();
     }
   });
@@ -790,7 +794,7 @@ async function renderHistory() {
         <h1>Call History</h1>
         <p class="subtitle">${history.length} call${history.length !== 1 ? 's' : ''} recorded</p>
       </div>
-      <a class="btn btn-primary" href="#/start">+ Start Call</a>
+      <a class="btn btn-primary" href="#/start">+ Take a Call</a>
     </div>
     ${history.length === 0
       ? '<div class="empty-state">No calls yet. <a class="link" href="#/start">Start your first training call →</a></div>'
@@ -880,6 +884,24 @@ function renderResultData(data, callSid) {
         <p class="subtitle">${outcomePill(data.outcome)}&nbsp;·&nbsp;${formatDate(data.startTime)}</p>
       </div>
     </div>
+
+    ${data.contactInfo ? `
+    <div class="contact-reveal card">
+      <div class="contact-reveal-header">
+        <span class="contact-reveal-icon">📋</span>
+        <div>
+          <strong>Caller Info — Did You Capture It?</strong>
+          <div class="contact-reveal-sub">Compare with what you wrote down during the call.</div>
+        </div>
+      </div>
+      <div class="contact-grid">
+        <div class="contact-field"><span class="cf-lbl">Name</span><span class="cf-val">${escHtml(data.contactInfo.name)}</span></div>
+        <div class="contact-field"><span class="cf-lbl">Phone</span><span class="cf-val">${escHtml(data.contactInfo.phone)}</span></div>
+        <div class="contact-field"><span class="cf-lbl">Email</span><span class="cf-val">${escHtml(data.contactInfo.email)}</span></div>
+        <div class="contact-field"><span class="cf-lbl">Interested In</span><span class="cf-val">${escHtml(data.contactInfo.car)}</span></div>
+      </div>
+    </div>
+    ` : ''}
 
     ${!score ? (() => {
       let pendingLabel = '';
