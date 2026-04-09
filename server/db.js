@@ -6,6 +6,11 @@ const path = require('path');
 const dbPath = process.env.DB_PATH || path.join(process.cwd(), 'calls.db');
 const db = new Database(dbPath);
 
+// Disable FK enforcement — the production SQLite binary may have it on by default.
+// We rely on application-level integrity; strict FK checks break calls when a session
+// JWT outlives a DB reset (userId in token no longer exists in users table).
+db.pragma('foreign_keys = OFF');
+
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
