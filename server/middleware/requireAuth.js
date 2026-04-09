@@ -6,7 +6,8 @@ const JWT_SECRET = process.env.JWT_SECRET || 'freshup-dev-secret-change-in-produ
 
 function requireAuth(req, res, next) {
   const header = req.get('Authorization') || '';
-  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+  // Also accept ?token= query param so EventSource (SSE) can authenticate
+  const token = (header.startsWith('Bearer ') ? header.slice(7) : null) || req.query.token || null;
 
   if (!token) {
     res.status(401).json({ error: 'Authentication required' });

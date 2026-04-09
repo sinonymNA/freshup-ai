@@ -1407,3 +1407,309 @@ a.link:hover { text-decoration: underline; }
   font-weight: 500;
   color: var(--text);
 }
+
+/* ── ARENA LAYOUT ────────────────────────────────────────────────────────── */
+
+.arena-wrap {
+  display: grid;
+  grid-template-columns: 300px 1fr 280px;
+  grid-template-areas: "left middle right";
+  gap: 20px;
+  max-width: 1200px;
+  margin: 28px auto;
+  padding: 0 20px;
+  align-items: start;
+}
+.arena-left  { grid-area: left; }
+.arena-middle { grid-area: middle; }
+.arena-right { grid-area: right; }
+
+@media (max-width: 960px) {
+  .arena-wrap {
+    grid-template-columns: 1fr;
+    grid-template-areas: "left" "middle" "right";
+    max-width: 600px;
+  }
+}
+
+/* ── PHONE CARD ──────────────────────────────────────────────────────────── */
+
+.phone-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 460px;
+}
+.phone-card-head {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.phone-card-head h2 { font-size: 19px; font-weight: 700; margin: 0; }
+.phone-card-sub { font-size: 13px; color: var(--text-muted); margin: 0; }
+
+.phone-ring-icon {
+  font-size: 34px;
+  display: inline-block;
+}
+.phone-ring-icon.ringing { animation: ringShake 0.5s ease; }
+@keyframes ringShake {
+  0%,100% { transform: rotate(0deg); }
+  20%      { transform: rotate(-14deg); }
+  40%      { transform: rotate(14deg); }
+  60%      { transform: rotate(-9deg); }
+  80%      { transform: rotate(9deg); }
+}
+
+/* Difficulty selector */
+.diff-selector { display: flex; flex-direction: column; gap: 8px; }
+.diff-opt {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 13px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  text-align: left;
+  width: 100%;
+}
+.diff-opt:hover { border-color: var(--border-strong); background: var(--bg); }
+.diff-opt.active { border-color: var(--accent); background: var(--accent-light); }
+
+.diff-color {
+  width: 8px;
+  height: 34px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.diff-color.easy   { background: var(--success); }
+.diff-color.medium { background: var(--warning); }
+.diff-color.hard   { background: var(--error); }
+
+.diff-text { display: flex; flex-direction: column; gap: 2px; }
+.diff-name { font-size: 13px; font-weight: 600; color: var(--text); }
+.diff-desc { font-size: 11px; color: var(--text-muted); }
+
+/* Phone input + CTA */
+.phone-input-wrap { display: flex; flex-direction: column; gap: 10px; }
+.arena-note { font-size: 12px; color: var(--text-muted); text-align: center; }
+
+/* Challenge persona banner */
+.challenge-persona-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 13px;
+  background: var(--accent-light);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+}
+.cpb-name { font-size: 14px; font-weight: 600; }
+.cpb-diff { margin-top: 3px; }
+
+/* Live status dot (used in call result left pane) */
+.live-status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--success);
+  display: inline-block;
+  flex-shrink: 0;
+  animation: pulseDot 1.4s ease-in-out infinite;
+}
+.live-status-dot.done { background: var(--text-subtle); animation: none; }
+@keyframes pulseDot {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.4; transform: scale(0.85); }
+}
+.outcome-live { margin-top: 2px; }
+
+/* ── LIVE TRANSCRIPT CARD ────────────────────────────────────────────────── */
+
+.live-transcript-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  min-height: 520px;
+  max-height: 80vh;
+  overflow: hidden;
+}
+.lt-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 18px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.lt-title { font-weight: 600; font-size: 14px; }
+.lt-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 20px;
+  background: var(--error-bg);
+  color: var(--error);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.lt-badge.done { background: var(--success-bg); color: var(--success); }
+
+.lt-preview-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 56px 24px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+.lt-preview-icon { font-size: 34px; }
+.lt-preview-sub { font-size: 12px; color: var(--text-subtle); }
+
+.lt-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  scroll-behavior: smooth;
+}
+
+/* Transcript bubbles */
+.tb { max-width: 86%; display: flex; flex-direction: column; gap: 3px; }
+.tb-user      { align-self: flex-end; }
+.tb-assistant { align-self: flex-start; }
+
+.tb-who {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-subtle);
+  padding: 0 4px;
+}
+.tb-user .tb-who { text-align: right; color: var(--accent); }
+
+.tb-text {
+  padding: 9px 13px;
+  border-radius: 14px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  word-break: break-word;
+}
+.tb-user .tb-text {
+  background: var(--accent);
+  color: #fff;
+  border-bottom-right-radius: 3px;
+}
+.tb-assistant .tb-text {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-bottom-left-radius: 3px;
+}
+.tb-streaming .tb-text::after {
+  content: '▋';
+  opacity: 0.6;
+  animation: blinkCursor 0.8s step-end infinite;
+}
+@keyframes blinkCursor {
+  0%,100% { opacity: 0.6; }
+  50%      { opacity: 0; }
+}
+
+/* ── LIVE SCORE CARD ─────────────────────────────────────────────────────── */
+
+.live-score-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ls-header {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.gauge-wrap { display: flex; justify-content: center; }
+.score-gauge { width: 100%; max-width: 190px; height: auto; overflow: visible; }
+
+/* SVG gauge text */
+.gauge-num {
+  font-size: 28px;
+  font-weight: 700;
+  fill: var(--text);
+  font-family: 'Inter', sans-serif;
+}
+.gauge-lbl {
+  font-size: 10px;
+  fill: var(--text-muted);
+  font-family: 'Inter', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+.gauge-mark {
+  font-size: 9px;
+  fill: var(--text-subtle);
+  font-family: 'Inter', sans-serif;
+}
+.gauge-fill {
+  transition: stroke-dashoffset 0.7s cubic-bezier(.4,0,.2,1), stroke 0.5s ease;
+}
+
+/* Dimension bars under gauge */
+.gauge-dims { display: flex; flex-direction: column; gap: 7px; }
+.gauge-dim  { display: flex; flex-direction: column; gap: 3px; }
+.gauge-dim-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+.gauge-dim-val { font-weight: 600; color: var(--text); }
+.gauge-dim-bar {
+  height: 4px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.gauge-dim-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent);
+  transition: width 0.7s cubic-bezier(.4,0,.2,1), background 0.5s ease;
+  width: 0%;
+}
+.gauge-hint { font-size: 11px; color: var(--text-subtle); text-align: center; }
+
+/* Feedback text revealed after call analysis */
+.live-feedback {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  padding: 11px 13px;
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}

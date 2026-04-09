@@ -670,96 +670,214 @@ function callRow(c) {
   </tr>`;
 }
 
-// ── START CALL ────────────────────────────────────────────────────────────────
+// ── START CALL / CALL ARENA ───────────────────────────────────────────────────
 
-let selectedPersonaId = null;
+let selectedPersonaId = null; // used only for module challenges
+
+function arenaGaugeSvg(id = '') {
+  const arcId = id ? `gauge-arc-${id}` : 'gauge-arc';
+  const numId = id ? `gauge-score-${id}` : 'gauge-score';
+  return `
+    <svg class="score-gauge" viewBox="0 0 200 130">
+      <path class="gauge-track" d="M 20 110 A 80 80 0 0 1 180 110"
+            fill="none" stroke="var(--border)" stroke-width="18" stroke-linecap="round"/>
+      <path class="gauge-fill" id="${arcId}"
+            d="M 20 110 A 80 80 0 0 1 180 110"
+            fill="none" stroke="var(--accent)" stroke-width="18" stroke-linecap="round"
+            stroke-dasharray="251.3" stroke-dashoffset="251.3"/>
+      <text class="gauge-num" id="${numId}" x="100" y="90" text-anchor="middle">—</text>
+      <text class="gauge-lbl" x="100" y="113" text-anchor="middle">Score</text>
+      <text class="gauge-mark" x="14" y="127" text-anchor="middle">0</text>
+      <text class="gauge-mark" x="186" y="127" text-anchor="middle">100</text>
+    </svg>`;
+}
+
+function arenaDimensions(prefix = '') {
+  return ['Rapport','Discovery','Objections','Closing'].map(d => {
+    const key = d.toLowerCase();
+    return `
+      <div class="gauge-dim">
+        <div class="gauge-dim-header">
+          <span>${d}</span>
+          <span class="gauge-dim-val" id="${prefix}dim-${key}">—</span>
+        </div>
+        <div class="gauge-dim-bar">
+          <div class="gauge-dim-fill" id="${prefix}dimbar-${key}" style="width:0%"></div>
+        </div>
+      </div>`;
+  }).join('');
+}
 
 async function renderStart() {
-  app.innerHTML = '<div class="loading">Loading personas…</div>';
-  let personas = [];
-  try { personas = await api('/api/personas'); } catch (e) {
-    app.innerHTML = '<div class="empty-state">Failed to load personas.</div>';
-    return;
-  }
-
+  // Module challenge path — a specific persona was pre-selected from a course module
   const preselectId = sessionStorage.getItem('preselect_persona');
   selectedPersonaId = preselectId || null;
   if (preselectId) sessionStorage.removeItem('preselect_persona');
 
+  let challengePersona = null;
+  if (selectedPersonaId) {
+    try {
+      const all = await api('/api/personas');
+      challengePersona = all.find(p => p.id === selectedPersonaId) || null;
+    } catch { /* ignore */ }
+  }
+
   app.innerHTML = `
-    <div class="page-header arena-header">
-      <div>
-        <h1>Call Arena</h1>
-        <p class="subtitle">Pick a buyer type, enter your number, and take a call.</p>
-      </div>
-      <div class="arena-tip">
-        <span class="arena-tip-icon">📋</span>
-        <span>Have a pen ready — you'll need to capture the caller's info.</span>
-      </div>
-    </div>
+    <div class="arena-wrap">
 
-    <h2 class="section-label">Choose Your Challenger</h2>
-    <div class="persona-grid" id="persona-grid">
-      ${personas.map(p => personaSelectCard(p, p.id === selectedPersonaId)).join('')}
-    </div>
+      <!-- LEFT: phone-style difficulty / challenge selector -->
+      <div class="arena-left">
+        <div class="phone-card">
+          <div class="phone-card-head">
+            <div class="phone-ring-icon" id="phone-ring-icon">📱</div>
+            <h2>${challengePersona ? 'Module Challenge' : 'Call Arena'}</h2>
+            <p class="phone-card-sub">${challengePersona
+              ? `Challenge: ${escHtml(challengePersona.name)}`
+              : 'Every caller is different — just like real phone-ups.'}</p>
+          </div>
 
-    <div class="card call-form-card">
-      <div class="form-group">
-        <label for="phone">Your Phone Number</label>
-        <p class="input-hint">We'll call you at this number — answer when it rings</p>
-        <input type="tel" id="phone" placeholder="+1 555 000 0000" autocomplete="tel" />
+          ${challengePersona ? `
+            <div class="challenge-persona-banner">
+              ${avatar(challengePersona.name, 'avatar-sm')}
+              <div>
+                <div class="cpb-name">${escHtml(challengePersona.name)}</div>
+                <div class="cpb-diff">${difficultyBadge(challengePersona.difficulty)}</div>
+              </div>
+            </div>
+          ` : `
+            <div class="diff-selector" id="diff-selector">
+              <button class="diff-opt diff-easy active" data-diff="easy">
+                <div class="diff-color easy"></div>
+                <div class="diff-text">
+                  <span class="diff-name">Easy</span>
+                  <span class="diff-desc">Friendly · High interest · Wants to buy</span>
+                </div>
+              </button>
+              <button class="diff-opt diff-medium" data-diff="medium">
+                <div class="diff-color medium"></div>
+                <div class="diff-text">
+                  <span class="diff-name">Medium</span>
+                  <span class="diff-desc">Cautious · Has objections · Needs convincing</span>
+                </div>
+              </button>
+              <button class="diff-opt diff-hard" data-diff="hard">
+                <div class="diff-color hard"></div>
+                <div class="diff-text">
+                  <span class="diff-name">Hard</span>
+                  <span class="diff-desc">Skeptical · Tough to close · Will hang up</span>
+                </div>
+              </button>
+            </div>
+          `}
+
+          <div class="phone-input-wrap">
+            <div class="form-group">
+              <label for="phone">Your Cell Number</label>
+              <p class="input-hint">Answer when it rings — caller info is randomized</p>
+              <input type="tel" id="phone" placeholder="+1 555 000 0000" autocomplete="tel"/>
+            </div>
+            <button class="btn btn-primary btn-full btn-arena" id="start-btn" disabled>
+              📞&nbsp; Take a Call
+            </button>
+          </div>
+          <p class="arena-note">✏️ Have a pen ready — capture their name, number, and email.</p>
+        </div>
       </div>
-      <button class="btn btn-primary btn-full btn-arena" id="start-btn" disabled>Take a Call</button>
+
+      <!-- MIDDLE: transcript preview -->
+      <div class="arena-middle">
+        <div class="live-transcript-card">
+          <div class="lt-header">
+            <span class="lt-title">Live Transcript</span>
+            <span class="lt-badge" id="lt-status-pre">Waiting</span>
+          </div>
+          <div class="lt-preview-empty">
+            <div class="lt-preview-icon">💬</div>
+            <p>Your conversation will appear here in real time once the call starts.</p>
+            <p class="lt-preview-sub">The caller speaks first — work the call and try to set an appointment.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: score gauge preview -->
+      <div class="arena-right">
+        <div class="live-score-card">
+          <div class="ls-header">Live Score</div>
+          <div class="gauge-wrap">${arenaGaugeSvg('pre')}</div>
+          <div class="gauge-dims">${arenaDimensions('pre-')}</div>
+          <p class="gauge-hint">Score updates every few exchanges as you speak.</p>
+        </div>
+      </div>
+
     </div>
   `;
 
-  document.getElementById('persona-grid').addEventListener('click', e => {
-    const card = e.target.closest('.persona-card');
-    if (!card) return;
-    document.querySelectorAll('.persona-card').forEach(c => c.classList.remove('selected'));
-    card.classList.add('selected');
-    selectedPersonaId = card.dataset.id;
-    updateStartBtn();
-  });
+  let selectedDifficulty = 'easy';
 
-  document.getElementById('phone').addEventListener('input', updateStartBtn);
-
-  if (selectedPersonaId) {
-    const card = document.querySelector(`.persona-card[data-id="${selectedPersonaId}"]`);
-    if (card) card.classList.add('selected');
-    updateStartBtn();
+  // Difficulty selector interaction
+  const diffSel = document.getElementById('diff-selector');
+  if (diffSel) {
+    diffSel.addEventListener('click', e => {
+      const btn = e.target.closest('.diff-opt');
+      if (!btn) return;
+      diffSel.querySelectorAll('.diff-opt').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedDifficulty = btn.dataset.diff;
+    });
   }
+
+  document.getElementById('phone').addEventListener('input', () => {
+    const phone = document.getElementById('phone').value.trim();
+    const btn = document.getElementById('start-btn');
+    if (btn) btn.disabled = !phone;
+  });
 
   document.getElementById('start-btn').addEventListener('click', async () => {
     const phone = document.getElementById('phone').value.trim();
-    if (!phone || !selectedPersonaId) return;
+    if (!phone) return;
     const btn = document.getElementById('start-btn');
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span> Dialing…';
+
+    const body = { phoneNumber: phone };
+    if (selectedPersonaId) {
+      body.personaId = selectedPersonaId;
+    } else {
+      body.difficulty = selectedDifficulty;
+    }
 
     try {
       const data = await api('/api/call/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phoneNumber: phone, personaId: selectedPersonaId }),
+        body: JSON.stringify(body),
       });
-      showToast(`Calling you now — answer when your phone rings!`, 'success');
-      setTimeout(() => navigate(`/call/${data.callSid}`), 800);
+      showToast('Calling you now — answer when your phone rings!', 'success');
+      setTimeout(() => navigate(`/call/${data.callSid}`), 600);
     } catch (err) {
       showToast(err.message, 'error');
       btn.disabled = false;
-      btn.textContent = 'Take a Call';
-      updateStartBtn();
+      btn.innerHTML = '📞&nbsp; Take a Call';
     }
   });
+
+  // Animate phone icon ring
+  const ringIcon = document.getElementById('phone-ring-icon');
+  if (ringIcon) {
+    setInterval(() => {
+      ringIcon.classList.add('ringing');
+      setTimeout(() => ringIcon.classList.remove('ringing'), 600);
+    }, 4000);
+  }
 }
 
 function updateStartBtn() {
   const phone = (document.getElementById('phone') || {}).value || '';
   const btn = document.getElementById('start-btn');
-  if (btn) btn.disabled = !phone.trim() || !selectedPersonaId;
+  if (btn) btn.disabled = !phone.trim();
 }
 
+// Kept for module challenge backward-compat
 function personaSelectCard(p, selected) {
   return `
     <button class="persona-card${selected ? ' selected' : ''}" data-id="${p.id}">
@@ -810,10 +928,53 @@ async function renderHistory() {
 
 function renderCallResult(callSid) {
   app.innerHTML = `
-    <a href="#/history" class="back-link">← Back to history</a>
-    <div id="result-content"><div class="loading">Loading call results…</div></div>
+    <div class="arena-wrap">
+      <div class="arena-left">
+        <div class="phone-card">
+          <div class="phone-card-head">
+            <span class="live-status-dot" id="live-dot"></span>
+            <h2 id="call-status-title">Live Call</h2>
+            <p class="phone-card-sub" id="call-status-sub">Call in progress…</p>
+          </div>
+          <div id="live-outcome-wrap"></div>
+          <div id="live-contact-reveal"></div>
+          <a href="#/history" class="btn btn-ghost btn-full" style="margin-top:auto">← History</a>
+        </div>
+      </div>
+      <div class="arena-middle">
+        <div class="live-transcript-card">
+          <div class="lt-header">
+            <span class="lt-title">Live Transcript</span>
+            <span class="lt-badge" id="lt-status">Live</span>
+          </div>
+          <div class="lt-messages" id="lt-messages">
+            <div class="lt-preview-empty" id="lt-empty">
+              <div class="lt-preview-icon">🎙️</div>
+              <p>Waiting for the call to connect…</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="arena-right">
+        <div class="live-score-card">
+          <div class="ls-header">Live Score</div>
+          <div class="gauge-wrap">${arenaGaugeSvg('live')}</div>
+          <div class="gauge-dims">${arenaDimensions('live-')}</div>
+          <div id="live-feedback-wrap"></div>
+        </div>
+      </div>
+    </div>
   `;
-  pollResults(callSid);
+  connectCallStream(callSid);
+  // Fallback: if SSE yields nothing after 5s (call may already be done), poll once
+  setTimeout(() => {
+    const msgs = document.getElementById('lt-messages');
+    if (msgs && msgs.querySelectorAll('.tb').length === 0) {
+      api(`/webhook/results/${callSid}`)
+        .then(d => { if (d.score) showCallAnalysis(d, callSid); })
+        .catch(() => {});
+    }
+  }, 5000);
 }
 
 let pollTimer = null;
@@ -821,16 +982,171 @@ let pollTimer = null;
 function pollResults(callSid) {
   clearTimeout(pollTimer);
   api(`/webhook/results/${callSid}`).then(data => {
-    renderResultData(data, callSid);
+    showCallAnalysis(data, callSid);
     if (!data.score) {
       pollTimer = setTimeout(() => pollResults(callSid), 3000);
-    } else {
-      checkPendingModule(data, callSid);
     }
   }).catch(() => {
-    const el = document.getElementById('result-content');
-    if (el) el.innerHTML = '<div class="empty-state">Call not found or still in progress.</div>';
+    const el = document.getElementById('call-status-sub');
+    if (el) el.textContent = 'Call not found or still in progress.';
   });
+}
+
+function connectCallStream(callSid) {
+  const token = getToken();
+  const src = new EventSource(`/api/call/${callSid}/stream?token=${encodeURIComponent(token || '')}`);
+  let currentAssistantBubble = null;
+
+  src.onmessage = (e) => {
+    let event;
+    try { event = JSON.parse(e.data); } catch { return; }
+
+    switch (event.type) {
+      case 'user_message':
+        currentAssistantBubble = null;
+        addTranscriptBubble('user', event.content);
+        break;
+      case 'assistant_message':
+        if (currentAssistantBubble) {
+          currentAssistantBubble.querySelector('.tb-text').textContent = event.content;
+          currentAssistantBubble.classList.remove('tb-streaming');
+        } else {
+          addTranscriptBubble('assistant', event.content);
+        }
+        currentAssistantBubble = null;
+        break;
+      case 'assistant_delta':
+        if (!currentAssistantBubble) {
+          currentAssistantBubble = addTranscriptBubble('assistant', event.delta, true);
+        } else {
+          const txt = currentAssistantBubble.querySelector('.tb-text');
+          if (txt) txt.textContent += event.delta;
+          const msgs = document.getElementById('lt-messages');
+          if (msgs) msgs.scrollTop = msgs.scrollHeight;
+        }
+        break;
+      case 'outcome':
+        showLiveOutcome(event.outcome);
+        break;
+      case 'partial_score':
+        updateGauge(event.score);
+        break;
+      case 'score':
+        updateGauge(event.score);
+        { const dot = document.getElementById('live-dot');
+          const badge = document.getElementById('lt-status');
+          const title = document.getElementById('call-status-title');
+          if (dot) dot.className = 'live-status-dot done';
+          if (badge) { badge.textContent = 'Done'; badge.className = 'lt-badge done'; }
+          if (title) title.textContent = 'Call Complete'; }
+        break;
+      case 'done':
+        src.close();
+        api(`/webhook/results/${callSid}`)
+          .then(d => showCallAnalysis(d, callSid))
+          .catch(() => {});
+        break;
+    }
+  };
+
+  src.onerror = () => {
+    src.close();
+    // Fall back to polling if stream fails
+    pollResults(callSid);
+  };
+}
+
+function addTranscriptBubble(role, content, streaming) {
+  const container = document.getElementById('lt-messages');
+  if (!container) return null;
+  const empty = document.getElementById('lt-empty');
+  if (empty) empty.remove();
+
+  const div = document.createElement('div');
+  div.className = `tb tb-${role}${streaming ? ' tb-streaming' : ''}`;
+  div.innerHTML = `<div class="tb-who">${role === 'user' ? 'You (Rep)' : 'Caller'}</div>` +
+    `<div class="tb-text">${escHtml(content)}</div>`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  return div;
+}
+
+function updateGauge(score) {
+  if (!score) return;
+  const overall = score.overallScore;
+  if (overall != null) {
+    const arc = document.getElementById('gauge-arc-live');
+    const num = document.getElementById('gauge-score-live');
+    if (arc) {
+      const pct = Math.max(0, Math.min(100, overall)) / 100;
+      arc.style.strokeDashoffset = String(251.3 * (1 - pct));
+      arc.style.stroke = scoreColor(overall);
+    }
+    if (num) num.textContent = String(overall);
+  }
+  ['rapport', 'discovery', 'objections', 'closing'].forEach(dim => {
+    const val = score[dim];
+    if (val == null) return;
+    const el = document.getElementById(`live-dim-${dim}`);
+    const bar = document.getElementById(`live-dimbar-${dim}`);
+    if (el) el.textContent = String(val);
+    if (bar) { bar.style.width = `${val}%`; bar.style.background = scoreColor(val); }
+  });
+}
+
+function showLiveOutcome(outcome) {
+  const wrap = document.getElementById('live-outcome-wrap');
+  if (wrap) wrap.innerHTML = `<div class="outcome-live">${outcomePill(outcome)}</div>`;
+  const sub = document.getElementById('call-status-sub');
+  if (sub) sub.textContent = outcome === 'Appointment' ? '🎉 Appointment set!' : 'Call ended';
+}
+
+function showCallAnalysis(data, callSid) {
+  // Update status
+  const dot = document.getElementById('live-dot');
+  const badge = document.getElementById('lt-status');
+  const title = document.getElementById('call-status-title');
+  if (dot) dot.className = 'live-status-dot done';
+  if (badge) { badge.textContent = 'Done'; badge.className = 'lt-badge done'; }
+  if (title) title.textContent = 'Call Complete';
+
+  if (data.outcome) showLiveOutcome(data.outcome);
+
+  // Contact reveal in left pane
+  if (data.contactInfo) {
+    const cr = document.getElementById('live-contact-reveal');
+    if (cr) cr.innerHTML = `
+      <div class="contact-reveal">
+        <div class="contact-reveal-header">
+          <span class="contact-reveal-icon">📋</span>
+          <div>
+            <strong>Caller Info</strong>
+            <div class="contact-reveal-sub">Did you capture it?</div>
+          </div>
+        </div>
+        <div class="contact-grid">
+          <div class="contact-field"><span class="cf-lbl">Name</span><span class="cf-val">${escHtml(data.contactInfo.name)}</span></div>
+          <div class="contact-field"><span class="cf-lbl">Phone</span><span class="cf-val">${escHtml(data.contactInfo.phone)}</span></div>
+          <div class="contact-field"><span class="cf-lbl">Email</span><span class="cf-val">${escHtml(data.contactInfo.email)}</span></div>
+          <div class="contact-field"><span class="cf-lbl">Interested In</span><span class="cf-val">${escHtml(data.contactInfo.car)}</span></div>
+        </div>
+      </div>`;
+  }
+
+  // Final gauge + feedback in right pane
+  if (data.score) {
+    updateGauge(data.score);
+    if (data.score.feedback) {
+      const fw = document.getElementById('live-feedback-wrap');
+      if (fw) fw.innerHTML = `<div class="live-feedback">${escHtml(data.score.feedback)}</div>`;
+    }
+  } else {
+    // Score not ready yet — keep polling
+    clearTimeout(pollTimer);
+    pollTimer = setTimeout(() => pollResults(callSid), 3000);
+  }
+
+  checkPendingModule(data, callSid);
 }
 
 async function checkPendingModule(data, callSid) {
@@ -851,8 +1167,9 @@ async function checkPendingModule(data, callSid) {
       body: JSON.stringify({ callSid, score: overallScore, passed: true }),
     });
 
-    const el = document.getElementById('result-content');
-    if (el) {
+    // Show banner in the transcript pane (live layout) or wherever is available
+    const target = document.getElementById('lt-messages') || document.getElementById('result-content');
+    if (target) {
       const banner = document.createElement('div');
       banner.className = 'module-passed-banner';
       banner.innerHTML = `
@@ -862,104 +1179,11 @@ async function checkPendingModule(data, callSid) {
           <div>Score ${overallScore} met the ${mod.minScore} required. <a href="#/courses/${mod.courseId}" class="link">Back to course →</a></div>
         </div>
       `;
-      el.prepend(banner);
+      target.prepend(banner);
     }
   } catch (err) {
     console.error('[checkPendingModule] error:', err);
   }
-}
-
-function renderResultData(data, callSid) {
-  const el = document.getElementById('result-content');
-  if (!el) return;
-
-  const score = data.score;
-  const history = data.history || [];
-
-  el.innerHTML = `
-    <div class="result-header">
-      ${avatar(data.personaName, 'avatar-lg')}
-      <div>
-        <h1>${escHtml(data.personaName || 'Unknown Persona')}</h1>
-        <p class="subtitle">${outcomePill(data.outcome)}&nbsp;·&nbsp;${formatDate(data.startTime)}</p>
-      </div>
-    </div>
-
-    ${data.contactInfo ? `
-    <div class="contact-reveal card">
-      <div class="contact-reveal-header">
-        <span class="contact-reveal-icon">📋</span>
-        <div>
-          <strong>Caller Info — Did You Capture It?</strong>
-          <div class="contact-reveal-sub">Compare with what you wrote down during the call.</div>
-        </div>
-      </div>
-      <div class="contact-grid">
-        <div class="contact-field"><span class="cf-lbl">Name</span><span class="cf-val">${escHtml(data.contactInfo.name)}</span></div>
-        <div class="contact-field"><span class="cf-lbl">Phone</span><span class="cf-val">${escHtml(data.contactInfo.phone)}</span></div>
-        <div class="contact-field"><span class="cf-lbl">Email</span><span class="cf-val">${escHtml(data.contactInfo.email)}</span></div>
-        <div class="contact-field"><span class="cf-lbl">Interested In</span><span class="cf-val">${escHtml(data.contactInfo.car)}</span></div>
-      </div>
-    </div>
-    ` : ''}
-
-    ${!score ? (() => {
-      let pendingLabel = '';
-      try {
-        const pm = JSON.parse(sessionStorage.getItem('pendingModule') || 'null');
-        if (pm && pm.title) {
-          pendingLabel = `<div class="analyzing-module">Scoring module: <strong>${escHtml(pm.title)}</strong> &nbsp;·&nbsp; min score ${pm.minScore}</div>`;
-        }
-      } catch { /* ignore */ }
-      return `
-      <div class="analyzing-card">
-        ${avatar(data.personaName, 'avatar-sm')}
-        <div>
-          <strong>Analyzing call with ${escHtml(data.personaName || 'persona')}…</strong>
-          <div class="analyzing-sub">Results appear within 30 seconds of hanging up.</div>
-          ${pendingLabel}
-        </div>
-      </div>
-    `;
-    })() : ''}
-
-    ${score ? `
-      <div class="overall-score-wrap">
-        <div class="score-big">${score.overallScore}</div>
-        <div class="score-big-lbl">Overall Score</div>
-      </div>
-
-      <h2 class="section-label">Dimension Scores</h2>
-      <div class="score-grid">
-        ${['rapport', 'discovery', 'objections', 'closing'].map(dim => `
-          <div class="score-item">
-            <div class="score-item-header">
-              <span>${dim.charAt(0).toUpperCase() + dim.slice(1)}</span>
-              <span class="score-num" style="color:${scoreColor(score[dim])}">${score[dim]}</span>
-            </div>
-            <div class="score-bar">
-              <div class="score-fill" style="width:${score[dim]}%;background:${scoreColor(score[dim])}"></div>
-            </div>
-          </div>
-        `).join('')}
-      </div>
-
-      <h2 class="section-label">Feedback</h2>
-      <div class="feedback-box">${escHtml(score.feedback || '—')}</div>
-    ` : ''}
-
-    ${history.length > 0 ? `
-      <h2 class="section-label">Transcript</h2>
-      <div class="transcript">
-        ${history.map(msg => `
-          <div class="msg ${msg.role === 'user' ? 'rep' : 'customer'}">
-            <div class="msg-who">${msg.role === 'user' ? 'Sales Rep' : 'Customer'}</div>
-            <div class="msg-text">${escHtml(msg.content.replace(/\[HANG_UP\]/g, '').replace(/\[APPOINTMENT_SET\]/g, '').trim())}</div>
-          </div>
-        `).join('')}
-      </div>
-    ` : ''}
-  `;
 }
 
 // ── PERSONAS ──────────────────────────────────────────────────────────────────

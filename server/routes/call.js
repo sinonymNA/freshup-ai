@@ -3,7 +3,8 @@
 const express = require('express');
 const router = express.Router();
 
-const { getAllPersonas, getPersonaById, getRandomPersona } = require('../personas');
+const { getAllPersonas, getPersonaById, getRandomPersona, getPersonasByDifficulty } = require('../personas');
+const callEmitter = require('../services/callEvents');
 
 // ── Random contact info generation ────────────────────────────────────────────
 const _FIRST = ['James','John','Robert','Michael','William','David','Richard','Joseph','Thomas','Charles','Mary','Patricia','Jennifer','Linda','Barbara','Elizabeth','Susan','Jessica','Sarah','Karen','Lisa','Nancy','Betty','Sandra','Emily','Megan','Ashley','Amanda','Brittany','Stephanie'];
@@ -33,7 +34,7 @@ function generateContactInfo() {
   };
 }
 const { initiateCall } = require('../services/twilio');
-const { getAllCalls, setCall } = require('../store');
+const { getAllCalls, setCall, getCall } = require('../store');
 const { requireAuth } = require('../middleware/requireAuth');
 const { startCallRateLimit } = require('../middleware/rateLimit');
 const { parseAndValidatePhone } = require('../utils/phone');
@@ -41,7 +42,7 @@ const { parseAndValidatePhone } = require('../utils/phone');
 // POST /api/call/start
 router.post('/call/start', requireAuth, startCallRateLimit, async (req, res) => {
   try {
-    const { phoneNumber, personaId } = req.body;
+    const { phoneNumber, personaId, difficulty } = req.body;
 
     const parsedPhone = parseAndValidatePhone(phoneNumber);
     if (!parsedPhone.ok) {
@@ -49,9 +50,19 @@ router.post('/call/start', requireAuth, startCallRateLimit, async (req, res) => 
       return;
     }
 
-    const persona = personaId ? getPersonaById(personaId) : getRandomPersona();
+    let persona;
+    if (personaId) {
+      persona = getPersonaById(personaId);
+      if (!persona) { res.status(404).json({ error: 'Persona not found' }); return; }
+    } else if (difficulty) {
+      const pool = getPersonasByDifficulty(difficulty);
+      if (!pool.length) { res.status(400).json({ error: `No personas for difficulty: ${difficulty}` }); return; }
+      persona = pool[Math.floor(Math.random() * pool.length)];
+    } else {
+      persona = getRandomPersona();
+    }
     if (!persona) {
-      res.status(404).json({ error: 'Persona not found' });
+      res.status(500).json({ error: 'Could not select a persona' });
       return;
     }
 
@@ -102,6 +113,59 @@ router.get('/call/history', requireAuth, (req, res) => {
   }));
 
   res.json(entries);
+});
+
+// GET /api/call/:callSid/stream — SSE stream of live call events
+// Uses ?token= query param because EventSource doesn't support custom headers
+router.get('/call/:callSid/stream', requireAuth, (req, res) => {
+  const { callSid } = req.params;
+  const callData = getCall(callSid);
+
+  if (!callData) { res.status(404).json({ error: 'Call not found' }); return; }
+  if (callData.userId !== req.user.id) { res.status(403).json({ error: 'Forbidden' }); return; }
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  // Catch up: replay history that was captured before the browser subscribed
+  if (callData.history && callData.history.length > 0) {
+    for (const msg of callData.history) {
+      res.write(`data: ${JSON.stringify({
+        type: msg.role === 'user' ? 'user_message' : 'assistant_message',
+        content: msg.content,
+      })}\n\n`);
+    }
+  }
+
+  // If call already complete, send outcome + score immediately and close
+  if (callData.outcome) {
+    res.write(`data: ${JSON.stringify({ type: 'outcome', outcome: callData.outcome })}\n\n`);
+  }
+  if (callData.score) {
+    res.write(`data: ${JSON.stringify({ type: 'score', score: callData.score })}\n\n`);
+    res.write('data: {"type":"done"}\n\n');
+    res.end();
+    return;
+  }
+
+  // Live: forward events from callEmitter
+  const listener = (event) => {
+    res.write(`data: ${JSON.stringify(event)}\n\n`);
+    if (event.type === 'score') {
+      // Final score received — stream can close after a short delay
+      setTimeout(() => res.end(), 2000);
+    }
+  };
+
+  const heartbeat = setInterval(() => res.write(': ping\n\n'), 25000);
+
+  callEmitter.on(`call:${callSid}`, listener);
+  req.on('close', () => {
+    callEmitter.off(`call:${callSid}`, listener);
+    clearInterval(heartbeat);
+  });
 });
 
 // GET /api/personas

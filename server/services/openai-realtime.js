@@ -6,6 +6,7 @@ const twilio = require('twilio');
 const { getCall, setCall, updateCall } = require('../store');
 const { analyzeCall } = require('./claude');
 const { getPersonaById } = require('../personas');
+const callEmitter = require('./callEvents');
 
 function formatTranscript(history) {
   return history
@@ -120,6 +121,12 @@ function handleMediaStream(twilioWs, rawUrl) {
 
   // ── Handle messages from OpenAI ──────────────────────────────────────────────
   let currentAiTranscript = '';
+  let aiTurnCount = 0;
+  let partialScoringInProgress = false;
+
+  function emit(event) {
+    if (callSid) callEmitter.emit(`call:${callSid}`, event);
+  }
 
   openAiWs.on('message', async (data) => {
     try {
@@ -139,24 +146,42 @@ function handleMediaStream(twilioWs, rawUrl) {
           }
           break;
 
-        // Collect AI transcript
+        // Stream AI transcript delta to browser
         case 'response.audio_transcript.delta':
           currentAiTranscript += msg.delta || '';
+          emit({ type: 'assistant_delta', delta: msg.delta || '' });
           break;
 
-        case 'response.audio_transcript.done':
-          if (currentAiTranscript.trim()) {
-            history.push({ role: 'assistant', content: currentAiTranscript.trim() });
+        case 'response.audio_transcript.done': {
+          const content = currentAiTranscript.trim();
+          if (content) {
+            history.push({ role: 'assistant', content });
             if (callSid) updateCall(callSid, { history: [...history] });
+            emit({ type: 'assistant_message', content });
           }
           currentAiTranscript = '';
-          break;
+          aiTurnCount++;
 
-        // Collect user (rep) transcript
+          // Incremental scoring every 3 AI turns (gives near-live gauge updates)
+          if (!partialScoringInProgress && aiTurnCount >= 2 && aiTurnCount % 3 === 0 && history.length >= 4) {
+            partialScoringInProgress = true;
+            analyzeCall(formatTranscript(history), persona)
+              .then((partialScore) => {
+                emit({ type: 'partial_score', score: partialScore });
+              })
+              .catch(() => {})
+              .finally(() => { partialScoringInProgress = false; });
+          }
+          break;
+        }
+
+        // Collect user (rep) transcript and stream to browser
         case 'conversation.item.input_audio_transcription.completed':
           if (msg.transcript && msg.transcript.trim()) {
-            history.push({ role: 'user', content: msg.transcript.trim() });
+            const content = msg.transcript.trim();
+            history.push({ role: 'user', content });
             if (callSid) updateCall(callSid, { history: [...history] });
+            emit({ type: 'user_message', content });
           }
           break;
 
@@ -176,12 +201,16 @@ function handleMediaStream(twilioWs, rawUrl) {
 
               if (callSid) {
                 updateCall(callSid, { outcome, endTime: Date.now() });
+                emit({ type: 'outcome', outcome });
 
-                // Kick off async scoring
+                // Final scoring — emit score to browser when done
                 if (history.length > 0) {
                   const transcript = formatTranscript(history);
                   analyzeCall(transcript, persona)
-                    .then((score) => updateCall(callSid, { score }))
+                    .then((score) => {
+                      updateCall(callSid, { score });
+                      emit({ type: 'score', score });
+                    })
                     .catch((err) => console.error('[openai-realtime] analyzeCall error:', err));
                 }
 
