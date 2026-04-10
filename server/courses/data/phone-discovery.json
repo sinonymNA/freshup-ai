@@ -1,0 +1,70 @@
+{
+  "id": "phone-discovery",
+  "order": 3,
+  "title": "Discovery That Sells",
+  "description": "Go beyond surface-level questions and uncover the real motivations, fears, and needs driving every caller. Great discovery makes the appointment feel inevitable.",
+  "level": "Intermediate",
+  "color": "#06b6d4",
+  "modules": [
+    {
+      "id": "phone-discovery-1",
+      "order": 1,
+      "title": "The Iceberg Model",
+      "objective": "Understand what customers say vs. what they actually mean",
+      "lesson": "<h2>The Iceberg Model</h2><p>What a customer tells you on the phone is the tip of the iceberg. Beneath the surface: their timeline, their budget anxiety, their past bad experience at a dealership, their spouse's opinion, their fear of making the wrong choice. Discovery is about understanding the whole iceberg.</p><h3>What They Say vs. What They Mean</h3><p>\"I'm just looking\" → I'm genuinely interested but don't want to feel pressured<br>\"What's your best price?\" → I want to know if I can trust you<br>\"I'm still comparing options\" → I haven't found anyone I connect with yet<br>\"I don't need anything fancy\" → I have a budget I'm nervous to share</p><h3>The Discovery Mindset</h3><p>Stop thinking of discovery as information-gathering and start thinking of it as storytelling. You're inviting the customer to tell you their story. When they feel heard, they stop guarding and start sharing — and that's when the real conversation begins.</p><h3>Never Assume</h3><p>The customer asking about a $60k truck might be buying it for their business. The person asking about a base model might have $80k in the bank and just be frugal. Assume nothing. Ask everything.</p><h3>Practice Goal</h3><p>Ashley called about a specific model but you don't know why. Use discovery to uncover what's really driving her purchase — don't pitch until you understand her full situation.</p>",
+      "challenge": {
+        "personaId": "ashley-thompson",
+        "minScore": 55,
+        "label": "Ashley Thompson — Easy"
+      }
+    },
+    {
+      "id": "phone-discovery-2",
+      "order": 2,
+      "title": "The Four Question Types",
+      "objective": "Use situational, problem, implication, and vision questions to build a full picture",
+      "lesson": "<h2>The Four Question Types</h2><p>Not all questions are equal. The best phone-up reps use a layered system that moves the customer from surface to depth — from \"what they want\" to \"why they want it.\"</p><h3>The Four Types</h3><p><strong>Situational:</strong> Establish the baseline. \"What are you driving now?\" \"How long have you had it?\"</p><p><strong>Problem:</strong> Find the pain. \"What's the main thing you're looking to improve or change?\" \"What's driving the timing right now?\"</p><p><strong>Implication:</strong> Deepen the pain. \"How has that been affecting your daily commute?\" \"Is that creating any issues for your family?\"</p><p><strong>Vision:</strong> Get them selling themselves. \"Ideally, what would a perfect vehicle look like for your life right now?\" \"If everything worked out perfectly, when would you want to be driving the new car?\"</p><h3>The Rule of 3</h3><p>Never accept the first answer. The real reason someone is buying usually comes out in the third or fourth exchange. Keep asking follow-up questions before you recommend anything.</p><h3>Practice Goal</h3><p>Tyler is a first-time buyer. Use all four question types to understand his full situation before suggesting a single vehicle.</p>",
+      "challenge": {
+        "personaId": "tyler-kowalski",
+        "minScore": 55,
+        "label": "Tyler Kowalski — Easy"
+      }
+    },
+    {
+      "id": "phone-discovery-3",
+      "order": 3,
+      "title": "Listening Between the Lines",
+      "objective": "Hear what the customer isn't saying and respond to it",
+      "lesson": "<h2>Listening Between the Lines</h2><p>The most underrated skill in phone sales isn't talking — it's listening. Not passive listening while you wait for your turn to speak, but active listening that catches hesitations, contradictions, and emotional signals buried in the words.</p><h3>The Pause Signal</h3><p>When a customer pauses before answering a question, that pause is data. It usually means: they're hiding something, they're uncertain, or they've hit on something emotionally loaded. Don't fill the silence — let it breathe, then gently ask: <em>\"What's your hesitation there?\"</em></p><h3>Mirror-Back Technique</h3><p>Repeat their key words back to them:<br>Customer: \"I just need something reliable.\"<br>You: \"Something reliable — what's happened with your current car?\"<br>This signals that you actually heard them and often unlocks a deeper story.</p><h3>The Contradiction Tell</h3><p>If someone says they're \"not in a rush\" but is calling on a Tuesday morning, that's a contradiction. Note it and gently probe: <em>\"You mentioned you're not in a rush — is there a timeframe we're working around at all?\"</em></p><h3>Practice Goal</h3><p>James will tell you part of his story. Your job is to hear what he's not saying and draw out the full picture through careful listening and follow-up questions.</p>",
+      "challenge": {
+        "personaId": "james-okafor",
+        "minScore": 55,
+        "label": "James Okafor — Easy"
+      }
+    },
+    {
+      "id": "phone-discovery-4",
+      "order": 4,
+      "title": "Trade-In as a Discovery Tool",
+      "objective": "Use the trade-in conversation to uncover budget, timeline, and emotional context",
+      "lesson": "<h2>Trade-In as a Discovery Tool</h2><p>The trade-in question is one of the most valuable discovery questions you can ask — and most reps rush past it. \"What are you driving now?\" unlocks a rich vein of information: how long they've had the car, what it means to them, why they're ready to move on, and what they're expecting to get for it.</p><h3>The Trade-In Discovery Stack</h3><ol><li>\"What are you driving now?\"</li><li>\"How long have you had it?\" (timeline signal)</li><li>\"What's been the main thing that's motivated you to look at something new?\" (pain)</li><li>\"Have you had it appraised anywhere, or are you starting fresh?\" (price sensitivity)</li><li>\"Is the trade-in a big factor in your decision, or more of a nice-to-have?\" (priority)</li></ol><h3>The Emotional Layer</h3><p>Customers often have a real emotional relationship with their trade. A car that's been in the family, a vehicle that's been through a hard year, a truck that represents a chapter of life. Acknowledging this emotional element builds deep rapport that no pricing conversation can replicate.</p><h3>Practice Goal</h3><p>Margaret has a car to trade. Use the trade-in discovery stack to understand her full situation — financial, emotional, and timeline.</p>",
+      "challenge": {
+        "personaId": "margaret-kim",
+        "minScore": 55,
+        "label": "Margaret Kim — Easy"
+      }
+    },
+    {
+      "id": "phone-discovery-5",
+      "order": 5,
+      "title": "Discovery on the Fast Lane",
+      "objective": "Conduct meaningful discovery when a customer is impatient and wants fast answers",
+      "lesson": "<h2>Discovery on the Fast Lane</h2><p>Not every customer gives you time to build a discovery conversation. Some want fast answers and have no patience for what they perceive as stalling. You need discovery techniques that work at speed — that gather crucial information quickly, without the customer even realizing it's happening.</p><h3>The One-Question Shortcut</h3><p>When time is tight, one question does the most work:<br><em>\"Quick question before I look that up — are you trying to get into something in the next few weeks, or is this more of a longer-horizon thing?\"</em><br>The answer to this one question tells you urgency, budget readiness, and where they are in the decision process.</p><h3>Embedded Discovery</h3><p>Weave discovery into your answers:<br><em>\"I can tell you about that Camry — are you replacing a vehicle or adding to the fleet?\"</em><br>The customer hears an answer coming; they don't notice the question embedded before it.</p><h3>The Fast Summary</h3><p>Once you have enough: <em>\"Okay — so [their situation]. Based on that, here's what I'd actually point you to first...\"</em> Summarizing back shows you were listening and earns a few more seconds of attention.</p><h3>Practice Goal</h3><p>Nina moves fast. She'll ask pointed questions and expect you to keep up. Conduct compressed, embedded discovery while maintaining her pace.</p>",
+      "challenge": {
+        "personaId": "nina-patel",
+        "minScore": 60,
+        "label": "Nina Patel — Medium"
+      }
+    }
+  ]
+}

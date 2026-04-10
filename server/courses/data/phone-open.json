@@ -1,0 +1,70 @@
+{
+  "id": "phone-open",
+  "order": 1,
+  "title": "The Perfect Phone Up Opening",
+  "description": "Master the first 15 seconds of every inbound call: warm greeting, name exchange, and creating instant trust with a customer who's never spoken to you before.",
+  "level": "Beginner",
+  "color": "#3b82f6",
+  "modules": [
+    {
+      "id": "phone-open-1",
+      "order": 1,
+      "title": "The Greeting Formula",
+      "objective": "Answer every call with a greeting that wins the customer in 5 words",
+      "lesson": "<h2>The Greeting Formula</h2><p>When a customer calls a dealership, the first voice they hear sets the tone for everything. A flat, robotic greeting signals that this call will be like every other dealership call they've dreaded. A warm, confident greeting does the opposite — it tells them this experience is going to be different.</p><h3>The Formula</h3><p><strong>Your name → Dealership → Warm opener</strong></p><p>Example: <em>\"Good afternoon, this is Marcus at Riverside Toyota — thanks for calling in, how can I help you today?\"</em></p><h3>What to Avoid</h3><ul><li>\"Yeah?\" or \"Hello?\" — sounds like you don't work there</li><li>\"Riverside Toyota sales department, please hold\" — puts them on hold before they speak</li><li>A monotone, rushed delivery — customers can hear a smile through the phone</li><li>Mumbling your name — they need to know who they're talking to</li></ul><h3>The Smile Rule</h3><p>Studies show that smiling while speaking changes the resonance of your voice in ways listeners detect subconsciously. Before every call, plant your feet, sit up straight, and smile — then answer.</p><h3>Practice Goal</h3><p>Ashley is calling in about a vehicle she saw online. Your job starts the moment you say hello. Nail the greeting and make her feel like she called the right place.</p>",
+      "challenge": {
+        "personaId": "ashley-thompson",
+        "minScore": 55,
+        "label": "Ashley Thompson — Easy"
+      }
+    },
+    {
+      "id": "phone-open-2",
+      "order": 2,
+      "title": "Getting Their Name First",
+      "objective": "Capture the caller's name naturally within the first 20 seconds",
+      "lesson": "<h2>Getting Their Name First</h2><p>The single most important thing you can do in the first 30 seconds of a call is learn the customer's name. Not because it's polite — although it is — but because it fundamentally changes the entire conversation. A person who has given you their name is 3x more likely to give you their phone number. They've started saying yes.</p><h3>The Natural Ask</h3><p>Don't wait. Ask early, before the customer has a chance to fire questions at you.<br><em>\"Before I look that up, who am I speaking with?\"</em><br><em>\"Happy to help! I'm Marcus — and your name?\"</em></p><h3>The Reciprocity Principle</h3><p>Always give your name first. When you introduce yourself, the customer feels a social obligation to reciprocate. It's not manipulation — it's basic human connection. Use it.</p><h3>Using Their Name</h3><p>Once you have it: use it. Not every sentence — that's annoying — but 2-3 times naturally throughout the call. It signals attentiveness and builds rapport faster than any other technique.</p><h3>Practice Goal</h3><p>Tyler is a first-time buyer who's a little hesitant. Get his name in the first exchange and use it at least twice more in the call. Your discovery score depends on the connection you build.</p>",
+      "challenge": {
+        "personaId": "tyler-kowalski",
+        "minScore": 55,
+        "label": "Tyler Kowalski — Easy"
+      }
+    },
+    {
+      "id": "phone-open-3",
+      "order": 3,
+      "title": "Setting the Tone",
+      "objective": "Immediately differentiate yourself from every other dealership they've called",
+      "lesson": "<h2>Setting the Tone</h2><p>Most salespeople answer calls in survival mode — just trying not to say something wrong. The reps who win set the tone proactively. They signal, from the very first sentence, that this call is going to be different.</p><h3>The Differentiation Signal</h3><p>Customers call multiple dealerships. They're used to being transferred, put on hold, or immediately pitched. Break the pattern:<br><em>\"I'm not going to throw a bunch of numbers at you — let me just ask a couple quick questions so I can actually point you in the right direction.\"</em></p><h3>The Honesty Disarm</h3><p>One of the most powerful openers is radical transparency:<br><em>\"Fair warning — I'm going to ask you a few questions before I answer yours, because otherwise I'd just be guessing. Cool?\"</em><br>This reframes you as a consultant, not a salesperson.</p><h3>Pace and Energy</h3><p>Match the customer's energy within the first 30 seconds. If they're excited, match it. If they're measured and businesslike, match that. Mismatched energy is one of the fastest rapport-killers on the phone.</p><h3>Practice Goal</h3><p>James is a retired teacher — patient and thoughtful. Your tone should be warm and unhurried. Don't rush him. Earn his trust before you ask anything.</p>",
+      "challenge": {
+        "personaId": "james-okafor",
+        "minScore": 55,
+        "label": "James Okafor — Easy"
+      }
+    },
+    {
+      "id": "phone-open-4",
+      "order": 4,
+      "title": "The First 15 Seconds",
+      "objective": "Execute a flawless opening that sets up everything that follows",
+      "lesson": "<h2>The First 15 Seconds</h2><p>Research on phone conversations shows that lasting impressions are formed in the first 15 seconds. Not the first minute — 15 seconds. Everything you do in that window shapes whether the customer treats you as a trusted advisor or just another salesperson trying to get their money.</p><h3>The 15-Second Checklist</h3><ol><li><strong>Warm greeting</strong> — smile in your voice, dealership name, your name</li><li><strong>Affirm their call</strong> — \"Thanks for calling\" or \"Glad you reached out\"</li><li><strong>Get their name</strong> — before diving into their question</li><li><strong>Confirm the inquiry</strong> — \"What can I help you with today?\" or \"What brought you in to call us?\"</li></ol><h3>What Not to Do in the First 15 Seconds</h3><ul><li>Transfer them</li><li>Put them on hold</li><li>Ask for their phone number before building any rapport</li><li>Launch into a pitch about inventory or specials</li></ul><h3>Practice Goal</h3><p>Margaret has never bought a car alone before. She needs to feel safe and unhurried from your very first word. Your opening 15 seconds need to earn that trust.</p>",
+      "challenge": {
+        "personaId": "margaret-kim",
+        "minScore": 55,
+        "label": "Margaret Kim — Easy"
+      }
+    },
+    {
+      "id": "phone-open-5",
+      "order": 5,
+      "title": "Opening Under Pressure",
+      "objective": "Maintain a perfect opening even when the customer comes in hot",
+      "lesson": "<h2>Opening Under Pressure</h2><p>Not every call starts on friendly terms. Some customers call already frustrated — maybe they submitted a lead form hours ago and nobody called back. Maybe they got a bad quote from a competitor. Maybe they're just having a bad day. Your opening needs to work even when you're walking into a wall of hostility.</p><h3>The Pressure Opening</h3><p>When a customer is already upset:<br>1. Don't match their energy (don't be aggressive or defensive)<br>2. Don't over-apologize (it signals weakness)<br>3. Acknowledge and redirect: <em>\"I hear you — let me focus on making this right for you right now.\"</em></p><h3>The One-Sentence Reset</h3><p>If a customer is already on the attack, one sentence can reset the energy:<br><em>\"I completely understand — honestly, let's skip the back-and-forth and figure out what actually works for you.\"</em></p><h3>Staying Calm</h3><p>Your physiological calm is contagious. When you stay steady and warm, most customers de-escalate within 60 seconds. You can't control how they start the call — only how you respond to it.</p><h3>Practice Goal</h3><p>Nina is analytical and direct — she'll ask pointed questions immediately and expect direct answers. Your job is to open with clarity and confidence, not scramble to catch up.</p>",
+      "challenge": {
+        "personaId": "nina-patel",
+        "minScore": 55,
+        "label": "Nina Patel — Medium"
+      }
+    }
+  ]
+}

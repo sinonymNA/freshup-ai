@@ -9,13 +9,16 @@ async function analyzeCall(transcript, persona) {
     throw new Error('Persona is required to analyze call');
   }
   const prompt =
-    `You are a sales training coach. Analyze this car dealership phone call transcript. ` +
-    `The sales rep was speaking with a customer named ${persona.name}. ` +
-    `Score the rep 0-100 on four skills: rapport (did they build connection), ` +
-    `discovery (did they ask good questions), objections (did they handle pushback well), ` +
-    `closing (did they ask for the appointment). Also write 2-3 sentences of specific actionable feedback. ` +
-    `Respond only in this exact JSON format with no other text: ` +
-    `{ rapport: number, discovery: number, objections: number, closing: number, overallScore: number, feedback: string }\n\n` +
+    `You are a car dealership phone-up coach. The sales rep RECEIVED an inbound call from ${persona.name}. ` +
+    `Score the rep 0-20 on each of five phone-up skills:\n` +
+    `opening: warm greeting, gave name + dealership, got caller's name in first 15 sec\n` +
+    `infoCapture: secured callback phone number before giving any pricing info\n` +
+    `discovery: asked about vehicle needs, timeline, trade-in\n` +
+    `objectionHandling: bridged price/availability questions toward an in-person visit\n` +
+    `appointment: asked for a specific day + time and confirmed it\n` +
+    `overallScore: 0-100 weighted total. feedback: 2-3 sentences of specific coaching.\n` +
+    `Respond ONLY in this exact JSON format with no other text: ` +
+    `{ "opening": number, "infoCapture": number, "discovery": number, "objectionHandling": number, "appointment": number, "overallScore": number, "feedback": string }\n\n` +
     `Transcript:\n${transcript}`;
 
   const message = await client.messages.create({
@@ -38,14 +41,47 @@ async function analyzeCall(transcript, persona) {
       }
     }
     return {
-      rapport: 0,
+      opening: 0,
+      infoCapture: 0,
       discovery: 0,
-      objections: 0,
-      closing: 0,
+      objectionHandling: 0,
+      appointment: 0,
       overallScore: 0,
       feedback: 'Call analysis could not be parsed. Raw response: ' + raw,
     };
   }
 }
 
-module.exports = { analyzeCall };
+async function gradeGauntlet(challenge, response) {
+  const prompt =
+    `You are a car dealership phone-up coach grading a single response in a training drill.\n\n` +
+    `Scenario: ${challenge.context}\n` +
+    `Customer said: "${challenge.challenge}"\n` +
+    `Sales rep responded: "${response}"\n\n` +
+    `Score 0-100. Consider: did they avoid giving price before getting contact info? ` +
+    `Did they redirect toward an appointment? Did they maintain rapport? ` +
+    `Respond ONLY in JSON: { "score": number, "whatWorked": string, "whatMissed": string, "strongerLine": string }`;
+
+  const msg = await client.messages.create({
+    model: 'claude-sonnet-4-5',
+    max_tokens: 300,
+    messages: [{ role: 'user', content: prompt }],
+  });
+
+  const raw = msg.content[0].text.trim();
+  try {
+    return JSON.parse(raw);
+  } catch {
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (match) {
+      try {
+        return JSON.parse(match[0]);
+      } catch {
+        // fall through
+      }
+    }
+    return { score: 0, whatWorked: '', whatMissed: 'Could not parse response', strongerLine: '' };
+  }
+}
+
+module.exports = { analyzeCall, gradeGauntlet };

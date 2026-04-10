@@ -63,6 +63,9 @@ if (!existingUserCols.includes('role')) {
 if (!existingUserCols.includes('team_id')) {
   db.exec('ALTER TABLE users ADD COLUMN team_id INTEGER');
 }
+if (!existingUserCols.includes('phone_number')) {
+  db.exec('ALTER TABLE users ADD COLUMN phone_number TEXT');
+}
 
 const existingCallCols = db.prepare('PRAGMA table_info(calls)').all().map(r => r.name);
 if (!existingCallCols.includes('contactInfo')) {
@@ -86,7 +89,7 @@ function updateUser(id, updates) {
 }
 
 function getUserById(id) {
-  return db.prepare('SELECT id, email, name, role, team_id, created_at FROM users WHERE id = ?').get(id);
+  return db.prepare('SELECT id, email, name, role, team_id, phone_number, created_at FROM users WHERE id = ?').get(id);
 }
 
 function getUserByEmail(email) {

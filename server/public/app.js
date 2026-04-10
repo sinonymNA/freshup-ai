@@ -1,5 +1,17 @@
 'use strict';
 
+// ── THEME ─────────────────────────────────────────────────────────────────────
+
+const THEMES = ['light', 'dark', 'gridiron', 'midnight'];
+
+function applyTheme(t) {
+  if (!THEMES.includes(t)) t = 'light';
+  document.documentElement.setAttribute('data-theme', t);
+  localStorage.setItem('freshup_theme', t);
+}
+
+applyTheme(localStorage.getItem('freshup_theme') || 'light');
+
 // ── AUTH ──────────────────────────────────────────────────────────────────────
 
 function getToken() {
@@ -95,7 +107,8 @@ function render() {
   }
 
   const needsAuth = path === '/start' || path === '/history' || path === '/team'
-    || path.startsWith('/call/') || path.startsWith('/team/');
+    || path === '/settings' || path === '/learn'
+    || path.startsWith('/call/') || path.startsWith('/team/') || path.startsWith('/learn/');
   if (needsAuth && !token) {
     navigate('/login');
     return;
@@ -111,8 +124,19 @@ function render() {
   if (path === '/courses') return renderCourses();
   if (path === '/leaderboard') return renderLeaderboard();
   if (path === '/team') return renderTeam();
+  if (path === '/settings') return renderSettings();
+  if (path === '/learn') return renderLearn();
+  if (path === '/learn/framework') return renderFramework();
+  if (path === '/learn/gauntlet') return renderGauntlet();
+  if (path === '/learn/playbook') return renderPlaybook();
   if (path.startsWith('/call/')) return renderCallResult(path.slice('/call/'.length));
   if (path.startsWith('/team/rep/')) return renderRepDetail(path.slice('/team/rep/'.length));
+
+  // /learn/courses routes — same renderers as /courses
+  const learnCourseModuleMatch = path.match(/^\/learn\/courses\/([^/]+)\/([^/]+)$/);
+  if (learnCourseModuleMatch) return renderModule(learnCourseModuleMatch[1], learnCourseModuleMatch[2]);
+  const learnCourseMatch = path.match(/^\/learn\/courses\/([^/]+)$/);
+  if (learnCourseMatch) return renderCourse(learnCourseMatch[1]);
 
   const courseModuleMatch = path.match(/^\/courses\/([^/]+)\/([^/]+)$/);
   if (courseModuleMatch) return renderModule(courseModuleMatch[1], courseModuleMatch[2]);
@@ -131,11 +155,12 @@ function updateNav(path) {
   function navLink(href, key, label) {
     const active = (
       (key === 'dashboard' && path === '/') ||
-      (key === 'courses' && (path === '/courses' || path.startsWith('/courses/'))) ||
       (key === 'start' && path === '/start') ||
+      (key === 'learn' && (path === '/learn' || path.startsWith('/learn/') || path === '/courses' || path.startsWith('/courses/'))) ||
       (key === 'history' && path === '/history') ||
       (key === 'leaderboard' && path === '/leaderboard') ||
-      (key === 'team' && (path === '/team' || path.startsWith('/team/')))
+      (key === 'team' && (path === '/team' || path.startsWith('/team/'))) ||
+      (key === 'settings' && path === '/settings')
     ) ? 'active' : '';
     return `<a href="#${href}" data-nav="${key}" class="nav-link ${active}">${label}</a>`;
   }
@@ -147,9 +172,10 @@ function updateNav(path) {
     const links = `
       ${navLink('/', 'dashboard', 'Dashboard')}
       ${navLink('/start', 'start', 'Call Arena')}
+      ${navLink('/learn', 'learn', 'Learn')}
       ${isManager ? navLink('/team', 'team', 'My Team') : navLink('/history', 'history', 'History')}
       ${navLink('/leaderboard', 'leaderboard', 'Leaderboard')}
-      ${navLink('/courses', 'courses', 'Courses')}
+      ${navLink('/settings', 'settings', 'Settings')}
     `;
     linksEl.innerHTML = links;
     authEl.innerHTML = `
@@ -503,9 +529,19 @@ function renderRegister() {
 
 // Certification module ID sets
 const CERT_IDS = {
-  foundations:  ['foundations-1','foundations-2','foundations-3','foundations-4','foundations-5'],
-  breakthrough: ['breakthrough-1','breakthrough-2','breakthrough-3','breakthrough-4','breakthrough-5'],
-  elite:        ['elite-1','elite-2','elite-3','elite-4','elite-5'],
+  foundations: [
+    'phone-open-1','phone-open-2','phone-open-3','phone-open-4','phone-open-5',
+    'phone-capture-1','phone-capture-2','phone-capture-3','phone-capture-4','phone-capture-5',
+    'phone-discovery-1','phone-discovery-2','phone-discovery-3','phone-discovery-4','phone-discovery-5',
+  ],
+  expert: [
+    'phone-price-1','phone-price-2','phone-price-3','phone-price-4','phone-price-5',
+    'phone-objections-1','phone-objections-2','phone-objections-3','phone-objections-4','phone-objections-5',
+  ],
+  elite: [
+    'phone-close-1','phone-close-2','phone-close-3','phone-close-4','phone-close-5',
+    'phone-elite-1','phone-elite-2','phone-elite-3','phone-elite-4','phone-elite-5',
+  ],
 };
 
 function calcStreak(calls) {
@@ -543,11 +579,11 @@ async function renderDashboard() {
   // Certifications
   const progressSet = new Set(progress);
   const certs = {
-    foundations:  CERT_IDS.foundations.every(id => progressSet.has(id)),
-    breakthrough: CERT_IDS.breakthrough.every(id => progressSet.has(id)),
-    elite:        CERT_IDS.elite.every(id => progressSet.has(id)),
+    foundations: CERT_IDS.foundations.every(id => progressSet.has(id)),
+    expert:      CERT_IDS.expert.every(id => progressSet.has(id)),
+    elite:       CERT_IDS.elite.every(id => progressSet.has(id)),
   };
-  const allCertified = certs.foundations && certs.breakthrough && certs.elite;
+  const allCertified = certs.foundations && certs.expert && certs.elite;
 
   // Continue learning: first incomplete module in first incomplete course
   let nextModule = null;
@@ -602,9 +638,9 @@ async function renderDashboard() {
     </div>
 
     <div class="cert-strip">
-      ${certBadge('foundations', 'Foundations', certs.foundations)}
-      ${certBadge('breakthrough', 'Breakthrough', certs.breakthrough)}
-      ${certBadge('elite', 'Elite Closer', certs.elite)}
+      ${certBadge('phone-open', 'PHONUP Ready', certs.foundations)}
+      ${certBadge('phone-price', 'PHONUP Expert', certs.expert)}
+      ${certBadge('phone-close', 'PHONUP Elite', certs.elite)}
     </div>
 
     ${allCertified ? `
@@ -612,7 +648,7 @@ async function renderDashboard() {
         <span class="all-cert-star">★</span>
         <div>
           <strong>FreshUp Elite Certified</strong>
-          <div>You've mastered all 15 modules — you're in the top tier of dealership sales reps.</div>
+          <div>You've mastered all 35 modules — you're a top-tier phone-up professional.</div>
         </div>
       </div>
     ` : nextModule ? `
@@ -693,19 +729,22 @@ function arenaGaugeSvg(id = '') {
 }
 
 function arenaDimensions(prefix = '') {
-  return ['Rapport','Discovery','Objections','Closing'].map(d => {
-    const key = d.toLowerCase();
-    return `
+  return [
+    ['Opening', 'opening'],
+    ['Info Capture', 'infoCapture'],
+    ['Discovery', 'discovery'],
+    ['Objection Hdl', 'objectionHandling'],
+    ['Appointment', 'appointment'],
+  ].map(([label, key]) => `
       <div class="gauge-dim">
         <div class="gauge-dim-header">
-          <span>${d}</span>
+          <span>${label}</span>
           <span class="gauge-dim-val" id="${prefix}dim-${key}">—</span>
         </div>
         <div class="gauge-dim-bar">
           <div class="gauge-dim-fill" id="${prefix}dimbar-${key}" style="width:0%"></div>
         </div>
-      </div>`;
-  }).join('');
+      </div>`).join('');
 }
 
 async function renderStart() {
@@ -811,6 +850,14 @@ async function renderStart() {
 
     </div>
   `;
+
+  // Pre-fill phone number from saved profile
+  const savedPhone = (getUser() || {}).phone_number || '';
+  const phoneInput = document.getElementById('phone');
+  if (phoneInput && savedPhone) {
+    phoneInput.value = savedPhone;
+    updateStartBtn();
+  }
 
   let selectedDifficulty = 'easy';
 
@@ -1084,13 +1131,15 @@ function updateGauge(score) {
     }
     if (num) num.textContent = String(overall);
   }
-  ['rapport', 'discovery', 'objections', 'closing'].forEach(dim => {
+  ['opening', 'infoCapture', 'discovery', 'objectionHandling', 'appointment'].forEach(dim => {
     const val = score[dim];
     if (val == null) return;
+    // Each dimension is scored 0-20; scale to percentage for bar (0-20 → 0-100%)
+    const pct = Math.max(0, Math.min(100, val * 5));
     const el = document.getElementById(`live-dim-${dim}`);
     const bar = document.getElementById(`live-dimbar-${dim}`);
     if (el) el.textContent = String(val);
-    if (bar) { bar.style.width = `${val}%`; bar.style.background = scoreColor(val); }
+    if (bar) { bar.style.width = `${pct}%`; bar.style.background = scoreColor(pct); }
   });
 }
 
@@ -1112,25 +1161,84 @@ function showCallAnalysis(data, callSid) {
 
   if (data.outcome) showLiveOutcome(data.outcome);
 
-  // Contact reveal in left pane
+  // Contact reveal in left pane (with Reveal / Quiz Me toggle)
   if (data.contactInfo) {
     const cr = document.getElementById('live-contact-reveal');
-    if (cr) cr.innerHTML = `
-      <div class="contact-reveal">
-        <div class="contact-reveal-header">
-          <span class="contact-reveal-icon">📋</span>
-          <div>
-            <strong>Caller Info</strong>
-            <div class="contact-reveal-sub">Did you capture it?</div>
+    if (cr) {
+      const ci = data.contactInfo;
+      cr.innerHTML = `
+        <div class="contact-reveal">
+          <div class="contact-reveal-header">
+            <span class="contact-reveal-icon">📋</span>
+            <div>
+              <strong>Caller Info</strong>
+              <div class="contact-reveal-sub">Did you capture it?</div>
+            </div>
+            <div class="quiz-toggle-btns">
+              <button class="quiz-toggle-btn active" id="btn-reveal">Reveal</button>
+              <button class="quiz-toggle-btn" id="btn-quiz">Quiz Me</button>
+            </div>
           </div>
-        </div>
-        <div class="contact-grid">
-          <div class="contact-field"><span class="cf-lbl">Name</span><span class="cf-val">${escHtml(data.contactInfo.name)}</span></div>
-          <div class="contact-field"><span class="cf-lbl">Phone</span><span class="cf-val">${escHtml(data.contactInfo.phone)}</span></div>
-          <div class="contact-field"><span class="cf-lbl">Email</span><span class="cf-val">${escHtml(data.contactInfo.email)}</span></div>
-          <div class="contact-field"><span class="cf-lbl">Interested In</span><span class="cf-val">${escHtml(data.contactInfo.car)}</span></div>
-        </div>
-      </div>`;
+          <div id="contact-reveal-panel">
+            <div class="contact-grid">
+              <div class="contact-field"><span class="cf-lbl">Name</span><span class="cf-val">${escHtml(ci.name)}</span></div>
+              <div class="contact-field"><span class="cf-lbl">Phone</span><span class="cf-val">${escHtml(ci.phone)}</span></div>
+              <div class="contact-field"><span class="cf-lbl">Email</span><span class="cf-val">${escHtml(ci.email)}</span></div>
+              <div class="contact-field"><span class="cf-lbl">Vehicle</span><span class="cf-val">${escHtml(ci.car)}</span></div>
+            </div>
+          </div>
+          <div id="contact-quiz-panel" style="display:none">
+            <div class="quiz-inputs">
+              <div class="form-group"><label>Name</label><input type="text" class="quiz-input" data-field="name" placeholder="Caller's name" /></div>
+              <div class="form-group"><label>Phone</label><input type="text" class="quiz-input" data-field="phone" placeholder="Callback number" /></div>
+              <div class="form-group"><label>Email</label><input type="text" class="quiz-input" data-field="email" placeholder="Email address" /></div>
+              <div class="form-group"><label>Vehicle</label><input type="text" class="quiz-input" data-field="car" placeholder="Vehicle of interest" /></div>
+            </div>
+            <button class="btn btn-primary btn-full btn-sm" id="quiz-submit-btn">Grade My Notes</button>
+            <div id="quiz-results"></div>
+          </div>
+        </div>`;
+
+      document.getElementById('btn-reveal').addEventListener('click', () => {
+        document.getElementById('btn-reveal').classList.add('active');
+        document.getElementById('btn-quiz').classList.remove('active');
+        document.getElementById('contact-reveal-panel').style.display = '';
+        document.getElementById('contact-quiz-panel').style.display = 'none';
+      });
+      document.getElementById('btn-quiz').addEventListener('click', () => {
+        document.getElementById('btn-quiz').classList.add('active');
+        document.getElementById('btn-reveal').classList.remove('active');
+        document.getElementById('contact-reveal-panel').style.display = 'none';
+        document.getElementById('contact-quiz-panel').style.display = '';
+      });
+      document.getElementById('quiz-submit-btn').addEventListener('click', () => {
+        const fields = ['name', 'phone', 'email', 'car'];
+        const answers = {};
+        document.querySelectorAll('.quiz-input').forEach(inp => {
+          answers[inp.dataset.field] = inp.value.trim().toLowerCase();
+        });
+        let correct = 0;
+        const results = fields.map(f => {
+          const expected = (ci[f] || '').toLowerCase().trim();
+          const actual = answers[f] || '';
+          // Partial match: either exact or expected contains answer (or vice versa)
+          const ok = actual.length > 0 && (actual === expected || expected.includes(actual) || actual.includes(expected));
+          if (ok) correct++;
+          return `<div class="quiz-result-row ${ok ? 'quiz-ok' : 'quiz-miss'}">
+            <span class="quiz-result-icon">${ok ? '✓' : '✗'}</span>
+            <span class="quiz-result-lbl">${f === 'car' ? 'Vehicle' : f.charAt(0).toUpperCase() + f.slice(1)}</span>
+            <span class="quiz-result-val">${escHtml(ci[f])}</span>
+          </div>`;
+        });
+        const pct = Math.round(correct / fields.length * 100);
+        document.getElementById('quiz-results').innerHTML = `
+          <div class="quiz-score-banner" style="color:${scoreColor(pct)}">
+            ${correct}/${fields.length} captured correctly (${pct}%)
+          </div>
+          ${results.join('')}`;
+        document.getElementById('quiz-submit-btn').style.display = 'none';
+      });
+    }
   }
 
   // Final gauge + feedback in right pane
@@ -1573,9 +1681,9 @@ async function renderRepDetail(userId) {
   const bestScore = scored.length ? Math.max(...scored.map(c => c.score.overallScore)) : null;
   const progressSet = new Set(progress);
   const certs = {
-    foundations:  CERT_IDS.foundations.every(id => progressSet.has(id)),
-    breakthrough: CERT_IDS.breakthrough.every(id => progressSet.has(id)),
-    elite:        CERT_IDS.elite.every(id => progressSet.has(id)),
+    foundations: CERT_IDS.foundations.every(id => progressSet.has(id)),
+    expert:      CERT_IDS.expert.every(id => progressSet.has(id)),
+    elite:       CERT_IDS.elite.every(id => progressSet.has(id)),
   };
 
   app.innerHTML = `
@@ -1596,9 +1704,9 @@ async function renderRepDetail(userId) {
     </div>
 
     <div class="cert-strip">
-      ${certBadge('foundations', 'Foundations', certs.foundations)}
-      ${certBadge('breakthrough', 'Breakthrough', certs.breakthrough)}
-      ${certBadge('elite', 'Elite Closer', certs.elite)}
+      ${certBadge('phone-open', 'PHONUP Ready', certs.foundations)}
+      ${certBadge('phone-price', 'PHONUP Expert', certs.expert)}
+      ${certBadge('phone-close', 'PHONUP Elite', certs.elite)}
     </div>
 
     <div class="section-header" style="margin-top:24px"><h2>Call History</h2></div>
@@ -1619,4 +1727,560 @@ async function renderRepDetail(userId) {
         </table></div>`
     }
   `;
+}
+
+// ── SETTINGS ──────────────────────────────────────────────────────────────────
+
+async function renderSettings() {
+  const user = getUser();
+
+  app.innerHTML = `
+    <div class="page-header">
+      <div>
+        <h1>Settings</h1>
+        <p class="subtitle">Manage your account, phone number, and preferences</p>
+      </div>
+    </div>
+
+    <div class="settings-wrap">
+
+      <div class="settings-section card">
+        <h3 class="settings-section-title">Account</h3>
+        <div class="form-group">
+          <label for="settings-name">Display Name</label>
+          <input type="text" id="settings-name" value="${escHtml(user ? user.name : '')}" />
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" value="${escHtml(user ? user.email : '')}" disabled class="input-disabled" />
+        </div>
+        <div id="settings-account-msg" class="settings-msg" style="display:none"></div>
+        <button class="btn btn-primary" id="save-account-btn">Save Changes</button>
+      </div>
+
+      <div class="settings-section card">
+        <h3 class="settings-section-title">My Phone Number</h3>
+        <p class="settings-section-desc">Saved here so you don't have to retype it every time you take a call.</p>
+        <div class="form-group">
+          <label for="settings-phone">Cell Number</label>
+          <input type="tel" id="settings-phone" placeholder="+1 555 000 0000" value="${escHtml((user && user.phone_number) ? user.phone_number : '')}" autocomplete="tel" />
+        </div>
+        <div id="settings-phone-msg" class="settings-msg" style="display:none"></div>
+        <button class="btn btn-primary" id="save-phone-btn">Save Number</button>
+      </div>
+
+      <div class="settings-section card">
+        <h3 class="settings-section-title">Theme</h3>
+        <p class="settings-section-desc">Choose a look that keeps you in the zone.</p>
+        <div class="theme-picker">
+          ${[
+            { id: 'light',    label: 'Light',    preview: '#ffffff' },
+            { id: 'dark',     label: 'Dark',     preview: '#0f172a' },
+            { id: 'gridiron', label: 'Gridiron', preview: '#0a1a08' },
+            { id: 'midnight', label: 'Midnight', preview: '#07071a' },
+          ].map(t => {
+            const active = (localStorage.getItem('freshup_theme') || 'light') === t.id ? 'theme-btn-active' : '';
+            return `<button class="theme-btn ${active}" data-theme="${t.id}">
+              <div class="theme-preview" style="background:${t.preview}"></div>
+              <span>${t.label}</span>
+            </button>`;
+          }).join('')}
+        </div>
+      </div>
+
+      ${user && user.role === 'manager' ? `
+      <div class="settings-section card">
+        <h3 class="settings-section-title">Team Invite Code</h3>
+        <p class="settings-section-desc">Share this with reps so they can join your team when registering.</p>
+        <button class="btn btn-secondary" id="copy-invite-btn">Copy Invite Link</button>
+      </div>
+      ` : ''}
+
+    </div>
+  `;
+
+  // Account save
+  document.getElementById('save-account-btn').addEventListener('click', async () => {
+    const name = document.getElementById('settings-name').value.trim();
+    const msgEl = document.getElementById('settings-account-msg');
+    if (!name) { msgEl.textContent = 'Name cannot be empty.'; msgEl.className = 'settings-msg error'; msgEl.style.display = 'block'; return; }
+    try {
+      const res = await api('/api/auth/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) });
+      setAuth(res.token, res.user);
+      msgEl.textContent = 'Name updated!';
+      msgEl.className = 'settings-msg success';
+      msgEl.style.display = 'block';
+      updateNav(getRoute());
+      setTimeout(() => { msgEl.style.display = 'none'; }, 3000);
+    } catch (err) {
+      msgEl.textContent = err.message;
+      msgEl.className = 'settings-msg error';
+      msgEl.style.display = 'block';
+    }
+  });
+
+  // Phone save
+  document.getElementById('save-phone-btn').addEventListener('click', async () => {
+    const phone_number = document.getElementById('settings-phone').value.trim();
+    const msgEl = document.getElementById('settings-phone-msg');
+    try {
+      const res = await api('/api/auth/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone_number }) });
+      setAuth(res.token, res.user);
+      msgEl.textContent = phone_number ? 'Phone number saved!' : 'Phone number cleared.';
+      msgEl.className = 'settings-msg success';
+      msgEl.style.display = 'block';
+      setTimeout(() => { msgEl.style.display = 'none'; }, 3000);
+    } catch (err) {
+      msgEl.textContent = err.message;
+      msgEl.className = 'settings-msg error';
+      msgEl.style.display = 'block';
+    }
+  });
+
+  // Theme picker
+  document.querySelector('.theme-picker').addEventListener('click', e => {
+    const btn = e.target.closest('.theme-btn');
+    if (!btn) return;
+    const t = btn.dataset.theme;
+    applyTheme(t);
+    document.querySelectorAll('.theme-btn').forEach(b => b.classList.toggle('theme-btn-active', b.dataset.theme === t));
+  });
+
+  // Copy invite
+  document.getElementById('copy-invite-btn')?.addEventListener('click', async () => {
+    try {
+      const inv = await api('/api/team/invite');
+      await navigator.clipboard.writeText(inv.invite_url);
+      showToast('Invite link copied!', 'success');
+    } catch { showToast('Could not copy link.', 'error'); }
+  });
+}
+
+// ── LEARN HUB ─────────────────────────────────────────────────────────────────
+
+function renderLearn() {
+  app.innerHTML = `
+    <div class="page-header">
+      <div>
+        <h1>Learn</h1>
+        <p class="subtitle">Everything you need to master the phone up</p>
+      </div>
+    </div>
+    <div class="learn-hub-grid">
+      <a href="#/learn/framework" class="learn-hub-card" style="--hub-color:#3b82f6">
+        <div class="lhc-icon">🏗️</div>
+        <div class="lhc-body">
+          <h3>PHONUP Framework</h3>
+          <p>The 7-step proprietary system behind every great phone up. Learn the method, master the methodology.</p>
+        </div>
+        <span class="lhc-arrow">→</span>
+      </a>
+      <a href="#/courses" class="learn-hub-card" style="--hub-color:#8b5cf6">
+        <div class="lhc-icon">📚</div>
+        <div class="lhc-body">
+          <h3>Courses</h3>
+          <p>7 structured courses from first hello to elite appointment close. Lessons + real phone challenges.</p>
+        </div>
+        <span class="lhc-arrow">→</span>
+      </a>
+      <a href="#/learn/gauntlet" class="learn-hub-card" style="--hub-color:#ef4444">
+        <div class="lhc-icon">⚡</div>
+        <div class="lhc-body">
+          <h3>Objection Gauntlet</h3>
+          <p>One objection. One response. Instant AI coaching. Train your reactions until they're automatic.</p>
+        </div>
+        <span class="lhc-arrow">→</span>
+      </a>
+      <a href="#/learn/playbook" class="learn-hub-card" style="--hub-color:#10b981">
+        <div class="lhc-icon">📖</div>
+        <div class="lhc-body">
+          <h3>My Playbook</h3>
+          <p>Your personal library of best responses, built from your highest-scoring gauntlet attempts.</p>
+        </div>
+        <span class="lhc-arrow">→</span>
+      </a>
+    </div>
+  `;
+}
+
+// ── PHONUP FRAMEWORK ──────────────────────────────────────────────────────────
+
+function renderFramework() {
+  const steps = [
+    {
+      letter: 'P', color: '#3b82f6',
+      title: 'Pick Up with Confidence',
+      desc: 'The first 5 words set the tone for the entire call. A warm, clear greeting with your name and dealership signals professionalism and makes the caller feel they reached the right person.',
+      doThis: 'Smile before you answer. Say your name + dealership clearly. End with an open question.',
+      notThis: 'Answer with "Yeah?" or mumble the dealership name. Never answer distracted.',
+      example: '"Good afternoon, this is Marcus at Riverside Toyota — thanks for calling in, how can I help you today?"',
+    },
+    {
+      letter: 'H', color: '#8b5cf6',
+      title: 'Hold Their Attention',
+      desc: 'Get their name within 20 seconds. Use reciprocity — give your name first, and they will naturally give theirs. Once you have their name, use it to deepen connection throughout the call.',
+      doThis: 'Give your name, then ask theirs. Use their name 2-3 times naturally in conversation.',
+      notThis: 'Dive into their question without introducing yourself. Overuse their name until it feels robotic.',
+      example: '"I\'m Marcus, by the way — and who do I have the pleasure of speaking with today?"',
+    },
+    {
+      letter: 'O', color: '#06b6d4',
+      title: 'Open the Discovery',
+      desc: 'Before answering their question, ask yours. Use the four question types — situational, problem, implication, vision — to understand what they really need and why they really need it.',
+      doThis: 'Ask needs questions before answering price/availability questions. Use the Rule of 3.',
+      notThis: 'Answer their first question without asking anything. Skip discovery because the vehicle seems obvious.',
+      example: '"Before I look that up — are you replacing a current vehicle, or adding to the family fleet?"',
+    },
+    {
+      letter: 'N', color: '#f59e0b',
+      title: 'Number Exchange',
+      desc: 'Secure their callback phone number before giving any substantial pricing or availability information. Frame it as follow-up, not data collection. This is the most important capture of the call.',
+      doThis: 'Ask for the number after rapport but before pricing. Frame as "in case we get disconnected."',
+      notThis: 'Give price before getting their number. Ask for number as the first thing — it kills trust.',
+      example: '"I want to pull up the exact availability on that — just in case we get cut off, what\'s the best number to reach you at?"',
+    },
+    {
+      letter: 'U', color: '#ef4444',
+      title: 'Uncover Objections Early',
+      desc: 'Surface objections before they derail the close. Use the Acknowledge-Explore-Respond framework: hear the objection fully, ask what\'s really behind it, and address the actual concern.',
+      doThis: 'Welcome objections as signals of interest. Use the dig-down question to find the real concern.',
+      notThis: 'Argue with objections. Use "I understand, but..." which signals you don\'t actually understand.',
+      example: '"Totally fair — can I ask, is it more about the timing, the vehicle itself, or something around the numbers?"',
+    },
+    {
+      letter: 'P', color: '#10b981',
+      title: 'Push for the Appointment',
+      desc: 'The only goal of the call is the appointment. Use the tie-down to confirm interest, then the assumptive close to make the appointment feel like the obvious next step.',
+      doThis: 'Tie down interest first. Use assumptive close (Tuesday or Saturday?) not yes/no question.',
+      notThis: '"Would you like to come in?" — too easy to say no. Never ask for a yes/no appointment.',
+      example: '"Based on what you\'ve told me, it sounds like the Camry could be a strong fit — I\'ve got tomorrow afternoon or Saturday morning. Which works better for you?"',
+    },
+    {
+      letter: '!', color: '#1e293b',
+      title: 'UP — Confirm & Follow Through',
+      desc: 'A verbal yes is worth nothing without a confirmed appointment. Lock it in with the five-point confirmation: day/time, their name, what you\'ll prepare, your direct number, and your name.',
+      doThis: 'Repeat day + time. Use their name. Create anticipation. Give your direct number.',
+      notThis: 'End the call without a confirmed time. Assume they\'ll show up without a confirmation.',
+      example: '"Perfect — so we\'ve got you for Saturday at 11, [Name]. I\'ll have a couple of options pulled that match exactly what you described. Just ask for Marcus when you arrive."',
+    },
+  ];
+
+  app.innerHTML = `
+    <a href="#/learn" class="back-link">← Learn</a>
+    <div class="page-header">
+      <div>
+        <h1>The PHONUP Framework™</h1>
+        <p class="subtitle">FreshUp's proprietary 7-step methodology for mastering the inbound dealership phone call</p>
+      </div>
+    </div>
+    <div class="framework-steps">
+      ${steps.map((s, i) => `
+        <div class="framework-step" style="--step-color:${s.color}">
+          <div class="framework-step-badge">${s.letter}</div>
+          <div class="framework-step-body">
+            <h3 class="framework-step-title">${escHtml(s.title)}</h3>
+            <p class="framework-step-desc">${escHtml(s.desc)}</p>
+            <div class="framework-do-dont">
+              <div class="framework-do">
+                <div class="fdd-label">✓ Do This</div>
+                <div class="fdd-text">${escHtml(s.doThis)}</div>
+              </div>
+              <div class="framework-dont">
+                <div class="fdd-label">✗ Not This</div>
+                <div class="fdd-text">${escHtml(s.notThis)}</div>
+              </div>
+            </div>
+            <div class="framework-example">"${escHtml(s.example)}"</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+    <div class="framework-footer card">
+      <h3>Practice the Framework</h3>
+      <p>Head to the Gauntlet to drill each step individually, or take a full call in the Call Arena to practice the complete sequence.</p>
+      <div class="framework-footer-btns">
+        <a href="#/learn/gauntlet" class="btn btn-primary">Try the Gauntlet →</a>
+        <a href="#/start" class="btn btn-secondary">Take a Full Call →</a>
+      </div>
+    </div>
+  `;
+}
+
+// ── OBJECTION GAUNTLET ────────────────────────────────────────────────────────
+
+let gauntletState = { mode: 'idle', challenges: [], filtered: [], current: null, categoryFilter: 'all', difficultyFilter: 'all' };
+
+async function renderGauntlet() {
+  if (!gauntletState.challenges.length) {
+    try {
+      gauntletState.challenges = await api('/api/gauntlet/challenges');
+    } catch (e) {
+      app.innerHTML = '<div class="empty-state">Failed to load challenges.</div>';
+      return;
+    }
+  }
+  renderGauntletIdle();
+}
+
+function getFilteredChallenges() {
+  return gauntletState.challenges.filter(c => {
+    const catOk = gauntletState.categoryFilter === 'all' || c.category === gauntletState.categoryFilter;
+    const diffOk = gauntletState.difficultyFilter === 'all' || c.difficulty === gauntletState.difficultyFilter;
+    return catOk && diffOk;
+  });
+}
+
+function renderGauntletIdle() {
+  const filtered = getFilteredChallenges();
+  const cats = [
+    { id: 'all', label: 'All' },
+    { id: 'warmup', label: 'Warm-up' },
+    { id: 'price', label: 'Price' },
+    { id: 'availability', label: 'Availability' },
+    { id: 'commitment', label: 'Commitment' },
+    { id: 'info', label: 'Info' },
+    { id: 'competitor', label: 'Competitor' },
+  ];
+  const diffs = [
+    { id: 'all', label: 'All' },
+    { id: 'easy', label: 'Easy' },
+    { id: 'medium', label: 'Medium' },
+    { id: 'hard', label: 'Hard' },
+  ];
+
+  app.innerHTML = `
+    <a href="#/learn" class="back-link">← Learn</a>
+    <div class="page-header">
+      <div>
+        <h1>Objection Gauntlet</h1>
+        <p class="subtitle">One objection. One response. Instant AI coaching.</p>
+      </div>
+    </div>
+    <div class="gauntlet-wrap">
+      <div class="gauntlet-filters">
+        <div class="gauntlet-filter-group">
+          <span class="gauntlet-filter-label">Category</span>
+          <div class="gauntlet-filter-btns" id="cat-filter">
+            ${cats.map(c => `<button class="gf-btn${gauntletState.categoryFilter === c.id ? ' active' : ''}" data-val="${c.id}">${c.label}</button>`).join('')}
+          </div>
+        </div>
+        <div class="gauntlet-filter-group">
+          <span class="gauntlet-filter-label">Difficulty</span>
+          <div class="gauntlet-filter-btns" id="diff-filter">
+            ${diffs.map(d => `<button class="gf-btn${gauntletState.difficultyFilter === d.id ? ' active' : ''}" data-val="${d.id}">${d.label}</button>`).join('')}
+          </div>
+        </div>
+      </div>
+      <div class="gauntlet-count">${filtered.length} challenge${filtered.length !== 1 ? 's' : ''} available</div>
+      <button class="btn btn-primary btn-lg" id="gauntlet-start-btn" ${filtered.length === 0 ? 'disabled' : ''}>
+        ⚡ Start Random Challenge
+      </button>
+    </div>
+  `;
+
+  document.getElementById('cat-filter').addEventListener('click', e => {
+    const btn = e.target.closest('.gf-btn');
+    if (!btn) return;
+    gauntletState.categoryFilter = btn.dataset.val;
+    renderGauntletIdle();
+  });
+  document.getElementById('diff-filter').addEventListener('click', e => {
+    const btn = e.target.closest('.gf-btn');
+    if (!btn) return;
+    gauntletState.difficultyFilter = btn.dataset.val;
+    renderGauntletIdle();
+  });
+  document.getElementById('gauntlet-start-btn')?.addEventListener('click', () => {
+    const pool = getFilteredChallenges();
+    if (!pool.length) return;
+    gauntletState.current = pool[Math.floor(Math.random() * pool.length)];
+    renderGauntletChallenge();
+  });
+}
+
+function renderGauntletChallenge() {
+  const c = gauntletState.current;
+  if (!c) return renderGauntletIdle();
+  const diffColors = { easy: '#10b981', medium: '#f59e0b', hard: '#ef4444' };
+
+  app.innerHTML = `
+    <a href="#/learn" class="back-link">← Learn</a>
+    <div class="page-header">
+      <div>
+        <h1>Objection Gauntlet</h1>
+        <p class="subtitle"><span class="badge" style="background:${diffColors[c.difficulty] || '#888'};color:#fff">${c.difficulty}</span> &nbsp;${c.category}</p>
+      </div>
+    </div>
+    <div class="gauntlet-challenge-wrap">
+      <div class="challenge-context card">${escHtml(c.context)}</div>
+      <div class="challenge-bubble">
+        <div class="challenge-bubble-avatar">👤</div>
+        <div class="challenge-bubble-text">"${escHtml(c.challenge)}"</div>
+      </div>
+      <div class="gauntlet-hint"><strong>Hint:</strong> ${escHtml(c.hint)}</div>
+      <div class="form-group">
+        <label for="gauntlet-response">Your Response</label>
+        <textarea id="gauntlet-response" rows="4" placeholder="Type exactly what you would say on the phone…" class="gauntlet-textarea"></textarea>
+      </div>
+      <button class="btn btn-primary btn-lg" id="gauntlet-submit-btn">
+        📞 Respond &amp; End Call
+      </button>
+    </div>
+  `;
+
+  document.getElementById('gauntlet-submit-btn').addEventListener('click', async () => {
+    const response = document.getElementById('gauntlet-response').value.trim();
+    if (!response) { showToast('Type your response first.', 'error'); return; }
+
+    // Hang-up animation
+    const btn = document.getElementById('gauntlet-submit-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="hangup-anim">📞</span> Scoring…';
+
+    try {
+      const result = await api('/api/gauntlet/grade', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ challengeId: c.id, response }),
+      });
+      renderGauntletResult(c, response, result);
+    } catch (err) {
+      showToast(err.message, 'error');
+      btn.disabled = false;
+      btn.innerHTML = '📞 Respond &amp; End Call';
+    }
+  });
+}
+
+function renderGauntletResult(challenge, userResponse, result) {
+  const score = result.score || 0;
+  const color = scoreColor(score);
+  const canSave = score >= 70;
+
+  app.innerHTML = `
+    <a href="#/learn" class="back-link">← Learn</a>
+    <div class="page-header">
+      <div><h1>Gauntlet Result</h1></div>
+    </div>
+    <div class="gauntlet-result-wrap">
+      <div class="result-score-circle" style="--score-color:${color}">
+        <div class="rsc-inner">
+          <div class="rsc-num" style="color:${color}">${score}</div>
+          <div class="rsc-lbl">/ 100</div>
+        </div>
+      </div>
+
+      <div class="gauntlet-feedback card">
+        <div class="gf-row gf-worked">
+          <span class="gf-icon">✓</span>
+          <div>
+            <div class="gf-title">What Worked</div>
+            <div class="gf-body">${escHtml(result.whatWorked || '—')}</div>
+          </div>
+        </div>
+        <div class="gf-row gf-missed">
+          <span class="gf-icon">✗</span>
+          <div>
+            <div class="gf-title">What Missed</div>
+            <div class="gf-body">${escHtml(result.whatMissed || '—')}</div>
+          </div>
+        </div>
+        <div class="gf-row gf-stronger">
+          <span class="gf-icon">💡</span>
+          <div>
+            <div class="gf-title">Try This Instead</div>
+            <div class="gf-body">"${escHtml(result.strongerLine || '—')}"</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="gauntlet-result-actions">
+        ${canSave ? `<button class="btn btn-secondary" id="save-playbook-btn">📖 Save to Playbook</button>` : ''}
+        <button class="btn btn-primary" id="next-challenge-btn">⚡ Next Challenge</button>
+      </div>
+
+      <div id="playbook-save-msg" style="display:none" class="settings-msg success">Saved to your playbook!</div>
+    </div>
+  `;
+
+  document.getElementById('next-challenge-btn').addEventListener('click', () => {
+    const pool = getFilteredChallenges();
+    if (!pool.length) { navigate('/learn/gauntlet'); return; }
+    gauntletState.current = pool[Math.floor(Math.random() * pool.length)];
+    renderGauntletChallenge();
+  });
+
+  document.getElementById('save-playbook-btn')?.addEventListener('click', () => {
+    const playbook = JSON.parse(localStorage.getItem('freshup_playbook') || '[]');
+    playbook.unshift({
+      id: Date.now(),
+      challengeId: challenge.id,
+      category: challenge.category,
+      difficulty: challenge.difficulty,
+      challenge: challenge.challenge,
+      response: userResponse,
+      score,
+      strongerLine: result.strongerLine || '',
+      savedAt: Date.now(),
+    });
+    localStorage.setItem('freshup_playbook', JSON.stringify(playbook.slice(0, 100)));
+    document.getElementById('save-playbook-btn').style.display = 'none';
+    document.getElementById('playbook-save-msg').style.display = 'block';
+  });
+}
+
+// ── PLAYBOOK ──────────────────────────────────────────────────────────────────
+
+function renderPlaybook() {
+  const playbook = JSON.parse(localStorage.getItem('freshup_playbook') || '[]');
+
+  // Group by category
+  const grouped = {};
+  for (const entry of playbook) {
+    if (!grouped[entry.category]) grouped[entry.category] = [];
+    grouped[entry.category].push(entry);
+  }
+
+  const catLabels = {
+    warmup: 'Warm-up', price: 'Price', availability: 'Availability',
+    commitment: 'Commitment', info: 'Info Resistance', competitor: 'Competitor',
+  };
+  const diffColors = { easy: '#10b981', medium: '#f59e0b', hard: '#ef4444' };
+
+  app.innerHTML = `
+    <a href="#/learn" class="back-link">← Learn</a>
+    <div class="page-header">
+      <div>
+        <h1>My Playbook</h1>
+        <p class="subtitle">${playbook.length} saved response${playbook.length !== 1 ? 's' : ''}</p>
+      </div>
+      ${playbook.length > 0 ? '<button class="btn btn-ghost btn-sm" id="clear-playbook-btn">Clear All</button>' : ''}
+    </div>
+    ${playbook.length === 0
+      ? '<div class="empty-state">Your playbook is empty. Complete Gauntlet challenges and save your best responses (score ≥ 70) to build it up.</div>'
+      : Object.entries(grouped).map(([cat, entries]) => `
+        <div class="playbook-category">
+          <h3 class="playbook-cat-title">${escHtml(catLabels[cat] || cat)}</h3>
+          ${entries.map(e => `
+            <div class="playbook-entry card">
+              <div class="playbook-entry-header">
+                <span class="badge" style="background:${diffColors[e.difficulty] || '#888'};color:#fff">${e.difficulty}</span>
+                <span class="playbook-score" style="color:${scoreColor(e.score)}">${e.score}/100</span>
+                <span class="playbook-date text-muted text-sm">${formatDate(e.savedAt)}</span>
+              </div>
+              <div class="playbook-challenge">"${escHtml(e.challenge)}"</div>
+              <div class="playbook-response">${escHtml(e.response)}</div>
+              ${e.strongerLine ? `<div class="playbook-stronger"><span class="gf-icon">💡</span> "${escHtml(e.strongerLine)}"</div>` : ''}
+            </div>
+          `).join('')}
+        </div>
+      `).join('')
+    }
+  `;
+
+  document.getElementById('clear-playbook-btn')?.addEventListener('click', () => {
+    if (!confirm('Clear your entire playbook? This cannot be undone.')) return;
+    localStorage.removeItem('freshup_playbook');
+    renderPlaybook();
+  });
 }

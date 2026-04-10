@@ -5,7 +5,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const router = express.Router();
 
-const { createUser, updateUser, getUserByEmail, createTeam, getTeamByCode } = require('../store');
+const { createUser, updateUser, getUserByEmail, getUserById, createTeam, getTeamByCode } = require('../store');
 const { requireAuth, JWT_SECRET } = require('../middleware/requireAuth');
 
 function makeToken(user) {
@@ -17,7 +17,14 @@ function makeToken(user) {
 }
 
 function userPayload(user) {
-  return { id: user.id, email: user.email, name: user.name, role: user.role || 'rep', teamId: user.team_id || null };
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role || 'rep',
+    teamId: user.team_id || null,
+    phone_number: user.phone_number || null,
+  };
 }
 
 // POST /api/auth/register
@@ -97,6 +104,26 @@ router.post('/login', async (req, res) => {
 // GET /api/auth/me
 router.get('/me', requireAuth, (req, res) => {
   res.json({ user: req.user });
+});
+
+// PATCH /api/auth/profile — update name and/or phone number
+router.patch('/profile', requireAuth, async (req, res) => {
+  try {
+    const { name, phone_number } = req.body;
+    const updates = {};
+    if (name && name.trim()) updates.name = name.trim();
+    if (phone_number !== undefined) updates.phone_number = phone_number.trim() || null;
+    if (!Object.keys(updates).length) {
+      res.status(400).json({ error: 'Nothing to update' });
+      return;
+    }
+    const user = updateUser(req.user.id, updates);
+    const token = makeToken(user);
+    res.json({ token, user: userPayload(user) });
+  } catch (err) {
+    console.error('[auth/profile] error:', err);
+    res.status(500).json({ error: 'Profile update failed' });
+  }
 });
 
 module.exports = router;
