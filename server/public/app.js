@@ -97,6 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function render() {
+  delete document.body.dataset.page;
   const path = getRoute();
   const token = getToken();
 
@@ -298,17 +299,14 @@ function initScrollReveal() {
   return observer;
 }
 
-function animateCounter(el, target, duration = 1400) {
+function animateCounter(el, target, duration = 1400, from = 0) {
   if (!el || isNaN(target)) return;
-  let start = 0;
   const startTime = performance.now();
   function step(now) {
-    const elapsed = now - startTime;
-    const progress = Math.min(elapsed / duration, 1);
+    const progress = Math.min((now - startTime) / duration, 1);
     // ease-out cubic
     const eased = 1 - Math.pow(1 - progress, 3);
-    const current = Math.floor(eased * target);
-    el.textContent = current;
+    el.textContent = Math.round(from + eased * (target - from));
     if (progress < 1) requestAnimationFrame(step);
     else el.textContent = target;
   }
@@ -318,6 +316,7 @@ function animateCounter(el, target, duration = 1400) {
 // ── LANDING PAGE ──────────────────────────────────────────────────────────────
 
 function renderLanding() {
+  document.body.dataset.page = 'landing';
   app.innerHTML = `
     <div class="landing-v2">
 
@@ -752,7 +751,7 @@ function calcStreak(calls) {
 }
 
 async function renderDashboard() {
-  app.innerHTML = '<div class="loading">Loading…</div>';
+  app.innerHTML = '<div class="page-skeleton"><div class="skel skel-title"></div><div class="skel skel-text"></div><div class="skel skel-text skel-short"></div></div>';
   const user = getUser();
   let history = [], progress = [], courses = [];
   try { history = await api('/api/call/history'); } catch (e) { /* empty */ }
@@ -805,29 +804,45 @@ async function renderDashboard() {
     <div class="page-header">
       <div>
         <h1>Dashboard</h1>
-        <p class="subtitle">Welcome back, ${escHtml(user ? user.name.split(' ')[0] : '')}!${streak >= 2 ? ` &nbsp;🔥 ${streak}-day streak` : ''}</p>
+        <p class="subtitle">Welcome back, ${escHtml(user ? user.name.split(' ')[0] : '')}!</p>
       </div>
       <a class="btn btn-primary" href="#/start">+ Take a Call</a>
     </div>
 
-    <div class="stats-strip">
-      <div class="stat-card">
-        <div class="stat-val">${total}</div>
-        <div class="stat-lbl">Total Calls</div>
+    ${total === 0 ? `
+      <div class="dash-empty">
+        <div class="dash-empty-icon">📞</div>
+        <h3>No calls yet</h3>
+        <p>Take your first training call to start tracking your progress and scores.</p>
+        <a href="#/start" class="btn btn-primary">Take Your First Call</a>
       </div>
-      <div class="stat-card">
-        <div class="stat-val">${avgScore != null ? avgScore : '—'}${trend != null ? `<span class="trend ${trend >= 0 ? 'trend-up' : 'trend-down'}">${trend >= 0 ? '↑' : '↓'}${Math.abs(trend)}</span>` : ''}</div>
-        <div class="stat-lbl">Avg Score</div>
+    ` : `
+      <div class="stats-strip">
+        <div class="stat-card">
+          <div class="stat-val" id="stat-total-calls">${total}</div>
+          <div class="stat-lbl">Total Calls</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="stat-avg-score">${avgScore != null ? avgScore : '—'}${trend != null ? `<span class="trend ${trend >= 0 ? 'trend-up' : 'trend-down'}">${trend >= 0 ? '↑' : '↓'}${Math.abs(trend)}</span>` : ''}</div>
+          <div class="stat-lbl">Avg Score</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="stat-best-score">${bestScore != null ? bestScore : '—'}</div>
+          <div class="stat-lbl">Best Score</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val">${modulesCompleted}<span class="stat-denom">/15</span></div>
+          <div class="stat-lbl">Modules Done</div>
+        </div>
       </div>
-      <div class="stat-card">
-        <div class="stat-val">${bestScore != null ? bestScore : '—'}</div>
-        <div class="stat-lbl">Best Score</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-val">${modulesCompleted}<span class="stat-denom">/15</span></div>
-        <div class="stat-lbl">Modules Done</div>
-      </div>
-    </div>
+      ${streak >= 2 ? `
+        <div class="streak-badge">
+          <span class="streak-fire">🔥</span>
+          <strong>${streak}-day streak</strong>
+          <span class="streak-sub">Train again today to keep it going</span>
+        </div>
+      ` : ''}
+    `}
 
     <div class="cert-strip">
       ${certBadge('phone-open', 'PHONUP Ready', certs.foundations)}
@@ -852,21 +867,29 @@ async function renderDashboard() {
       </a>
     ` : ''}
 
-    <div class="section-header" style="margin-top:24px">
-      <h2>Recent Calls</h2>
-      ${total > 8 ? '<a href="#/history" class="link-sm">View all →</a>' : ''}
-    </div>
-
-    ${recent.length === 0
-      ? '<div class="empty-state">No calls yet. <a class="link" href="#/start">Start your first training call →</a></div>'
-      : `<div class="table-wrap"><table>
-          <thead><tr>
-            <th>Persona</th><th>Outcome</th><th>Score</th><th>Duration</th><th>Date</th><th></th>
-          </tr></thead>
-          <tbody>${recent.map(callRow).join('')}</tbody>
-        </table></div>`
-    }
+    ${total > 0 ? `
+      <div class="section-header" style="margin-top:24px">
+        <h2>Recent Calls</h2>
+        ${total > 8 ? '<a href="#/history" class="link-sm">View all →</a>' : ''}
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr>
+          <th>Persona</th><th>Outcome</th><th>Score</th><th>Duration</th><th>Date</th><th></th>
+        </tr></thead>
+        <tbody>${recent.map(callRow).join('')}</tbody>
+      </table></div>
+    ` : ''}
   `;
+
+  // Animate stat card numbers after render
+  if (total > 0) {
+    const callsEl = document.getElementById('stat-total-calls');
+    const avgEl = document.getElementById('stat-avg-score');
+    const bestEl = document.getElementById('stat-best-score');
+    if (callsEl) animateCounter(callsEl, total, 800);
+    if (avgEl && avgScore != null) animateCounter(avgEl, avgScore, 900);
+    if (bestEl && bestScore != null) animateCounter(bestEl, bestScore, 1000);
+  }
 }
 
 function certBadge(courseId, label, earned) {
@@ -901,6 +924,7 @@ function callRow(c) {
 // ── START CALL / CALL ARENA ───────────────────────────────────────────────────
 
 let selectedPersonaId = null; // used only for module challenges
+let gaugeDisplayedScore = 0;  // tracks current displayed value for count-up animation
 
 function arenaGaugeSvg(id = '') {
   const arcId = id ? `gauge-arc-${id}` : 'gauge-arc';
@@ -1138,7 +1162,7 @@ function personaSelectCard(p, selected) {
 // ── HISTORY ───────────────────────────────────────────────────────────────────
 
 async function renderHistory() {
-  app.innerHTML = '<div class="loading">Loading…</div>';
+  app.innerHTML = '<div class="page-skeleton"><div class="skel skel-title"></div><div class="skel skel-text"></div><div class="skel skel-text skel-short"></div></div>';
   let history = [];
   try { history = await api('/api/call/history'); } catch (e) {
     app.innerHTML = '<div class="empty-state">Failed to load history.</div>';
@@ -1154,7 +1178,12 @@ async function renderHistory() {
       <a class="btn btn-primary" href="#/start">+ Take a Call</a>
     </div>
     ${history.length === 0
-      ? '<div class="empty-state">No calls yet. <a class="link" href="#/start">Start your first training call →</a></div>'
+      ? `<div class="empty-state">
+          <div class="empty-icon">📋</div>
+          <h3>No calls yet</h3>
+          <p>Your call history will appear here after your first training call.</p>
+          <a href="#/start" class="btn btn-primary">Take Your First Call</a>
+        </div>`
       : `<div class="table-wrap"><table>
           <thead><tr><th>Persona</th><th>Outcome</th><th>Score</th><th>Duration</th><th>Date</th><th></th></tr></thead>
           <tbody>${history.map(callRow).join('')}</tbody>
@@ -1199,6 +1228,7 @@ function renderCallResult(callSid) {
           <div class="ls-header">Live Score</div>
           <div class="gauge-wrap">${arenaGaugeSvg('live')}</div>
           <div class="gauge-dims">${arenaDimensions('live-')}</div>
+          <div id="score-context-wrap"></div>
           <div id="live-feedback-wrap"></div>
         </div>
       </div>
@@ -1232,9 +1262,32 @@ function pollResults(callSid) {
 }
 
 function connectCallStream(callSid) {
+  gaugeDisplayedScore = 0;
   const token = getToken();
   const src = new EventSource(`/api/call/${callSid}/stream?token=${encodeURIComponent(token || '')}`);
   let currentAssistantBubble = null;
+
+  function showTypingIndicator() {
+    const container = document.getElementById('lt-messages');
+    if (!container || document.getElementById('typing-indicator')) return;
+    const empty = document.getElementById('lt-empty');
+    if (empty) empty.remove();
+    const div = document.createElement('div');
+    div.id = 'typing-indicator';
+    div.className = 'tb tb-assistant';
+    div.innerHTML = '<div class="tb-who">Caller</div>' +
+      '<div class="tb-text tb-dots">' +
+        '<span class="typing-dot"></span>' +
+        '<span class="typing-dot"></span>' +
+        '<span class="typing-dot"></span>' +
+      '</div>';
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+  }
+
+  function removeTypingIndicator() {
+    document.getElementById('typing-indicator')?.remove();
+  }
 
   src.onmessage = (e) => {
     let event;
@@ -1244,8 +1297,10 @@ function connectCallStream(callSid) {
       case 'user_message':
         currentAssistantBubble = null;
         addTranscriptBubble('user', event.content);
+        showTypingIndicator();
         break;
       case 'assistant_message':
+        removeTypingIndicator();
         if (currentAssistantBubble) {
           currentAssistantBubble.querySelector('.tb-text').textContent = event.content;
           currentAssistantBubble.classList.remove('tb-streaming');
@@ -1255,6 +1310,7 @@ function connectCallStream(callSid) {
         currentAssistantBubble = null;
         break;
       case 'assistant_delta':
+        removeTypingIndicator();
         if (!currentAssistantBubble) {
           currentAssistantBubble = addTranscriptBubble('assistant', event.delta, true);
         } else {
@@ -1280,6 +1336,7 @@ function connectCallStream(callSid) {
           if (title) title.textContent = 'Call Complete'; }
         break;
       case 'done':
+        removeTypingIndicator();
         src.close();
         api(`/webhook/results/${callSid}`)
           .then(d => showCallAnalysis(d, callSid))
@@ -1321,7 +1378,10 @@ function updateGauge(score) {
       arc.style.strokeDashoffset = String(251.3 * (1 - pct));
       arc.style.stroke = scoreColor(overall);
     }
-    if (num) num.textContent = String(overall);
+    if (num) {
+      animateCounter(num, overall, 700, gaugeDisplayedScore);
+      gaugeDisplayedScore = overall;
+    }
   }
   ['opening', 'infoCapture', 'discovery', 'objectionHandling', 'appointment'].forEach(dim => {
     const val = score[dim];
@@ -1436,6 +1496,27 @@ function showCallAnalysis(data, callSid) {
   // Final gauge + feedback in right pane
   if (data.score) {
     updateGauge(data.score);
+
+    // Personal average comparison
+    const thisScore = data.score.overallScore;
+    if (thisScore != null) {
+      const ctxWrap = document.getElementById('score-context-wrap');
+      if (ctxWrap) {
+        api('/api/call/history').then(history => {
+          const others = history.filter(c => c.callSid !== callSid && c.score?.overallScore != null);
+          if (others.length >= 1) {
+            const avg = Math.round(others.reduce((a, c) => a + c.score.overallScore, 0) / others.length);
+            const diff = thisScore - avg;
+            const text = diff > 0 ? `↑ ${diff} above your average (${avg})`
+                       : diff < 0 ? `↓ ${Math.abs(diff)} below your average (${avg})`
+                       : `= Matches your average (${avg})`;
+            const cls = diff > 0 ? 'score-ctx-good' : diff < 0 ? 'score-ctx-low' : 'score-ctx-neutral';
+            ctxWrap.innerHTML = `<div class="score-context ${cls}">${text}</div>`;
+          }
+        }).catch(() => {});
+      }
+    }
+
     if (data.score.feedback) {
       const fw = document.getElementById('live-feedback-wrap');
       if (fw) fw.innerHTML = `<div class="live-feedback">${escHtml(data.score.feedback)}</div>`;
@@ -1489,7 +1570,7 @@ async function checkPendingModule(data, callSid) {
 // ── PERSONAS ──────────────────────────────────────────────────────────────────
 
 async function renderPersonas() {
-  app.innerHTML = '<div class="loading">Loading personas…</div>';
+  app.innerHTML = '<div class="page-skeleton"><div class="skel skel-title"></div><div class="skel skel-text"></div><div class="skel skel-text skel-short"></div></div>';
   let personas = [];
   try { personas = await api('/api/personas'); } catch (e) {
     app.innerHTML = '<div class="empty-state">Failed to load personas.</div>';
@@ -1542,7 +1623,7 @@ function preselectAndStart(personaId) {
 // ── COURSES ───────────────────────────────────────────────────────────────────
 
 async function renderCourses() {
-  app.innerHTML = '<div class="loading">Loading courses…</div>';
+  app.innerHTML = '<div class="page-skeleton"><div class="skel skel-title"></div><div class="skel skel-text"></div><div class="skel skel-text skel-short"></div></div>';
   let courses = [], progress = [];
   try {
     [courses, progress] = await Promise.all([
@@ -1597,7 +1678,7 @@ function courseCard(c, progressSet) {
 // ── COURSE DETAIL ─────────────────────────────────────────────────────────────
 
 async function renderCourse(courseId) {
-  app.innerHTML = '<div class="loading">Loading course…</div>';
+  app.innerHTML = '<div class="page-skeleton"><div class="skel skel-title"></div><div class="skel skel-text"></div><div class="skel skel-text skel-short"></div></div>';
   let course, progress = [];
   try {
     [course, progress] = await Promise.all([
@@ -1661,7 +1742,7 @@ function moduleListItem(m, num, passed, unlocked, courseId) {
 // ── MODULE ────────────────────────────────────────────────────────────────────
 
 async function renderModule(courseId, moduleId) {
-  app.innerHTML = '<div class="loading">Loading module…</div>';
+  app.innerHTML = '<div class="page-skeleton"><div class="skel skel-title"></div><div class="skel skel-text"></div><div class="skel skel-text skel-short"></div></div>';
   let course;
   try { course = await api(`/api/courses/${courseId}`); } catch (e) {
     app.innerHTML = '<div class="empty-state">Module not found.</div>';
@@ -1706,7 +1787,7 @@ function startChallenge(courseId, moduleId, personaId, minScore) {
 // ── LEADERBOARD ───────────────────────────────────────────────────────────────
 
 async function renderLeaderboard() {
-  app.innerHTML = '<div class="loading">Loading leaderboard…</div>';
+  app.innerHTML = '<div class="page-skeleton"><div class="skel skel-title"></div><div class="skel skel-text"></div><div class="skel skel-text skel-short"></div></div>';
   let rows = [];
   try { rows = await api('/api/courses/leaderboard/top'); } catch (e) {
     app.innerHTML = '<div class="empty-state">Failed to load leaderboard.</div>';
@@ -1764,7 +1845,7 @@ function leaderboardRow(r, user) {
 // ── TEAM DASHBOARD (Manager only) ─────────────────────────────────────────────
 
 async function renderTeam() {
-  app.innerHTML = '<div class="loading">Loading team…</div>';
+  app.innerHTML = '<div class="page-skeleton"><div class="skel skel-title"></div><div class="skel skel-text"></div><div class="skel skel-text skel-short"></div></div>';
   let data;
   try { data = await api('/api/team'); } catch (e) {
     app.innerHTML = `<div class="empty-state">${escHtml(e.message)}</div>`;
@@ -1859,7 +1940,7 @@ function teamRepRow(m, now, WEEK, MONTH) {
 }
 
 async function renderRepDetail(userId) {
-  app.innerHTML = '<div class="loading">Loading…</div>';
+  app.innerHTML = '<div class="page-skeleton"><div class="skel skel-title"></div><div class="skel skel-text"></div><div class="skel skel-text skel-short"></div></div>';
   let data;
   try { data = await api(`/api/team/rep/${userId}`); } catch (e) {
     app.innerHTML = `<div class="empty-state">${escHtml(e.message)}</div>`;
@@ -2449,7 +2530,12 @@ function renderPlaybook() {
       ${playbook.length > 0 ? '<button class="btn btn-ghost btn-sm" id="clear-playbook-btn">Clear All</button>' : ''}
     </div>
     ${playbook.length === 0
-      ? '<div class="empty-state">Your playbook is empty. Complete Gauntlet challenges and save your best responses (score ≥ 70) to build it up.</div>'
+      ? `<div class="empty-state">
+          <div class="empty-icon">📓</div>
+          <h3>Your playbook is empty</h3>
+          <p>When you complete Gauntlet challenges, save your best responses here for quick review.</p>
+          <a href="#/learn/gauntlet" class="btn btn-primary">Go to Gauntlet</a>
+        </div>`
       : Object.entries(grouped).map(([cat, entries]) => `
         <div class="playbook-category">
           <h3 class="playbook-cat-title">${escHtml(catLabels[cat] || cat)}</h3>

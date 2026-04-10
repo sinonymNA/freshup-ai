@@ -3092,3 +3092,151 @@ a.link:hover { text-decoration: underline; }
 .gauge-score {
   font-weight: 800;
 }
+
+/* ── V8 POLISH ───────────────────────────────────────────────────────────────── */
+
+/* Landing page dark nav override */
+body[data-page="landing"] #nav {
+  background: rgba(5, 10, 20, 0.85) !important;
+  border-bottom: 1px solid rgba(255,255,255,0.07) !important;
+}
+body[data-page="landing"] .nav-brand { color: #f1f5f9 !important; }
+body[data-page="landing"] .nav-brand span { color: #60a5fa !important; }
+body[data-page="landing"] #nav-auth .btn-ghost {
+  color: rgba(255,255,255,0.7) !important;
+  border-color: rgba(255,255,255,0.15) !important;
+}
+body[data-page="landing"] #nav-auth .btn-ghost:hover {
+  background: rgba(255,255,255,0.06) !important;
+}
+body[data-page="landing"] #nav-links a {
+  color: rgba(255,255,255,0.7) !important;
+}
+body[data-page="landing"] #nav-links a:hover {
+  color: #f1f5f9 !important;
+}
+
+/* AI typing indicator */
+.tb-dots {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 14px !important;
+}
+.typing-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  opacity: 0.6;
+  animation: typingBounce 1.2s ease-in-out infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typingBounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+  30% { transform: translateY(-5px); opacity: 1; }
+}
+
+/* Streak badge */
+.streak-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--warning) 12%, var(--surface)), var(--surface));
+  border: 1px solid var(--warning);
+  border-radius: var(--radius);
+  margin-bottom: 28px;
+  font-size: 14px;
+}
+.streak-fire { font-size: 20px; }
+.streak-badge strong { color: var(--text); }
+.streak-sub { color: var(--text-muted); font-size: 12px; }
+
+/* Score context comparison */
+.score-context {
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  margin-top: 6px;
+  margin-bottom: 4px;
+}
+.score-ctx-good { color: var(--success); }
+.score-ctx-low { color: var(--error); }
+.score-ctx-neutral { color: var(--text-muted); }
+
+/* Dashboard empty state */
+.dash-empty {
+  text-align: center;
+  padding: 60px 24px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 32px;
+}
+.dash-empty .dash-empty-icon { font-size: 40px; margin-bottom: 12px; }
+.dash-empty h3 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+.dash-empty p { color: var(--text-muted); margin-bottom: 20px; max-width: 360px; margin-left: auto; margin-right: auto; }
+
+/* Empty states (history, playbook, etc.) */
+.empty-state {
+  text-align: center;
+  padding: 64px 24px;
+}
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  line-height: 1;
+}
+.empty-state h3 {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+.empty-state p {
+  color: var(--text-muted);
+  margin-bottom: 24px;
+  max-width: 380px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Stat card hover lift */
+.stat-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  cursor: default;
+}
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Learn hub card hover lift */
+.learn-hub-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.learn-hub-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Loading skeleton shimmer */
+.page-skeleton {
+  padding: 24px 0;
+  max-width: 600px;
+}
+.skel {
+  background: linear-gradient(90deg, var(--border) 25%, var(--surface) 50%, var(--border) 75%);
+  background-size: 200% 100%;
+  animation: skelShimmer 1.4s infinite;
+  border-radius: var(--radius-sm);
+  margin-bottom: 12px;
+}
+@keyframes skelShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.skel-title { height: 28px; width: 240px; max-width: 100%; }
+.skel-text { height: 16px; width: 100%; }
+.skel-short { width: 60%; }
