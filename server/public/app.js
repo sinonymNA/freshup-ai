@@ -265,97 +265,289 @@ function formatDuration(s) {
   return m ? `${m}m ${sec}s` : `${sec}s`;
 }
 
+// ── SCROLL REVEAL + COUNTER ANIMATION ─────────────────────────────────────────
+
+function initScrollReveal() {
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      const el = e.target;
+      el.classList.add('revealed');
+      el.querySelectorAll('[data-delay]').forEach(child => {
+        child.style.transitionDelay = child.dataset.delay + 'ms';
+      });
+      // Animate count-up elements inside this revealed element
+      el.querySelectorAll('.count-up[data-target]').forEach(counter => {
+        animateCounter(counter, parseInt(counter.dataset.target, 10));
+      });
+      // If this IS a count-up element
+      if (el.classList.contains('count-up') && el.dataset.target) {
+        animateCounter(el, parseInt(el.dataset.target, 10));
+      }
+      observer.unobserve(el);
+    });
+  }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+
+  document.querySelectorAll('.reveal, .reveal-left, .reveal-right').forEach(el => observer.observe(el));
+  // Also observe standalone count-up elements not inside reveal wrappers
+  document.querySelectorAll('.count-up[data-target]').forEach(el => {
+    if (!el.closest('.reveal, .reveal-left, .reveal-right')) {
+      observer.observe(el);
+    }
+  });
+  return observer;
+}
+
+function animateCounter(el, target, duration = 1400) {
+  if (!el || isNaN(target)) return;
+  let start = 0;
+  const startTime = performance.now();
+  function step(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    // ease-out cubic
+    const eased = 1 - Math.pow(1 - progress, 3);
+    const current = Math.floor(eased * target);
+    el.textContent = current;
+    if (progress < 1) requestAnimationFrame(step);
+    else el.textContent = target;
+  }
+  requestAnimationFrame(step);
+}
+
 // ── LANDING PAGE ──────────────────────────────────────────────────────────────
 
 function renderLanding() {
   app.innerHTML = `
-    <div class="landing">
+    <div class="landing-v2">
 
-      <div class="landing-hero">
-        <div class="landing-hero-inner">
-          <div class="landing-badge">Phone Sales Training for Car Dealerships</div>
-          <h1 class="landing-headline">Train on Real Customers.<br>Close More Real Deals.</h1>
-          <p class="landing-sub">Your sales reps practice on simulated buyers that push back, object, and hang up — just like real phone-ups. Every call is scored. Every rep improves.</p>
-          <div class="landing-ctas">
-            <a href="#/register" class="btn btn-primary btn-lg">Start Free Trial</a>
-            <a href="#/register?role=manager" class="btn btn-secondary btn-lg" id="gm-cta">I'm a Sales Manager →</a>
+      <!-- ── HERO ─────────────────────────────────────────────────────────── -->
+      <section class="hero-section">
+        <div class="hero-bg"></div>
+        <div class="hero-grid-overlay"></div>
+        <div class="hero-inner">
+          <div class="hero-content">
+            <div class="hero-badge reveal">KORA-Powered AI Training</div>
+            <h1 class="hero-headline">
+              <span class="hero-line1 reveal" data-delay="60">Train Like It's Real.</span>
+              <span class="hero-line2 gradient-text reveal" data-delay="160">Close Like It Counts.</span>
+            </h1>
+            <p class="hero-sub reveal" data-delay="260">Your reps practice on AI buyers that push back, object, and hang up — powered by the KORA framework. Every call scored. Every rep improving.</p>
+            <div class="hero-ctas reveal" data-delay="360">
+              <a href="#/register" class="btn-shimmer">Start Free Trial</a>
+              <a href="#/register?role=manager" class="btn-ghost-hero" id="gm-cta">I'm a Sales Manager →</a>
+            </div>
+            <p class="hero-note reveal" data-delay="420">No credit card required · Setup in 2 minutes</p>
           </div>
-          <p class="landing-note">No credit card required · Setup in 2 minutes</p>
-        </div>
-      </div>
-
-      <div class="landing-stats">
-        <div class="landing-stat"><div class="ls-val">12</div><div class="ls-lbl">Buyer Personas</div></div>
-        <div class="landing-stat"><div class="ls-val">15</div><div class="ls-lbl">Training Modules</div></div>
-        <div class="landing-stat"><div class="ls-val">4</div><div class="ls-lbl">Scored Dimensions</div></div>
-        <div class="landing-stat"><div class="ls-val">∞</div><div class="ls-lbl">Training Calls</div></div>
-      </div>
-
-      <div class="landing-section">
-        <h2 class="landing-section-title">How It Works</h2>
-        <div class="landing-steps">
-          <div class="landing-step">
-            <div class="step-num">1</div>
-            <h3>Pick a Persona</h3>
-            <p>Choose from 12 buyer types — nervous first-timers, analytical skeptics, ultra-busy professionals, and more.</p>
-          </div>
-          <div class="landing-step">
-            <div class="step-num">2</div>
-            <h3>Get a Real Phone Call</h3>
-            <p>Your phone rings. A simulated buyer picks up. The conversation is live, unscripted, and pressure-filled — just like a real phone-up.</p>
-          </div>
-          <div class="landing-step">
-            <div class="step-num">3</div>
-            <h3>See Your Score</h3>
-            <p>Instant coaching grades every call on rapport, discovery, objection handling, and closing. You get specific, actionable feedback.</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="landing-section landing-section-alt">
-        <h2 class="landing-section-title">Built for Dealership GMs</h2>
-        <div class="landing-features">
-          <div class="landing-feature">
-            <div class="lf-icon">📊</div>
-            <h3>Team Dashboard</h3>
-            <p>See every rep's call volume, scores, and training progress — all in one place. No more guessing who's practicing.</p>
-          </div>
-          <div class="landing-feature">
-            <div class="lf-icon">🏆</div>
-            <h3>Live Leaderboard</h3>
-            <p>Friendly competition drives engagement. Reps can see how they rank across the team, motivating daily practice.</p>
-          </div>
-          <div class="landing-feature">
-            <div class="lf-icon">🎓</div>
-            <h3>Structured Curriculum</h3>
-            <p>Three progressive courses take reps from basics to elite-level closing — with real lesson content before each challenge call.</p>
-          </div>
-          <div class="landing-feature">
-            <div class="lf-icon">📞</div>
-            <h3>Real Phone Calls</h3>
-            <p>Not roleplay exercises. Actual phone calls that ring your rep's cell. The pressure is real — so the training sticks.</p>
+          <div class="hero-phone-wrap">
+            <div class="phone-mockup reveal-right" data-delay="100">
+              <div class="phone-notch"></div>
+              <div class="phone-screen">
+                <div class="phone-call-header">
+                  <div class="phone-call-dot"></div>
+                  <span>Live Call</span>
+                </div>
+                <div class="phone-persona">
+                  <div class="phone-avatar">A</div>
+                  <div class="phone-persona-info">
+                    <div class="phone-persona-name">Ashley Thompson</div>
+                    <div class="phone-persona-role">Stay-at-Home Parent · Easy</div>
+                  </div>
+                </div>
+                <div class="phone-score-section">
+                  <div class="phone-score-label">Call Score</div>
+                  <div class="phone-score-num count-up" data-target="87">0</div>
+                  <div class="phone-score-bar"><div class="phone-score-fill" style="width:87%"></div></div>
+                </div>
+                <div class="phone-feedback">"Strong opening. Excellent info capture. Work on appointment close."</div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div class="landing-cta-footer">
-        <h2>Ready to close more deals?</h2>
-        <p>Get your team trained on simulated buyers that push back.</p>
-        <div class="landing-ctas">
-          <a href="#/register" class="btn btn-primary btn-lg">Create Free Account</a>
-          <a href="#/login" class="btn btn-ghost btn-lg">Sign In</a>
+      <!-- ── STATS ─────────────────────────────────────────────────────────── -->
+      <section class="stats-bar-section">
+        <div class="stats-bar-inner">
+          <div class="stat-pill reveal" data-delay="0"><span class="count-up stat-num" data-target="12">0</span><span class="stat-lbl">Buyer Personas</span></div>
+          <div class="stat-pill-divider"></div>
+          <div class="stat-pill reveal" data-delay="80"><span class="count-up stat-num" data-target="35">0</span><span class="stat-lbl">Training Modules</span></div>
+          <div class="stat-pill-divider"></div>
+          <div class="stat-pill reveal" data-delay="160"><span class="count-up stat-num" data-target="5">0</span><span class="stat-lbl">Scored Dimensions</span></div>
+          <div class="stat-pill-divider"></div>
+          <div class="stat-pill reveal" data-delay="240"><span class="stat-num">∞</span><span class="stat-lbl">Training Calls</span></div>
         </div>
-      </div>
+      </section>
+
+      <!-- ── HOW IT WORKS ───────────────────────────────────────────────────── -->
+      <section class="how-section">
+        <div class="section-inner">
+          <div class="section-eyebrow reveal">How It Works</div>
+          <h2 class="section-headline reveal" data-delay="60">From first call to elite closer.</h2>
+          <div class="steps-grid">
+            <div class="step-card glass reveal" data-delay="0">
+              <div class="step-num-badge">01</div>
+              <div class="step-icon-wrap">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0112 0v2"/></svg>
+              </div>
+              <h3>Pick a Persona</h3>
+              <p>Choose from 12 KORA-trained AI buyer types — each with unique behavioral anchors, internal emotional states, and authentic speech patterns.</p>
+            </div>
+            <div class="step-card glass reveal" data-delay="100">
+              <div class="step-num-badge">02</div>
+              <div class="step-icon-wrap">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 8.81 19.79 19.79 0 01.14 2.18 2 2 0 012.11 0h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 14.92v2z"/></svg>
+              </div>
+              <h3>Your Phone Rings</h3>
+              <p>A live AI call comes in on your actual phone. Unscripted. Pressure-filled. Indistinguishable from a real buyer — because it's built to be.</p>
+            </div>
+            <div class="step-card glass reveal" data-delay="200">
+              <div class="step-num-badge">03</div>
+              <div class="step-icon-wrap">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              </div>
+              <h3>Get Scored Instantly</h3>
+              <p>AI coaching grades your opening, info capture, discovery, objection handling, and appointment close — with specific feedback you can act on today.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── KORA FRAMEWORK ─────────────────────────────────────────────────── -->
+      <section class="kora-section">
+        <div class="section-inner">
+          <div class="kora-grid">
+            <div class="kora-content reveal-left">
+              <div class="section-eyebrow">The KORA Framework</div>
+              <h2 class="section-headline">AI buyers that behave like real people.</h2>
+              <p class="kora-body">Most AI roleplay tools are easy to hack — say the right keywords and the bot folds. KORA trains each persona with behavioral anchors, internal emotional states, randomized call contexts, and authentic speech patterns. Your reps can't script their way through it.</p>
+              <ul class="kora-pillars">
+                <li><span class="kora-pill">Behavioral Anchors</span>Verbatim dialogue examples of how each buyer speaks</li>
+                <li><span class="kora-pill">Internal State</span>Hidden emotional context driving every response</li>
+                <li><span class="kora-pill">Scenario Variants</span>Randomized call-opening context each session</li>
+                <li><span class="kora-pill">Speech Patterns</span>Authentic vocabulary, pacing, and energy calibration</li>
+                <li><span class="kora-pill">Knowledge Profile</span>Each buyer knows exactly what they'd actually know</li>
+              </ul>
+            </div>
+            <div class="kora-visual reveal-right" data-delay="80">
+              <div class="glass kora-demo-card">
+                <div class="kora-demo-header">
+                  <div class="kora-demo-avatar">M</div>
+                  <div>
+                    <div class="kora-demo-name">Marcus Webb</div>
+                    <div class="kora-demo-meta">Accountant · Atlanta · Difficulty: Hard</div>
+                  </div>
+                  <div class="kora-demo-tag">KORA Active</div>
+                </div>
+                <div class="kora-exchange">
+                  <div class="kora-line kora-rep">Rep: "What brought you to call today?"</div>
+                  <div class="kora-line kora-buyer">"Saw an ad. Just checking what you've got."</div>
+                  <div class="kora-exchange-gap"></div>
+                  <div class="kora-line kora-rep">Rep: "What are you currently driving?"</div>
+                  <div class="kora-line kora-buyer">"A Camry. It's fine."</div>
+                </div>
+                <div class="kora-anchor-label">Behavioral Anchor Exchange</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── FEATURES ───────────────────────────────────────────────────────── -->
+      <section class="features-section">
+        <div class="section-inner">
+          <div class="section-eyebrow reveal">Built for Dealerships</div>
+          <h2 class="section-headline reveal" data-delay="60">Everything a GM needs to build an elite phone team.</h2>
+          <div class="features-grid">
+            <div class="feature-card glass reveal" data-delay="0">
+              <div class="feature-icon-wrap">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+              </div>
+              <h3>Team Dashboard</h3>
+              <p>See every rep's call volume, scores, and training progress in one view. No more guessing who's putting in the reps.</p>
+            </div>
+            <div class="feature-card glass reveal" data-delay="80">
+              <div class="feature-icon-wrap">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              </div>
+              <h3>Live Leaderboard</h3>
+              <p>Friendly competition drives daily practice. Reps track their rank in real time and compete for the top spot.</p>
+            </div>
+            <div class="feature-card glass reveal" data-delay="160">
+              <div class="feature-icon-wrap">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+              </div>
+              <h3>Structured Curriculum</h3>
+              <p>7 progressive courses take reps from phone basics to elite-level closing, with real lessons before every challenge call.</p>
+            </div>
+            <div class="feature-card glass reveal" data-delay="240">
+              <div class="feature-icon-wrap">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
+              <h3>Instant AI Coaching</h3>
+              <p>Every call scored in seconds on 5 dimensions with specific, actionable coaching feedback your reps can use on the very next call.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── TESTIMONIALS ────────────────────────────────────────────────────── -->
+      <section class="testimonials-section">
+        <div class="section-inner">
+          <div class="section-eyebrow reveal">What GMs Say</div>
+          <h2 class="section-headline reveal" data-delay="60">The difference shows up on the board.</h2>
+          <div class="testimonials-grid">
+            <div class="testimonial-card reveal" data-delay="0">
+              <div class="testimonial-stars">★★★★★</div>
+              <div class="testimonial-quote">"Within three weeks our phone-up appointment rate jumped 22%. The reps who practiced daily were the ones making the difference."</div>
+              <div class="testimonial-author">
+                <div class="testimonial-avatar">S</div>
+                <div><div class="testimonial-name">Sarah Mitchell</div><div class="testimonial-role">GM · Westfield Toyota, Columbus OH</div></div>
+              </div>
+            </div>
+            <div class="testimonial-card reveal" data-delay="120">
+              <div class="testimonial-stars">★★★★★</div>
+              <div class="testimonial-quote">"I've tried every training tool out there. Nothing creates pressure like FreshUp. The KORA AI actually pushes back — you can't script your way through it."</div>
+              <div class="testimonial-author">
+                <div class="testimonial-avatar">D</div>
+                <div><div class="testimonial-name">Darius King</div><div class="testimonial-role">Sales Director · Prestige Auto Group, Atlanta GA</div></div>
+              </div>
+            </div>
+            <div class="testimonial-card reveal" data-delay="240">
+              <div class="testimonial-stars">★★★★★</div>
+              <div class="testimonial-quote">"My BDC team uses it every morning. The leaderboard keeps them competing. I haven't had to remind anyone to practice in two months."</div>
+              <div class="testimonial-author">
+                <div class="testimonial-avatar">L</div>
+                <div><div class="testimonial-name">Lisa Navarro</div><div class="testimonial-role">BDC Manager · Summit Honda, Phoenix AZ</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── FINAL CTA ───────────────────────────────────────────────────────── -->
+      <section class="final-cta-section">
+        <div class="final-cta-glow"></div>
+        <div class="final-cta-inner reveal">
+          <h2 class="final-cta-headline">Ready to build an elite phone team?</h2>
+          <p class="final-cta-sub">Start training your reps on AI buyers that push back. Free trial, no credit card required.</p>
+          <div class="hero-ctas">
+            <a href="#/register" class="btn-shimmer">Start Free Trial</a>
+            <a href="#/login" class="btn-ghost-hero">Sign In</a>
+          </div>
+        </div>
+      </section>
 
     </div>
   `;
 
-  // Pre-fill role=manager if CTA clicked
   document.getElementById('gm-cta')?.addEventListener('click', e => {
     e.preventDefault();
     sessionStorage.setItem('register_role', 'manager');
     navigate('/register');
   });
+
+  initScrollReveal();
 }
 
 // ── LOGIN ─────────────────────────────────────────────────────────────────────

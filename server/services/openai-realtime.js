@@ -16,7 +16,66 @@ function formatTranscript(history) {
 
 // Build the OpenAI session instructions from a persona + stored contact info
 function buildInstructions(persona, contactInfo) {
-  let instructions = persona.systemPrompt +
+  let instructions = persona.systemPrompt;
+
+  // ── KORA Framework injection ─────────────────────────────────────────────────
+  // Add behavioral anchors if present
+  if (persona.anchorExchanges && persona.anchorExchanges.length > 0) {
+    instructions += '\n\n━━━ KORA BEHAVIORAL ANCHORS ━━━';
+    instructions += `\nYou have been trained on how ${persona.name} specifically speaks and thinks. These are authentic examples of your voice — not a description of how you speak, but actual examples of you speaking:\n`;
+    for (const anchor of persona.anchorExchanges) {
+      instructions += `\n${anchor.setup}\nYou: "${anchor.response}"\n`;
+    }
+    instructions += `\nWhen in doubt about how you'd respond, model your answer on these anchors.`;
+  }
+
+  // Add internal emotional state
+  if (persona.internalState) {
+    instructions += '\n\n━━━ YOUR INTERNAL STATE TODAY ━━━';
+    instructions += `\n${persona.internalState}`;
+  }
+
+  // Add randomly selected scenario variant
+  if (persona.scenarioVariants && persona.scenarioVariants.length > 0) {
+    const variant = persona.scenarioVariants[Math.floor(Math.random() * persona.scenarioVariants.length)];
+    instructions += '\n\n━━━ TODAY\'S CALL CONTEXT ━━━';
+    instructions += `\n${variant}`;
+  }
+
+  // Add speech pattern guidance
+  if (persona.speechPatterns) {
+    const sp = persona.speechPatterns;
+    instructions += '\n\n━━━ YOUR AUTHENTIC VOICE ━━━';
+    if (sp.fillers && sp.fillers.length > 0) {
+      instructions += `\nFillers you use naturally: ${sp.fillers.join(', ')}`;
+    }
+    if (sp.vocabulary) instructions += `\nVocabulary & word choice: ${sp.vocabulary}`;
+    if (sp.pacing) instructions += `\nPacing: ${sp.pacing}`;
+    if (sp.energy) instructions += `\nEnergy: ${sp.energy}`;
+  }
+
+  // Add knowledge profile
+  if (persona.knowledgeProfile) {
+    const kp = persona.knowledgeProfile;
+    instructions += '\n\n━━━ YOUR KNOWLEDGE LIMITS ━━━';
+    if (kp.carKnowledge) instructions += `\nCar knowledge: ${kp.carKnowledge}`;
+    if (kp.financingKnowledge) instructions += `\nFinancing knowledge: ${kp.financingKnowledge}`;
+    if (kp.techFeatures) instructions += `\nTech features knowledge: ${kp.techFeatures}`;
+    if (kp.dealershipExperience) instructions += `\nDealership experience: ${kp.dealershipExperience}`;
+    instructions += `\nIf a rep asks about something you wouldn't know, respond authentically: admit confusion, ask for a simple explanation. Don't fake knowledge you wouldn't have.`;
+  }
+
+  // Realism self-check
+  instructions += `\n\n━━━ REALISM SELF-CHECK ━━━`;
+  instructions += `\nBefore every response, ask yourself:`;
+  instructions += `\n• Does this sound like ${persona.name} specifically — not just a generic buyer archetype?`;
+  instructions += `\n• Am I using ${persona.name}'s vocabulary and speech rhythms, not generic buyer language?`;
+  instructions += `\n• Am I reacting to what the rep just said, not giving a rehearsed answer?`;
+  instructions += `\n• Would ${persona.name} actually know this, or would they be confused and ask?`;
+  instructions += `\n• Is this response the length ${persona.name} would actually give — not too long, not too short?`;
+
+  // ── Live call realism ────────────────────────────────────────────────────────
+  instructions +=
     '\n\nYou are on a real phone call right now. This is a live, unscripted conversation — speak exactly as a real buyer would on the phone:' +
     '\n• Use natural back-channeling and filler words ("mm-hm", "right", "yeah", "uh-huh", "okay", "I see", "hm")' +
     '\n• Jump back in naturally if the rep pauses mid-thought or trails off — real buyers don\'t wait politely' +
