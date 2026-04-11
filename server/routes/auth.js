@@ -5,7 +5,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const router = express.Router();
 
-const { createUser, updateUser, getUserByEmail, getUserById, createTeam, getTeamByCode } = require('../store');
+const { createUser, updateUser, getUserByEmail, getUserById, createTeam, getTeamByCode, updateCall } = require('../store');
 const { requireAuth, JWT_SECRET } = require('../middleware/requireAuth');
 
 function makeToken(user) {
@@ -123,6 +123,52 @@ router.patch('/profile', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('[auth/profile] error:', err);
     res.status(500).json({ error: 'Profile update failed' });
+  }
+});
+
+// POST /api/auth/claim-challenge — create account and link a challenge call to it
+router.post('/claim-challenge', async (req, res) => {
+  try {
+    const { email, name, password, callSid, challengeToken } = req.body;
+
+    if (!email || !name || !password || !callSid || !challengeToken) {
+      res.status(400).json({ error: 'email, name, password, callSid, and challengeToken are required' });
+      return;
+    }
+    if (password.length < 6) {
+      res.status(400).json({ error: 'Password must be at least 6 characters' });
+      return;
+    }
+
+    // Verify the challenge token
+    let payload;
+    try {
+      payload = jwt.verify(challengeToken, JWT_SECRET);
+    } catch {
+      res.status(401).json({ error: 'Invalid or expired challenge token' });
+      return;
+    }
+    if (payload.type !== 'challenge' || payload.callSid !== callSid) {
+      res.status(403).json({ error: 'Token does not match this call' });
+      return;
+    }
+
+    const existing = getUserByEmail(email.toLowerCase().trim());
+    if (existing) {
+      res.status(409).json({ error: 'Email already registered — log in instead' });
+      return;
+    }
+
+    const password_hash = await bcrypt.hash(password, 12);
+    const user = createUser({ email: email.toLowerCase().trim(), name: name.trim(), password_hash, role: 'rep' });
+
+    // Link the challenge call to the new account
+    updateCall(callSid, { userId: user.id });
+
+    res.json({ token: makeToken(user), user: userPayload(user) });
+  } catch (err) {
+    console.error('[auth/claim-challenge] error:', err);
+    res.status(500).json({ error: 'Account creation failed' });
   }
 });
 

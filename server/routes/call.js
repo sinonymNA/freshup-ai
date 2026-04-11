@@ -3,6 +3,7 @@
 const express = require('express');
 const router = express.Router();
 
+const jwt = require('jsonwebtoken');
 const { getAllPersonas, getPersonaById, getRandomPersona, getPersonasByDifficulty } = require('../personas');
 const callEmitter = require('../services/callEvents');
 
@@ -35,9 +36,17 @@ function generateContactInfo() {
 }
 const { initiateCall } = require('../services/twilio');
 const { getAllCalls, setCall, getCall } = require('../store');
-const { requireAuth } = require('../middleware/requireAuth');
+const { requireAuth, JWT_SECRET } = require('../middleware/requireAuth');
 const { startCallRateLimit } = require('../middleware/rateLimit');
 const { parseAndValidatePhone } = require('../utils/phone');
+
+// Scenario → persona mappings for the challenge block
+const CHALLENGE_PERSONAS = {
+  'trade-in':  'carlos-mendoza',
+  'price':     'marcus-webb',
+  'not-ready': 'tyler-kowalski',
+  'competitor':'david-chen',
+};
 
 // POST /api/call/start
 router.post('/call/start', requireAuth, startCallRateLimit, async (req, res) => {
@@ -172,6 +181,110 @@ router.get('/call/:callSid/stream', requireAuth, (req, res) => {
 router.get('/personas', (req, res) => {
   const result = getAllPersonas().map(({ systemPrompt, ...rest }) => rest); // eslint-disable-line no-unused-vars
   res.json(result);
+});
+
+// POST /api/call/challenge — anonymous challenge call (no auth required)
+router.post('/call/challenge', startCallRateLimit, async (req, res) => {
+  try {
+    const { phoneNumber, scenarioType } = req.body;
+
+    const parsedPhone = parseAndValidatePhone(phoneNumber);
+    if (!parsedPhone.ok) {
+      res.status(400).json({ error: parsedPhone.error });
+      return;
+    }
+
+    // Resolve persona from scenarioType
+    const personaId = CHALLENGE_PERSONAS[scenarioType];
+    let persona;
+    if (personaId) {
+      persona = getPersonaById(personaId);
+    }
+    if (!persona) persona = getRandomPersona();
+
+    // Initiate Twilio call with no userId (FK enforcement is OFF)
+    const call = await initiateCall(parsedPhone.phoneNumber, persona.id, null);
+
+    const contactInfo = generateContactInfo();
+    setCall(call.sid, {
+      userId: null,
+      personaId: persona.id,
+      personaName: persona.name,
+      history: [],
+      startTime: Date.now(),
+      outcome: null,
+      score: null,
+      audioFiles: [],
+      contactInfo,
+    });
+
+    // Issue a short-lived challenge token tied to this callSid
+    const challengeToken = jwt.sign(
+      { callSid: call.sid, type: 'challenge' },
+      JWT_SECRET,
+      { expiresIn: '2h' }
+    );
+
+    res.json({
+      success: true,
+      callSid: call.sid,
+      challengeToken,
+      persona: {
+        name: persona.name,
+        difficulty: persona.difficulty,
+        mood: persona.mood,
+      },
+    });
+  } catch (err) {
+    console.error('[call/challenge] error:', err);
+    res.status(500).json({ error: 'Failed to initiate challenge call', details: err.message });
+  }
+});
+
+// GET /api/call/challenge-results/:callSid — poll for challenge call results (no auth)
+router.get('/call/challenge-results/:callSid', (req, res) => {
+  try {
+    const { callSid } = req.params;
+    const { challengeToken } = req.query;
+
+    if (!challengeToken) {
+      res.status(401).json({ error: 'challengeToken required' });
+      return;
+    }
+
+    let payload;
+    try {
+      payload = jwt.verify(challengeToken, JWT_SECRET);
+    } catch {
+      res.status(401).json({ error: 'Invalid or expired challenge token' });
+      return;
+    }
+
+    if (payload.type !== 'challenge' || payload.callSid !== callSid) {
+      res.status(403).json({ error: 'Token does not match this call' });
+      return;
+    }
+
+    const callData = getCall(callSid);
+    if (!callData) {
+      res.status(404).json({ error: 'Call not found' });
+      return;
+    }
+
+    if (!callData.score) {
+      res.json({ pending: true });
+      return;
+    }
+
+    res.json({
+      outcome: callData.outcome,
+      score: callData.score,
+      contactInfo: callData.contactInfo,
+    });
+  } catch (err) {
+    console.error('[call/challenge-results] error:', err);
+    res.status(500).json({ error: 'Failed to fetch results' });
+  }
 });
 
 module.exports = router;

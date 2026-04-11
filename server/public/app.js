@@ -262,6 +262,17 @@ function timeAgo(ts) {
   return `${days}d ago`;
 }
 
+// Auto-format phone input as (555) 123-4567 while typing
+function initPhoneInput(el) {
+  if (!el) return;
+  el.addEventListener('input', () => {
+    const digits = el.value.replace(/\D/g, '').slice(0, 10);
+    if (digits.length <= 3)      el.value = digits;
+    else if (digits.length <= 6) el.value = `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+    else                         el.value = `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  });
+}
+
 function weakestDimPill(score) {
   if (!score) return '';
   const dimLabels = { opening: 'Opening', infoCapture: 'Lead Capture', discovery: 'Discovery', objectionHandling: 'Objection Handling', appointment: 'Close' };
@@ -340,6 +351,204 @@ function animateCounter(el, target, duration = 1400, from = 0) {
   requestAnimationFrame(step);
 }
 
+// ── CHALLENGE BLOCK STATE MACHINE ─────────────────────────────────────────────
+
+let _challengeCallSid = null;
+let _challengeToken   = null;
+let _challengePollTimer = null;
+
+const CHALLENGE_DIM_LABELS = {
+  opening: 'Opening', infoCapture: 'Lead Capture',
+  discovery: 'Discovery', objectionHandling: 'Objection Handling', appointment: 'Close',
+};
+
+function bindChallengeBlock() {
+  // Scenario chips
+  document.getElementById('scenario-chips')?.addEventListener('click', e => {
+    const chip = e.target.closest('.scenario-chip');
+    if (!chip) return;
+    document.querySelectorAll('.scenario-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    const preview = document.getElementById('scenario-preview-text');
+    if (preview) preview.textContent = chip.dataset.preview;
+  });
+
+  // Phone auto-format
+  initPhoneInput(document.getElementById('challenge-phone'));
+
+  // Start call
+  document.getElementById('challenge-start-btn')?.addEventListener('click', startChallengeCall);
+
+  // Retry
+  document.getElementById('challenge-retry-btn')?.addEventListener('click', () => {
+    clearTimeout(_challengePollTimer);
+    _challengeCallSid = _challengeToken = null;
+    setChallengeState('idle');
+    const phoneEl = document.getElementById('challenge-phone');
+    if (phoneEl) { phoneEl.value = ''; initPhoneInput(phoneEl); }
+  });
+}
+
+async function startChallengeCall() {
+  const phoneRaw = (document.getElementById('challenge-phone')?.value || '').trim();
+  const activeChip = document.querySelector('.scenario-chip.active');
+  const scenarioType = activeChip?.dataset.scenario || 'trade-in';
+  const errEl = document.getElementById('challenge-error');
+
+  if (!phoneRaw) {
+    errEl.textContent = 'Enter your cell number to receive the call.';
+    errEl.style.display = 'block'; return;
+  }
+  errEl.style.display = 'none';
+
+  const btn = document.getElementById('challenge-start-btn');
+  btn.disabled = true; btn.textContent = 'Calling…';
+
+  try {
+    const res = await fetch('/api/call/challenge', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phoneNumber: phoneRaw, scenarioType }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to start call');
+
+    _challengeCallSid = data.callSid;
+    _challengeToken   = data.challengeToken;
+
+    const nameEl = document.getElementById('challenge-persona-name');
+    if (nameEl) nameEl.textContent = data.persona?.name || 'your buyer';
+
+    const badgeEl = document.getElementById('challenge-difficulty-badge');
+    if (badgeEl && data.persona) {
+      badgeEl.textContent = `${data.persona.difficulty} · ${data.persona.mood}`;
+    }
+
+    setChallengeState('calling');
+    challengePoll();
+  } catch (err) {
+    btn.disabled = false; btn.textContent = 'Start the Call →';
+    errEl.textContent = err.message;
+    errEl.style.display = 'block';
+  }
+}
+
+function challengePoll() {
+  if (!_challengeCallSid || !_challengeToken) return;
+  fetch(`/api/call/challenge-results/${_challengeCallSid}?challengeToken=${encodeURIComponent(_challengeToken)}`)
+    .then(r => r.json())
+    .then(data => {
+      if (data.pending) {
+        _challengePollTimer = setTimeout(challengePoll, 3000);
+      } else {
+        setChallengeState('done', data);
+      }
+    })
+    .catch(() => {
+      _challengePollTimer = setTimeout(challengePoll, 4000);
+    });
+}
+
+function setChallengeState(state, data) {
+  const idle    = document.getElementById('challenge-idle');
+  const calling = document.getElementById('challenge-calling');
+  const done    = document.getElementById('challenge-done');
+  if (!idle || !calling || !done) return;
+
+  idle.style.display    = state === 'idle'    ? '' : 'none';
+  calling.style.display = state === 'calling' ? '' : 'none';
+  done.style.display    = state === 'done'    ? '' : 'none';
+
+  if (state === 'done' && data) {
+    renderChallengeResults(data);
+    // Bind claim button
+    document.getElementById('challenge-claim-btn')?.addEventListener('click', claimChallengeAccount);
+  }
+}
+
+function renderChallengeResults(data) {
+  const score = data.score || {};
+  const outcome = data.outcome;
+
+  // Score number
+  const scoreEl = document.getElementById('challenge-score-num');
+  if (scoreEl) scoreEl.textContent = score.overallScore != null ? score.overallScore : '—';
+
+  // Outcome badge
+  const outEl = document.getElementById('challenge-outcome-badge');
+  if (outEl) {
+    if (outcome === 'Appointment') {
+      outEl.textContent = 'Appointment Set';
+      outEl.className = 'challenge-outcome-badge cob-win';
+    } else if (outcome === 'HangUp') {
+      outEl.textContent = 'Caller Hung Up';
+      outEl.className = 'challenge-outcome-badge cob-loss';
+    }
+  }
+
+  // Coaching callout
+  const dimKeys = ['opening', 'infoCapture', 'discovery', 'objectionHandling', 'appointment'];
+  const sortedByScore = dimKeys.slice().sort((a, b) => (score[a] ?? 0) - (score[b] ?? 0));
+  const worstKey  = sortedByScore[0];
+  const worstVal  = score[worstKey] ?? 0;
+  const headlineEl = document.getElementById('ccc-headline');
+  const textEl     = document.getElementById('ccc-text');
+  if (headlineEl) {
+    headlineEl.textContent = outcome === 'Appointment'
+      ? "Here's what you did right:"
+      : `You struggled on ${CHALLENGE_DIM_LABELS[worstKey] || worstKey} (${worstVal}/20).`;
+  }
+  if (textEl) textEl.textContent = score.feedback || '';
+
+  // Dimension bars
+  const barsEl = document.getElementById('challenge-dim-bars');
+  if (barsEl) {
+    barsEl.innerHTML = dimKeys.map(k => {
+      const val = score[k] ?? 0;
+      const pct = Math.round(val / 20 * 100);
+      const color = val >= 15 ? 'sb-green' : val >= 10 ? 'sb-yellow' : 'sb-red';
+      return `<div class="skill-bar-row${k === worstKey ? ' sb-weakest' : ''}">
+        <div class="sb-label">${CHALLENGE_DIM_LABELS[k]}</div>
+        <div class="sb-track"><div class="sb-fill ${color}" style="width:${pct}%"></div></div>
+        <div class="sb-val">${val}/20</div>
+      </div>`;
+    }).join('');
+  }
+}
+
+async function claimChallengeAccount() {
+  const name     = document.getElementById('claim-name')?.value.trim() || '';
+  const email    = document.getElementById('claim-email')?.value.trim() || '';
+  const password = document.getElementById('claim-password')?.value || '';
+  const errEl    = document.getElementById('challenge-claim-error');
+
+  if (!name || !email || !password) {
+    errEl.textContent = 'All fields are required.';
+    errEl.style.display = 'block'; return;
+  }
+  errEl.style.display = 'none';
+
+  const btn = document.getElementById('challenge-claim-btn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  try {
+    const res = await fetch('/api/auth/claim-challenge', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, name, password, callSid: _challengeCallSid, challengeToken: _challengeToken }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Account creation failed');
+
+    setAuth(data.token, data.user);
+    navigate('/');
+  } catch (err) {
+    btn.disabled = false; btn.textContent = 'Save My Results →';
+    errEl.textContent = err.message;
+    errEl.style.display = 'block';
+  }
+}
+
 // ── LANDING PAGE ──────────────────────────────────────────────────────────────
 
 function renderLanding() {
@@ -402,6 +611,88 @@ function renderLanding() {
           <div class="stat-pill reveal" data-delay="160"><span class="count-up stat-num" data-target="5">0</span><span class="stat-lbl">Scored Dimensions</span></div>
           <div class="stat-pill-divider"></div>
           <div class="stat-pill reveal" data-delay="240"><span class="stat-num">∞</span><span class="stat-lbl">Training Calls</span></div>
+        </div>
+      </section>
+
+      <!-- ── CHALLENGE BLOCK ──────────────────────────────────────────────── -->
+      <section class="challenge-section" id="challenge-section">
+        <div class="challenge-bg-lights"></div>
+        <div class="challenge-container">
+          <div class="challenge-eyebrow">LIVE CHALLENGE</div>
+          <h2 class="challenge-headline">Think you can close this deal?</h2>
+          <p class="challenge-sub">This is exactly what your reps face every day. Let's see how you handle it.</p>
+
+          <div class="challenge-card" id="challenge-card">
+
+            <!-- ── IDLE STATE ── -->
+            <div id="challenge-idle">
+              <div class="scenario-label">The situation:</div>
+              <div class="scenario-preview" id="scenario-preview-text">A customer is calling about a trade-in and thinks your price is too high.</div>
+              <div class="scenario-chips-label">Pick your challenge:</div>
+              <div class="scenario-chips" id="scenario-chips">
+                <button class="scenario-chip active" data-scenario="trade-in" data-preview="A customer is calling about a trade-in and thinks your price is too high.">Trade-In Objection</button>
+                <button class="scenario-chip" data-scenario="price" data-preview="Shopper has visited two other dealers and is pushing hard on your number.">Price Too High</button>
+                <button class="scenario-chip" data-scenario="not-ready" data-preview="First-time buyer is nervous about monthly payments and says they need more time.">Just Looking</button>
+                <button class="scenario-chip" data-scenario="competitor" data-preview="Experienced buyer who&apos;s shopped around and thinks they already know the best deal.">Shopped Around</button>
+              </div>
+              <div class="challenge-phone-row">
+                <input type="tel" id="challenge-phone" class="challenge-phone-input" placeholder="(555) 123-4567" autocomplete="tel" />
+              </div>
+              <div id="challenge-error" class="challenge-error" style="display:none"></div>
+              <button class="challenge-cta" id="challenge-start-btn">Start the Call →</button>
+              <p class="challenge-no-signup">No signup. Real call. Instant feedback.</p>
+            </div>
+
+            <!-- ── CALLING STATE ── -->
+            <div id="challenge-calling" style="display:none" class="challenge-calling-state">
+              <div class="challenge-ring-wrap">
+                <div class="challenge-ring challenge-ring-3"></div>
+                <div class="challenge-ring challenge-ring-2"></div>
+                <div class="challenge-ring challenge-ring-1"></div>
+                <div class="challenge-ring-icon">📞</div>
+              </div>
+              <div class="challenge-calling-title">Your phone is ringing.</div>
+              <div class="challenge-calling-sub">Answer now — <span id="challenge-persona-name">your buyer</span> is on the line.</div>
+              <div class="challenge-calling-badge" id="challenge-difficulty-badge"></div>
+              <div class="challenge-calling-progress">
+                <span class="challenge-dot"></span>
+                <span class="challenge-dot"></span>
+                <span class="challenge-dot"></span>
+                <span class="challenge-progress-text">Waiting for call to end…</span>
+              </div>
+            </div>
+
+            <!-- ── DONE STATE ── -->
+            <div id="challenge-done" style="display:none" class="challenge-done-state">
+              <div class="challenge-result-top">
+                <div class="challenge-score-wrap">
+                  <div class="challenge-score-big" id="challenge-score-num">—</div>
+                  <div class="challenge-score-label">/ 100</div>
+                </div>
+                <div id="challenge-outcome-badge" class="challenge-outcome-badge"></div>
+              </div>
+              <div class="challenge-coaching-card" id="challenge-coaching-card">
+                <div class="ccc-icon">💬</div>
+                <div class="ccc-body">
+                  <div class="ccc-headline" id="ccc-headline">Here's what to work on:</div>
+                  <div class="ccc-text" id="ccc-text"></div>
+                </div>
+              </div>
+              <div class="challenge-dim-bars" id="challenge-dim-bars"></div>
+              <div class="challenge-claim-section">
+                <div class="challenge-claim-headline">See your full breakdown + try more scenarios</div>
+                <div class="challenge-claim-form">
+                  <input type="text"  id="claim-name"     placeholder="Your name" class="challenge-input" />
+                  <input type="email" id="claim-email"    placeholder="Email address" class="challenge-input" />
+                  <input type="password" id="claim-password" placeholder="Create a password (6+ chars)" class="challenge-input" />
+                  <div id="challenge-claim-error" class="challenge-error" style="display:none"></div>
+                  <button class="challenge-cta" id="challenge-claim-btn">Save My Results →</button>
+                </div>
+                <button class="challenge-retry-link" id="challenge-retry-btn">Take another challenge →</button>
+              </div>
+            </div>
+
+          </div>
         </div>
       </section>
 
@@ -573,6 +864,7 @@ function renderLanding() {
     navigate('/register');
   });
 
+  bindChallengeBlock();
   initScrollReveal();
 }
 
@@ -871,7 +1163,7 @@ async function renderDashboard() {
           <p>Enter your number and a simulated buyer will call you right now.</p>
           <div class="qs-form">
             <input type="tel" id="qs-phone" class="qs-phone-input"
-              placeholder="+1 (555) 000-0000"
+              placeholder="(555) 123-4567"
               value="${escHtml((user && user.phone_number) ? user.phone_number : '')}"
               autocomplete="tel" />
             <button class="btn btn-primary" id="qs-call-btn">Call Me Now</button>
@@ -958,6 +1250,9 @@ async function renderDashboard() {
       </table></div>
     ` : ''}
   `;
+
+  // Wire phone formatter for quick-start field
+  initPhoneInput(document.getElementById('qs-phone'));
 
   // Quick-start "Call Me Now" handler
   document.getElementById('qs-call-btn')?.addEventListener('click', async () => {
@@ -1149,7 +1444,7 @@ async function renderStart() {
             <div class="form-group">
               <label for="phone">Your Cell Number</label>
               <p class="input-hint">Answer when it rings — caller info is randomized</p>
-              <input type="tel" id="phone" placeholder="+1 555 000 0000" autocomplete="tel"/>
+              <input type="tel" id="phone" placeholder="(555) 123-4567" autocomplete="tel"/>
             </div>
             <button class="btn btn-primary btn-full btn-arena" id="start-btn" disabled>
               📞&nbsp; Take a Call
@@ -1194,6 +1489,7 @@ async function renderStart() {
     phoneInput.value = savedPhone;
     updateStartBtn();
   }
+  initPhoneInput(phoneInput);
 
   let selectedDifficulty = 'easy';
 
@@ -2274,7 +2570,7 @@ async function renderSettings() {
         <p class="settings-section-desc">Saved here so you don't have to retype it every time you take a call.</p>
         <div class="form-group">
           <label for="settings-phone">Cell Number</label>
-          <input type="tel" id="settings-phone" placeholder="+1 555 000 0000" value="${escHtml((user && user.phone_number) ? user.phone_number : '')}" autocomplete="tel" />
+          <input type="tel" id="settings-phone" placeholder="(555) 123-4567" value="${escHtml((user && user.phone_number) ? user.phone_number : '')}" autocomplete="tel" />
         </div>
         <div id="settings-phone-msg" class="settings-msg" style="display:none"></div>
         <button class="btn btn-primary" id="save-phone-btn">Save Number</button>
@@ -2328,6 +2624,9 @@ async function renderSettings() {
 
     </div>
   `;
+
+  // Wire phone formatters
+  initPhoneInput(document.getElementById('settings-phone'));
 
   // Account save
   document.getElementById('save-account-btn').addEventListener('click', async () => {
