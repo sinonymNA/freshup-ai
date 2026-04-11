@@ -4,7 +4,10 @@ const express = require('express');
 const router = express.Router();
 
 const { requireAuth, requireManager } = require('../middleware/requireAuth');
-const { getTeamByManagerId, getTeamMembers, getAllCalls, getProgress } = require('../store');
+const {
+  getTeamByManagerId, getTeamMembers, getAllCalls, getProgress,
+  getTeamConfig, setTeamConfig, getTeamAnalytics,
+} = require('../store');
 
 // GET /api/team — team overview + member list
 router.get('/', requireAuth, requireManager, (req, res) => {
@@ -26,6 +29,25 @@ router.get('/invite', requireAuth, requireManager, (req, res) => {
     invite_code: team.invite_code,
     invite_url: `${base}/#/register?invite=${team.invite_code}`,
   });
+});
+
+// GET /api/team/analytics — revenue & performance metrics for manager dashboard
+router.get('/analytics', requireAuth, requireManager, (req, res) => {
+  const team = getTeamByManagerId(req.user.id);
+  if (!team) { res.status(404).json({ error: 'Team not found' }); return; }
+  const analytics = getTeamAnalytics(team.id);
+  const config = getTeamConfig(team.id);
+  res.json({ ...analytics, config });
+});
+
+// PATCH /api/team/config — save dealership config (avgDealValue, brand, etc.)
+router.patch('/config', requireAuth, requireManager, (req, res) => {
+  const team = getTeamByManagerId(req.user.id);
+  if (!team) { res.status(404).json({ error: 'Team not found' }); return; }
+  const current = getTeamConfig(team.id);
+  const updated = { ...current, ...req.body };
+  setTeamConfig(team.id, updated);
+  res.json({ ok: true, config: updated });
 });
 
 // GET /api/team/rep/:userId — drill into one rep's data

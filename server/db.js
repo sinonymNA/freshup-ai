@@ -72,6 +72,11 @@ if (!existingCallCols.includes('contactInfo')) {
   db.exec('ALTER TABLE calls ADD COLUMN contactInfo TEXT');
 }
 
+const existingTeamCols = db.prepare('PRAGMA table_info(teams)').all().map(r => r.name);
+if (!existingTeamCols.includes('config')) {
+  db.exec("ALTER TABLE teams ADD COLUMN config TEXT DEFAULT '{}'");
+}
+
 // ── Users ────────────────────────────────────────────────────────────────────
 
 function createUser({ email, name, password_hash, role = 'rep', team_id = null }) {
@@ -122,6 +127,144 @@ function getTeamByCode(code) {
 
 function getTeamByManagerId(managerId) {
   return db.prepare('SELECT * FROM teams WHERE manager_id = ?').get(managerId);
+}
+
+function getTeamById(teamId) {
+  return db.prepare('SELECT * FROM teams WHERE id = ?').get(teamId);
+}
+
+function getTeamConfig(teamId) {
+  const team = getTeamById(teamId);
+  if (!team) return {};
+  try { return JSON.parse(team.config || '{}'); } catch { return {}; }
+}
+
+function setTeamConfig(teamId, config) {
+  db.prepare('UPDATE teams SET config = ? WHERE id = ?').run(JSON.stringify(config), teamId);
+}
+
+function getTeamAnalytics(teamId) {
+  const now = Date.now();
+  const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
+  const twoWeeksAgo = now - 14 * 24 * 60 * 60 * 1000;
+  const monthAgo = now - 30 * 24 * 60 * 60 * 1000;
+
+  // Member IDs on this team
+  const memberIds = db.prepare('SELECT id FROM users WHERE team_id = ?').all(teamId).map(r => r.id);
+  if (!memberIds.length) {
+    return {
+      appointmentRate: 0, callsThisWeek: 0, callsLastWeek: 0,
+      teamAvgScore: 0, activeRepsThisWeek: 0, totalReps: 0,
+      dimensionAverages: { opening: 0, infoCapture: 0, discovery: 0, objectionHandling: 0, appointment: 0 },
+      repStats: [], recentCalls: [],
+    };
+  }
+
+  const placeholders = memberIds.map(() => '?').join(',');
+
+  // Calls this month (for appointment rate)
+  const monthCalls = db.prepare(
+    `SELECT userId, outcome, score FROM calls WHERE userId IN (${placeholders}) AND startTime >= ? AND score IS NOT NULL`
+  ).all(...memberIds, monthAgo);
+
+  const completedCalls = monthCalls.filter(c => c.outcome === 'Appointment' || c.outcome === 'HangUp');
+  const appointmentCalls = completedCalls.filter(c => c.outcome === 'Appointment');
+  const appointmentRate = completedCalls.length ? appointmentCalls.length / completedCalls.length : 0;
+
+  // Calls this week / last week
+  const callsThisWeek = db.prepare(
+    `SELECT COUNT(*) AS n FROM calls WHERE userId IN (${placeholders}) AND startTime >= ?`
+  ).get(...memberIds, weekAgo).n;
+
+  const callsLastWeek = db.prepare(
+    `SELECT COUNT(*) AS n FROM calls WHERE userId IN (${placeholders}) AND startTime >= ? AND startTime < ?`
+  ).get(...memberIds, twoWeeksAgo, weekAgo).n;
+
+  // Team avg overall score (this month)
+  const scores = monthCalls.map(c => { try { return JSON.parse(c.score); } catch { return null; } }).filter(Boolean);
+  const teamAvgScore = scores.length
+    ? Math.round(scores.reduce((s, sc) => s + (sc.overallScore || 0), 0) / scores.length)
+    : 0;
+
+  // Active reps this week
+  const activeRepsThisWeek = db.prepare(
+    `SELECT COUNT(DISTINCT userId) AS n FROM calls WHERE userId IN (${placeholders}) AND startTime >= ?`
+  ).get(...memberIds, weekAgo).n;
+
+  // Dimension averages (this month)
+  const dims = { opening: 0, infoCapture: 0, discovery: 0, objectionHandling: 0, appointment: 0 };
+  if (scores.length) {
+    for (const d of Object.keys(dims)) {
+      const vals = scores.map(s => s[d] ?? 0);
+      dims[d] = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+    }
+  }
+
+  // Per-rep stats: appointmentRate, weakest dimension, trend
+  const repStats = memberIds.map(uid => {
+    const repCalls = db.prepare(
+      'SELECT outcome, score, startTime FROM calls WHERE userId = ? AND score IS NOT NULL ORDER BY startTime DESC LIMIT 30'
+    ).all(uid);
+    const repScores = repCalls.map(c => { try { return JSON.parse(c.score); } catch { return null; } }).filter(Boolean);
+    const repCompleted = repCalls.filter(c => c.outcome === 'Appointment' || c.outcome === 'HangUp');
+    const repAppt = repCalls.filter(c => c.outcome === 'Appointment');
+    const repApptRate = repCompleted.length ? repAppt.length / repCompleted.length : 0;
+
+    const repDims = { opening: 0, infoCapture: 0, discovery: 0, objectionHandling: 0, appointment: 0 };
+    if (repScores.length) {
+      for (const d of Object.keys(repDims)) {
+        const vals = repScores.map(s => s[d] ?? 0);
+        repDims[d] = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+      }
+    }
+
+    const weakestDim = Object.entries(repDims).sort((a, b) => a[1] - b[1])[0];
+
+    // Trend: compare avg score of last 5 vs previous 5
+    const last5 = repScores.slice(0, 5);
+    const prev5 = repScores.slice(5, 10);
+    let trend = 'flat';
+    if (last5.length && prev5.length) {
+      const avgLast = last5.reduce((s, sc) => s + (sc.overallScore || 0), 0) / last5.length;
+      const avgPrev = prev5.reduce((s, sc) => s + (sc.overallScore || 0), 0) / prev5.length;
+      if (avgLast - avgPrev >= 3) trend = 'up';
+      else if (avgPrev - avgLast >= 3) trend = 'down';
+    }
+
+    const user = db.prepare('SELECT id, name, email FROM users WHERE id = ?').get(uid);
+    const lastActive = db.prepare('SELECT MAX(startTime) AS t FROM calls WHERE userId = ?').get(uid)?.t ?? null;
+
+    return {
+      id: uid, name: user?.name ?? '', email: user?.email ?? '',
+      lastActive,
+      totalCalls: repCalls.length,
+      avgScore: repScores.length
+        ? Math.round(repScores.reduce((s, sc) => s + (sc.overallScore || 0), 0) / repScores.length)
+        : 0,
+      appointmentRate: repApptRate,
+      dimensionAverages: repDims,
+      weakestDim: weakestDim ? { key: weakestDim[0], value: weakestDim[1] } : null,
+      trend,
+    };
+  });
+
+  // Recent calls across team (last 15)
+  const recentCalls = db.prepare(
+    `SELECT c.callSid, c.userId, c.personaName, c.outcome, c.score, c.startTime,
+            u.name AS repName
+     FROM calls c JOIN users u ON u.id = c.userId
+     WHERE c.userId IN (${placeholders}) AND c.score IS NOT NULL
+     ORDER BY c.startTime DESC LIMIT 15`
+  ).all(...memberIds).map(r => ({
+    ...r,
+    score: r.score ? JSON.parse(r.score) : null,
+  }));
+
+  return {
+    appointmentRate, callsThisWeek, callsLastWeek,
+    teamAvgScore, activeRepsThisWeek, totalReps: memberIds.length,
+    dimensionAverages: dims, repStats, recentCalls,
+  };
 }
 
 function getTeamMembers(teamId) {
@@ -246,7 +389,8 @@ function getLeaderboard(limit = 20) {
 
 module.exports = {
   createUser, updateUser, getUserById, getUserByEmail,
-  createTeam, getTeamByCode, getTeamByManagerId, getTeamMembers,
+  createTeam, getTeamByCode, getTeamByManagerId, getTeamById,
+  getTeamMembers, getTeamConfig, setTeamConfig, getTeamAnalytics,
   getCall, setCall, updateCall, getAllCalls,
   completeModule, getProgress,
   getLeaderboard,

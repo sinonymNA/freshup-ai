@@ -246,7 +246,34 @@ function difficultyBadge(d) {
 
 function outcomePill(o) {
   if (!o) return '<span class="text-muted">—</span>';
-  return `<span class="outcome-pill outcome-${o}">${escHtml(o)}</span>`;
+  const labels = { Appointment: 'Set Appointment', HangUp: 'Lost Caller' };
+  return `<span class="outcome-pill outcome-${o}">${labels[o] || escHtml(o)}</span>`;
+}
+
+function timeAgo(ts) {
+  if (!ts) return '—';
+  const diff = Date.now() - ts;
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
+
+function weakestDimPill(score) {
+  if (!score) return '';
+  const dimLabels = { opening: 'Opening', infoCapture: 'Lead Capture', discovery: 'Discovery', objectionHandling: 'Objection Handling', appointment: 'Close' };
+  const keys = ['opening', 'infoCapture', 'discovery', 'objectionHandling', 'appointment'];
+  let worst = null, worstVal = Infinity;
+  for (const k of keys) {
+    const v = score[k];
+    if (v != null && v < worstVal) { worstVal = v; worst = k; }
+  }
+  if (!worst) return '';
+  const colorClass = worstVal >= 15 ? 'wdp-green' : worstVal >= 10 ? 'wdp-yellow' : 'wdp-red';
+  return `<span class="weakest-dim-pill ${colorClass}">${dimLabels[worst]}</span>`;
 }
 
 function scoreColor(s) {
@@ -760,10 +787,6 @@ async function renderDashboard() {
 
   const total = history.length;
   const scored = history.filter(c => c.score && c.score.overallScore != null);
-  const avgScore = scored.length
-    ? Math.round(scored.reduce((s, c) => s + c.score.overallScore, 0) / scored.length)
-    : null;
-  const bestScore = scored.length ? Math.max(...scored.map(c => c.score.overallScore)) : null;
   const modulesCompleted = progress.length;
   const recent = history.slice(0, 8);
 
@@ -776,73 +799,128 @@ async function renderDashboard() {
   };
   const allCertified = certs.foundations && certs.expert && certs.elite;
 
-  // Continue learning: first incomplete module in first incomplete course
+  // Continue learning
   let nextModule = null;
   for (const course of courses) {
     if (!course.modules) continue;
     const firstIncomplete = course.modules.find(m => !progressSet.has(m.id));
-    if (firstIncomplete) {
-      nextModule = { course, module: firstIncomplete };
-      break;
-    }
+    if (firstIncomplete) { nextModule = { course, module: firstIncomplete }; break; }
   }
 
   // Score trend: last 5 vs previous 5
   let trend = null;
-  if (scored.length >= 5) {
+  if (scored.length >= 10) {
     const last5avg = scored.slice(0, 5).reduce((s, c) => s + c.score.overallScore, 0) / 5;
-    if (scored.length >= 10) {
-      const prev5avg = scored.slice(5, 10).reduce((s, c) => s + c.score.overallScore, 0) / 5;
-      trend = Math.round(last5avg - prev5avg);
-    }
+    const prev5avg = scored.slice(5, 10).reduce((s, c) => s + c.score.overallScore, 0) / 5;
+    trend = Math.round(last5avg - prev5avg);
   }
 
-  // Streak
   const streak = calcStreak(history);
+
+  // Appointment set rate
+  const completedCalls = history.filter(c => c.outcome === 'Appointment' || c.outcome === 'HangUp');
+  const apptCalls = history.filter(c => c.outcome === 'Appointment');
+  const apptRate = completedCalls.length > 0 ? Math.round(apptCalls.length / completedCalls.length * 100) : null;
+
+  // Dimension averages (last 20 scored calls)
+  const dimKeys = ['opening', 'infoCapture', 'discovery', 'objectionHandling', 'appointment'];
+  const dimLabels = { opening: 'Opening', infoCapture: 'Lead Capture', discovery: 'Discovery', objectionHandling: 'Objection Handling', appointment: 'Close' };
+  const recent20 = scored.slice(0, 20);
+  const dimAvgs = {};
+  for (const k of dimKeys) {
+    const vals = recent20.map(c => c.score[k]).filter(v => v != null);
+    dimAvgs[k] = vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0;
+  }
+  const sortedDims = scored.length > 0 ? dimKeys.slice().sort((a, b) => dimAvgs[a] - dimAvgs[b]) : [];
+  const weakestDim = sortedDims[0] || null;
+  const strongestDim = sortedDims[sortedDims.length - 1] || null;
+
+  // Performance headline
+  let headline = '', headlineSub = '';
+  if (total === 0) {
+    headline = `Welcome, ${escHtml(user ? user.name.split(' ')[0] : '')}`;
+    headlineSub = 'Your first training call is 30 seconds away.';
+  } else if (total < 5) {
+    headline = 'Building your baseline';
+    headlineSub = `Take ${5 - total} more call${5 - total !== 1 ? 's' : ''} to unlock full performance insights.`;
+  } else if (trend !== null && trend >= 3) {
+    headline = "You're improving";
+    headlineSub = `Avg score up ${trend} points in your last 5 calls. Keep it going.`;
+  } else if (trend !== null && trend <= -3) {
+    headline = 'Focus time';
+    headlineSub = `Avg score down ${Math.abs(trend)} points recently. ${weakestDim ? `Work on your ${dimLabels[weakestDim]}.` : 'Get some reps in.'}`;
+  } else {
+    headline = "Here's your performance";
+    headlineSub = streak >= 2 ? `${streak}-day training streak — keep the momentum.` : 'Keep taking calls to build consistency.';
+  }
 
   app.innerHTML = `
     <div class="page-header">
       <div>
-        <h1>Dashboard</h1>
-        <p class="subtitle">Welcome back, ${escHtml(user ? user.name.split(' ')[0] : '')}!</p>
+        <h1>${headline}</h1>
+        <p class="subtitle">${headlineSub}</p>
       </div>
       <a class="btn btn-primary" href="#/start">+ Take a Call</a>
     </div>
 
     ${total === 0 ? `
-      <div class="dash-empty">
-        <div class="dash-empty-icon">📞</div>
-        <h3>No calls yet</h3>
-        <p>Take your first training call to start tracking your progress and scores.</p>
-        <a href="#/start" class="btn btn-primary">Take Your First Call</a>
+      <div class="quickstart-card">
+        <div class="qs-icon">📞</div>
+        <div class="qs-body">
+          <h3>You're 30 seconds from your first call</h3>
+          <p>Enter your number and a simulated buyer will call you right now.</p>
+          <div class="qs-form">
+            <input type="tel" id="qs-phone" class="qs-phone-input"
+              placeholder="+1 (555) 000-0000"
+              value="${escHtml((user && user.phone_number) ? user.phone_number : '')}"
+              autocomplete="tel" />
+            <button class="btn btn-primary" id="qs-call-btn">Call Me Now</button>
+          </div>
+          <div id="qs-msg" class="settings-msg" style="display:none"></div>
+        </div>
       </div>
     ` : `
-      <div class="stats-strip">
-        <div class="stat-card">
-          <div class="stat-val" id="stat-total-calls">${total}</div>
-          <div class="stat-lbl">Total Calls</div>
+      <div class="kpi-strip">
+        <div class="kpi-card">
+          <div class="kpi-val ${apptRate !== null ? (apptRate >= 30 ? 'kpi-green' : apptRate >= 20 ? 'kpi-yellow' : 'kpi-red') : ''}">${apptRate !== null ? apptRate + '%' : '—'}</div>
+          <div class="kpi-lbl">Appt Set Rate</div>
+          <div class="kpi-sub">your last ${completedCalls.length} call${completedCalls.length !== 1 ? 's' : ''}</div>
         </div>
-        <div class="stat-card">
-          <div class="stat-val" id="stat-avg-score">${avgScore != null ? avgScore : '—'}${trend != null ? `<span class="trend ${trend >= 0 ? 'trend-up' : 'trend-down'}">${trend >= 0 ? '↑' : '↓'}${Math.abs(trend)}</span>` : ''}</div>
-          <div class="stat-lbl">Avg Score</div>
+        <div class="kpi-card">
+          <div class="kpi-val" style="${strongestDim ? 'color:var(--success)' : ''}">${strongestDim ? dimAvgs[strongestDim] + '/20' : '—'}</div>
+          <div class="kpi-lbl">Top Skill</div>
+          <div class="kpi-sub">${strongestDim ? dimLabels[strongestDim] : 'Take more calls'}</div>
         </div>
-        <div class="stat-card">
-          <div class="stat-val" id="stat-best-score">${bestScore != null ? bestScore : '—'}</div>
-          <div class="stat-lbl">Best Score</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-val">${modulesCompleted}<span class="stat-denom">/15</span></div>
-          <div class="stat-lbl">Modules Done</div>
+        <div class="kpi-card">
+          <div class="kpi-val" style="${weakestDim && dimAvgs[weakestDim] < 12 ? 'color:var(--warning)' : ''}">${weakestDim ? dimAvgs[weakestDim] + '/20' : '—'}</div>
+          <div class="kpi-lbl">Focus Area</div>
+          <div class="kpi-sub">${weakestDim ? dimLabels[weakestDim] : 'Take more calls'}</div>
         </div>
       </div>
-      ${streak >= 2 ? `
-        <div class="streak-badge">
-          <span class="streak-fire">🔥</span>
-          <strong>${streak}-day streak</strong>
-          <span class="streak-sub">Train again today to keep it going</span>
-        </div>
-      ` : ''}
+      ${streak >= 2 ? `<div class="streak-badge"><span class="streak-fire">🔥</span><strong>${streak}-day streak</strong><span class="streak-sub">Train again today to keep it going</span></div>` : ''}
     `}
+
+    ${scored.length >= 3 ? `
+    <div class="card skills-card">
+      <div class="skills-header">
+        <h3>Your Skills</h3>
+        ${weakestDim ? `<span class="skills-gap-label">Focus: <strong>${dimLabels[weakestDim]}</strong></span>` : ''}
+      </div>
+      <div class="skill-bars">
+        ${dimKeys.map(k => {
+          const val = dimAvgs[k] || 0;
+          const pct = Math.round(val / 20 * 100);
+          const colorClass = val >= 15 ? 'sb-green' : val >= 10 ? 'sb-yellow' : 'sb-red';
+          return `<div class="skill-bar-row${k === weakestDim ? ' sb-weakest' : ''}">
+              <div class="sb-label">${dimLabels[k]}</div>
+              <div class="sb-track"><div class="sb-fill ${colorClass}" style="width:${pct}%"></div></div>
+              <div class="sb-val">${val}/20</div>
+            </div>`;
+        }).join('')}
+      </div>
+      ${weakestDim ? `<div class="skills-cta"><a href="#/start" class="btn btn-primary btn-sm">Work on ${dimLabels[weakestDim]} →</a></div>` : ''}
+    </div>
+    ` : ''}
 
     <div class="cert-strip">
       ${certBadge('phone-open', 'PHONUP Ready', certs.foundations)}
@@ -874,22 +952,43 @@ async function renderDashboard() {
       </div>
       <div class="table-wrap"><table>
         <thead><tr>
-          <th>Persona</th><th>Outcome</th><th>Score</th><th>Duration</th><th>Date</th><th></th>
+          <th>Caller</th><th>Result</th><th>Score</th><th>Duration</th><th>Date</th><th></th>
         </tr></thead>
         <tbody>${recent.map(callRow).join('')}</tbody>
       </table></div>
     ` : ''}
   `;
 
-  // Animate stat card numbers after render
-  if (total > 0) {
-    const callsEl = document.getElementById('stat-total-calls');
-    const avgEl = document.getElementById('stat-avg-score');
-    const bestEl = document.getElementById('stat-best-score');
-    if (callsEl) animateCounter(callsEl, total, 800);
-    if (avgEl && avgScore != null) animateCounter(avgEl, avgScore, 900);
-    if (bestEl && bestScore != null) animateCounter(bestEl, bestScore, 1000);
-  }
+  // Quick-start "Call Me Now" handler
+  document.getElementById('qs-call-btn')?.addEventListener('click', async () => {
+    const phoneInput = document.getElementById('qs-phone');
+    const msgEl = document.getElementById('qs-msg');
+    const phone = phoneInput?.value.trim() || '';
+    if (!phone) {
+      msgEl.textContent = 'Enter your cell number to receive the call.';
+      msgEl.className = 'settings-msg error'; msgEl.style.display = 'block'; return;
+    }
+    const btn = document.getElementById('qs-call-btn');
+    btn.disabled = true; btn.textContent = 'Calling…';
+    try {
+      if (!user?.phone_number || user.phone_number !== phone) {
+        const profileRes = await api('/api/auth/profile', {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone_number: phone }),
+        });
+        setAuth(profileRes.token, profileRes.user);
+      }
+      const callRes = await api('/api/call/start', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phoneNumber: phone, difficulty: 'Easy' }),
+      });
+      navigate(`/call/${callRes.callSid}`);
+    } catch (err) {
+      btn.disabled = false; btn.textContent = 'Call Me Now';
+      msgEl.textContent = err.message;
+      msgEl.className = 'settings-msg error'; msgEl.style.display = 'block';
+    }
+  });
 }
 
 function certBadge(courseId, label, earned) {
@@ -915,6 +1014,27 @@ function callRow(c) {
     </td>
     <td>${outcomePill(c.outcome)}</td>
     <td>${scoreHtml}</td>
+    <td class="text-muted">${formatDuration(c.duration)}</td>
+    <td class="text-subtle text-sm">${formatDate(c.timestamp)}</td>
+    <td><a href="#/call/${c.callSid}" class="btn btn-secondary btn-sm">View</a></td>
+  </tr>`;
+}
+
+function historyCallRow(c) {
+  const scoreVal = c.score && c.score.overallScore != null ? c.score.overallScore : null;
+  const scoreHtml = scoreVal != null
+    ? `<span class="score-num" style="color:${scoreColor(scoreVal)}">${scoreVal}</span>`
+    : '<span class="text-muted">—</span>';
+  return `<tr>
+    <td>
+      <div class="cell-with-avatar">
+        ${avatar(c.personaName)}
+        <strong>${escHtml(c.personaName || '—')}</strong>
+      </div>
+    </td>
+    <td>${outcomePill(c.outcome)}</td>
+    <td>${scoreHtml}</td>
+    <td>${weakestDimPill(c.score)}</td>
     <td class="text-muted">${formatDuration(c.duration)}</td>
     <td class="text-subtle text-sm">${formatDate(c.timestamp)}</td>
     <td><a href="#/call/${c.callSid}" class="btn btn-secondary btn-sm">View</a></td>
@@ -1185,8 +1305,8 @@ async function renderHistory() {
           <a href="#/start" class="btn btn-primary">Take Your First Call</a>
         </div>`
       : `<div class="table-wrap"><table>
-          <thead><tr><th>Persona</th><th>Outcome</th><th>Score</th><th>Duration</th><th>Date</th><th></th></tr></thead>
-          <tbody>${history.map(callRow).join('')}</tbody>
+          <thead><tr><th>Caller</th><th>Result</th><th>Score</th><th>Focus Area</th><th>Duration</th><th>Date</th><th></th></tr></thead>
+          <tbody>${history.map(historyCallRow).join('')}</tbody>
         </table></div>`
     }
   `;
@@ -1409,7 +1529,10 @@ function showCallAnalysis(data, callSid) {
   const title = document.getElementById('call-status-title');
   if (dot) dot.className = 'live-status-dot done';
   if (badge) { badge.textContent = 'Done'; badge.className = 'lt-badge done'; }
-  if (title) title.textContent = 'Call Complete';
+  const outcomeTitle = data.outcome === 'Appointment' ? 'Appointment Set'
+    : data.outcome === 'HangUp' ? 'Caller Hung Up'
+    : 'Call Complete';
+  if (title) title.textContent = outcomeTitle;
 
   if (data.outcome) showLiveOutcome(data.outcome);
 
@@ -1519,7 +1642,14 @@ function showCallAnalysis(data, callSid) {
 
     if (data.score.feedback) {
       const fw = document.getElementById('live-feedback-wrap');
-      if (fw) fw.innerHTML = `<div class="live-feedback">${escHtml(data.score.feedback)}</div>`;
+      if (fw) {
+        const feedbackHeader = data.outcome === 'Appointment'
+          ? "Here's what you did right:"
+          : data.outcome === 'HangUp'
+          ? "Here's what to work on:"
+          : 'Coaching feedback:';
+        fw.innerHTML = `<div class="live-feedback-header">${feedbackHeader}</div><div class="live-feedback">${escHtml(data.score.feedback)}</div>`;
+      }
     }
   } else {
     // Score not ready yet — keep polling
@@ -1846,53 +1976,146 @@ function leaderboardRow(r, user) {
 
 async function renderTeam() {
   app.innerHTML = '<div class="page-skeleton"><div class="skel skel-title"></div><div class="skel skel-text"></div><div class="skel skel-text skel-short"></div></div>';
-  let data;
-  try { data = await api('/api/team'); } catch (e) {
+
+  let teamData, analytics;
+  try { teamData = await api('/api/team'); } catch (e) {
     app.innerHTML = `<div class="empty-state">${escHtml(e.message)}</div>`;
     return;
   }
+  try { analytics = await api('/api/team/analytics'); } catch (e) { analytics = null; }
 
-  const { team, members } = data;
+  const { team, members } = teamData;
   const now = Date.now();
   const WEEK = 7 * 24 * 60 * 60 * 1000;
-  const MONTH = 30 * 24 * 60 * 60 * 1000;
 
-  const teamAvg = members.length
-    ? Math.round(members.filter(m => m.avgScore).reduce((s, m) => s + m.avgScore, 0) / members.filter(m => m.avgScore).length) || '—'
-    : '—';
-  const activeThisWeek = members.filter(m => m.lastActive && now - m.lastActive < WEEK).length;
-  const totalCerts = members.reduce((s, m) => s + (m.modulesCompleted >= 15 ? 1 : 0), 0);
+  const config = analytics?.config ?? {};
+  const apptRate = analytics ? Math.round((analytics.appointmentRate || 0) * 100) : null;
+  const callsThisWeek = analytics?.callsThisWeek ?? '—';
+  const callsLastWeek = analytics?.callsLastWeek ?? 0;
+  const teamAvgScore = analytics?.teamAvgScore || null;
+  const activeRepsThisWeek = analytics?.activeRepsThisWeek ?? '—';
+  const dims = analytics?.dimensionAverages ?? null;
+  const repStats = analytics?.repStats ?? [];
+  const recentCalls = analytics?.recentCalls ?? [];
+  const avgDealValue = config.avgDealValue ? Number(config.avgDealValue) : null;
+  const weekDelta = typeof callsThisWeek === 'number' && typeof callsLastWeek === 'number'
+    ? callsThisWeek - callsLastWeek : 0;
+  const monthlyCallsEst = typeof callsThisWeek === 'number' ? callsThisWeek * 4 : 0;
+  const monthlyApptsEst = Math.round((analytics?.appointmentRate || 0) * monthlyCallsEst);
+
+  const dimLabels = { opening: 'Opening', infoCapture: 'Lead Capture', discovery: 'Discovery', objectionHandling: 'Objection Handling', appointment: 'Close' };
+  let weakestDimKey = null, weakestDimVal = Infinity;
+  if (dims) {
+    for (const [k, v] of Object.entries(dims)) {
+      if (v < weakestDimVal) { weakestDimVal = v; weakestDimKey = k; }
+    }
+  }
 
   app.innerHTML = `
     <div class="page-header">
       <div>
         <h1>${escHtml(team.name)}</h1>
-        <p class="subtitle">${members.length} rep${members.length !== 1 ? 's' : ''}</p>
+        <p class="subtitle">Performance Center — ${members.length} rep${members.length !== 1 ? 's' : ''}</p>
       </div>
       <button class="btn btn-secondary" id="invite-btn">Copy Invite Link</button>
     </div>
 
-    <div class="stats-strip">
-      <div class="stat-card"><div class="stat-val">${members.length}</div><div class="stat-lbl">Total Reps</div></div>
-      <div class="stat-card"><div class="stat-val">${activeThisWeek}</div><div class="stat-lbl">Active This Week</div></div>
-      <div class="stat-card"><div class="stat-val">${teamAvg}</div><div class="stat-lbl">Team Avg Score</div></div>
-      <div class="stat-card"><div class="stat-val">${totalCerts}</div><div class="stat-lbl">Certified Reps</div></div>
+    <div class="kpi-strip">
+      <div class="kpi-card">
+        <div class="kpi-val ${apptRate !== null ? (apptRate >= 30 ? 'kpi-green' : apptRate >= 20 ? 'kpi-yellow' : 'kpi-red') : ''}">${apptRate !== null ? apptRate + '%' : '—'}</div>
+        <div class="kpi-lbl">Appointment Set Rate</div>
+        <div class="kpi-sub">this month</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-val">${teamAvgScore ? teamAvgScore + '/100' : '—'}</div>
+        <div class="kpi-lbl">Team Avg Score</div>
+        <div class="kpi-sub">scored calls</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-val">${callsThisWeek}${weekDelta !== 0 ? `<span class="kpi-delta ${weekDelta > 0 ? 'kpi-delta-up' : 'kpi-delta-down'}">${weekDelta > 0 ? '+' : ''}${weekDelta}</span>` : ''}</div>
+        <div class="kpi-lbl">Calls This Week</div>
+        <div class="kpi-sub">vs last week</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-val">${activeRepsThisWeek}<span class="kpi-denom">/${members.length}</span></div>
+        <div class="kpi-lbl">Active Reps</div>
+        <div class="kpi-sub">trained this week</div>
+      </div>
     </div>
 
-    ${members.length === 0 ? `
-      <div class="empty-state">
-        No reps on your team yet. Share your invite link so reps can join when they sign up.
+    ${avgDealValue ? `
+    <div class="revenue-impact-card">
+      <div class="ric-icon">$</div>
+      <div class="ric-body">
+        <div class="ric-title">Estimated Revenue Impact — This Month</div>
+        <div class="ric-calc">
+          <span class="ric-num">${monthlyApptsEst}</span> appointments ×
+          <span class="ric-num">25%</span> close rate ×
+          <span class="ric-num">$${avgDealValue.toLocaleString()}</span> avg deal =
+          <strong class="ric-total">$${Math.round(monthlyApptsEst * 0.25 * avgDealValue).toLocaleString()} pipeline</strong>
+        </div>
+        <div class="ric-note">Your team's ${apptRate !== null ? apptRate + '%' : '—'} appt rate vs. 22% industry baseline${apptRate !== null && apptRate > 22 ? ' — above average' : ''}</div>
       </div>
+    </div>
     ` : `
-      <div class="table-wrap">
-        <table>
-          <thead><tr>
-            <th>Rep</th><th>Last Active</th><th>Calls</th><th>Avg Score</th><th>Best Score</th><th>Modules</th><th></th>
-          </tr></thead>
-          <tbody>${members.map(m => teamRepRow(m, now, WEEK, MONTH)).join('')}</tbody>
-        </table>
+    <div class="revenue-impact-card ric-empty">
+      <div class="ric-icon">$</div>
+      <div class="ric-body">
+        <div class="ric-title">Unlock Revenue Impact Estimates</div>
+        <div class="ric-note">Set your average deal value to see how your team's appointment rate translates to pipeline.</div>
       </div>
+      <a href="#/settings" class="btn btn-secondary btn-sm" style="flex-shrink:0">Set Deal Value →</a>
+    </div>
     `}
+
+    ${dims ? `
+    <div class="card skills-card">
+      <div class="skills-header">
+        <h3>Team Skill Breakdown</h3>
+        ${weakestDimKey ? `<span class="skills-gap-label">Biggest gap: <strong>${dimLabels[weakestDimKey]}</strong> (avg ${weakestDimVal}/20)</span>` : ''}
+      </div>
+      <div class="skill-bars">
+        ${Object.entries(dimLabels).map(([k, label]) => {
+          const val = dims[k] || 0;
+          const pct = Math.round(val / 20 * 100);
+          const colorClass = val >= 15 ? 'sb-green' : val >= 10 ? 'sb-yellow' : 'sb-red';
+          return `<div class="skill-bar-row${k === weakestDimKey ? ' sb-weakest' : ''}">
+              <div class="sb-label">${label}</div>
+              <div class="sb-track"><div class="sb-fill ${colorClass}" style="width:${pct}%"></div></div>
+              <div class="sb-val">${val}/20</div>
+            </div>`;
+        }).join('')}
+      </div>
+    </div>
+    ` : ''}
+
+    <div class="section-header" style="margin-top:28px"><h2>Rep Performance</h2></div>
+    ${members.length === 0
+      ? '<div class="empty-state">No reps on your team yet. Share your invite link so reps can join when they sign up.</div>'
+      : `<div class="rep-grid">${(repStats.length ? repStats : members.map(m => ({
+          id: m.id, name: m.name, email: m.email, lastActive: m.lastActive,
+          totalCalls: m.totalCalls, avgScore: m.avgScore,
+          appointmentRate: 0, weakestDim: null, trend: 'flat',
+        }))).map(r => repCard(r, now, WEEK)).join('')}</div>`
+    }
+
+    ${recentCalls.length ? `
+    <div class="section-header" style="margin-top:28px"><h2>Recent Activity</h2></div>
+    <div class="activity-feed">
+      ${recentCalls.map(c => `
+        <div class="activity-row">
+          <div class="activity-rep">${avatar(c.repName)}</div>
+          <div class="activity-info">
+            <span class="activity-name">${escHtml(c.repName)}</span>
+            <span class="activity-sep">·</span>
+            <span class="activity-persona">${escHtml(c.personaName || '—')}</span>
+          </div>
+          <div class="activity-outcome">${outcomePill(c.outcome)}</div>
+          <div class="activity-score">${c.score?.overallScore != null ? `<span style="color:${scoreColor(c.score.overallScore)}">${c.score.overallScore}</span>` : '—'}</div>
+          <div class="activity-time text-subtle text-sm">${timeAgo(c.startTime)}</div>
+        </div>`).join('')}
+    </div>
+    ` : ''}
   `;
 
   document.getElementById('invite-btn')?.addEventListener('click', async () => {
@@ -1906,36 +2129,42 @@ async function renderTeam() {
   });
 }
 
-function teamRepRow(m, now, WEEK, MONTH) {
-  const activeClass = !m.lastActive ? 'rep-inactive'
-    : now - m.lastActive < WEEK ? 'rep-active'
-    : now - m.lastActive < MONTH ? 'rep-recent'
-    : 'rep-inactive';
-  const lastActiveText = m.lastActive ? formatDate(m.lastActive) : 'Never';
-  const avgDisplay = m.avgScore != null ? `<span style="color:${scoreColor(m.avgScore)}">${m.avgScore}</span>` : '—';
-  const bestDisplay = m.bestScore != null ? `<span style="color:${scoreColor(m.bestScore)}">${m.bestScore}</span>` : '—';
-  const modProgress = `${m.modulesCompleted}/15`;
+function repCard(rep, now, WEEK) {
+  const daysSince = rep.lastActive ? Math.floor((now - rep.lastActive) / (24 * 60 * 60 * 1000)) : null;
+  const isActive = rep.lastActive && (now - rep.lastActive) < WEEK;
+  const apptPct = Math.round((rep.appointmentRate || 0) * 100);
+  const trendIcon = rep.trend === 'up' ? '↑' : rep.trend === 'down' ? '↓' : '→';
+  const trendClass = rep.trend === 'up' ? 'rc-trend-up' : rep.trend === 'down' ? 'rc-trend-down' : 'rc-trend-flat';
+  const dimLabels = { opening: 'Opening', infoCapture: 'Lead Capture', discovery: 'Discovery', objectionHandling: 'Objection Handling', appointment: 'Close' };
+  const weakestLabel = rep.weakestDim ? dimLabels[rep.weakestDim.key] : null;
 
   return `
-    <tr class="${activeClass}">
-      <td>
-        <div class="cell-with-avatar">
-          ${avatar(m.name)}
-          <span>${escHtml(m.name)}</span>
+    <a href="#/team/rep/${rep.id}" class="rep-card">
+      <div class="rc-head">
+        ${avatar(rep.name)}
+        <div class="rc-identity">
+          <div class="rc-name">${escHtml(rep.name)}</div>
+          <div class="rc-status ${isActive ? 'rc-active' : 'rc-inactive'}">${isActive ? 'Active' : daysSince !== null ? `${daysSince}d ago` : 'Never'}</div>
         </div>
-      </td>
-      <td class="text-muted text-sm">${lastActiveText}</td>
-      <td>${m.totalCalls}</td>
-      <td class="score-num">${avgDisplay}</td>
-      <td class="score-num">${bestDisplay}</td>
-      <td>
-        <div class="rep-modules">
-          <span>${modProgress}</span>
-          <div class="rep-module-bar"><div class="rep-module-fill" style="width:${Math.round(m.modulesCompleted / 15 * 100)}%"></div></div>
+        <div class="rc-trend ${trendClass}">${trendIcon}</div>
+      </div>
+      ${daysSince !== null && daysSince > 7 ? `<div class="rc-alert">Hasn't trained in ${daysSince} days</div>` : ''}
+      <div class="rc-stats">
+        <div class="rc-stat">
+          <div class="rc-stat-val ${apptPct >= 30 ? 'stat-green' : apptPct >= 20 ? 'stat-yellow' : rep.totalCalls > 0 ? 'stat-red' : ''}">${rep.totalCalls > 0 ? apptPct + '%' : '—'}</div>
+          <div class="rc-stat-lbl">Appt Rate</div>
         </div>
-      </td>
-      <td><a href="#/team/rep/${m.id}" class="btn btn-secondary btn-sm">View</a></td>
-    </tr>
+        <div class="rc-stat">
+          <div class="rc-stat-val" style="${rep.avgScore ? `color:${scoreColor(rep.avgScore)}` : ''}">${rep.avgScore || '—'}</div>
+          <div class="rc-stat-lbl">Avg Score</div>
+        </div>
+        <div class="rc-stat">
+          <div class="rc-stat-val">${rep.totalCalls}</div>
+          <div class="rc-stat-lbl">Calls</div>
+        </div>
+      </div>
+      ${weakestLabel ? `<div class="rc-weakness">Focus: ${weakestLabel} (${rep.weakestDim.value}/20)</div>` : ''}
+    </a>
   `;
 }
 
@@ -2006,6 +2235,15 @@ async function renderRepDetail(userId) {
 
 async function renderSettings() {
   const user = getUser();
+  let teamConfig = {};
+  if (user && user.role === 'manager') {
+    try {
+      const a = await api('/api/team/analytics');
+      teamConfig = a.config || {};
+    } catch (e) { /* non-critical */ }
+  }
+
+  const CAR_BRANDS = ['Toyota', 'Honda', 'Ford', 'Chevrolet', 'Dodge', 'Ram', 'Jeep', 'GMC', 'Nissan', 'Hyundai', 'Kia', 'Subaru', 'Mazda', 'BMW', 'Mercedes-Benz', 'Audi', 'Lexus', 'Cadillac', 'Lincoln', 'Volkswagen', 'Volvo', 'Tesla', 'Other'];
 
   app.innerHTML = `
     <div class="page-header">
@@ -2063,6 +2301,25 @@ async function renderSettings() {
 
       ${user && user.role === 'manager' ? `
       <div class="settings-section card">
+        <h3 class="settings-section-title">Your Dealership</h3>
+        <p class="settings-section-desc">Used to calculate revenue impact estimates on your team dashboard.</p>
+        <div class="form-group">
+          <label for="settings-deal-value">Average Deal Value ($)</label>
+          <input type="number" id="settings-deal-value" placeholder="35000" min="0" step="500"
+            value="${escHtml(teamConfig.avgDealValue ? String(teamConfig.avgDealValue) : '')}" />
+        </div>
+        <div class="form-group">
+          <label for="settings-brand">Primary Brand</label>
+          <select id="settings-brand">
+            <option value="">Select brand…</option>
+            ${CAR_BRANDS.map(b => `<option value="${escHtml(b)}" ${teamConfig.brand === b ? 'selected' : ''}>${escHtml(b)}</option>`).join('')}
+          </select>
+        </div>
+        <div id="settings-dealer-msg" class="settings-msg" style="display:none"></div>
+        <button class="btn btn-primary" id="save-dealer-btn">Save Dealership Info</button>
+      </div>
+
+      <div class="settings-section card">
         <h3 class="settings-section-title">Team Invite Code</h3>
         <p class="settings-section-desc">Share this with reps so they can join your team when registering.</p>
         <button class="btn btn-secondary" id="copy-invite-btn">Copy Invite Link</button>
@@ -2117,6 +2374,28 @@ async function renderSettings() {
     const t = btn.dataset.theme;
     applyTheme(t);
     document.querySelectorAll('.theme-btn').forEach(b => b.classList.toggle('theme-btn-active', b.dataset.theme === t));
+  });
+
+  // Dealership save
+  document.getElementById('save-dealer-btn')?.addEventListener('click', async () => {
+    const dealValue = document.getElementById('settings-deal-value')?.value.trim();
+    const brand = document.getElementById('settings-brand')?.value;
+    const msgEl = document.getElementById('settings-dealer-msg');
+    const payload = {};
+    if (dealValue) payload.avgDealValue = Number(dealValue);
+    if (brand) payload.brand = brand;
+    try {
+      await api('/api/team/config', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      msgEl.textContent = 'Dealership info saved!';
+      msgEl.className = 'settings-msg success'; msgEl.style.display = 'block';
+      setTimeout(() => { msgEl.style.display = 'none'; }, 3000);
+    } catch (err) {
+      msgEl.textContent = err.message;
+      msgEl.className = 'settings-msg error'; msgEl.style.display = 'block';
+    }
   });
 
   // Copy invite
