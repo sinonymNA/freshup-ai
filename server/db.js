@@ -347,6 +347,138 @@ function getAllCalls(userId, limit = 50) {
     }));
 }
 
+// ── Sales Analytics ───────────────────────────────────────────────────────────
+
+function getAnalytics() {
+  const now   = Date.now();
+  const todayTs = (() => { const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); })();
+  const weekAgo  = now - 7 * 24 * 60 * 60 * 1000;
+  const monthTs  = (() => { const d = new Date(); d.setDate(1); d.setHours(0,0,0,0); return d.getTime(); })();
+
+  // ── Call counts ──────────────────────────────────────────────────────────────
+  const q = (sql, ...p) => db.prepare(sql).get(...p);
+  const callsTotal = q('SELECT COUNT(*) AS n FROM calls').n;
+  const callsToday = q('SELECT COUNT(*) AS n FROM calls WHERE startTime >= ?', todayTs).n;
+  const callsWeek  = q('SELECT COUNT(*) AS n FROM calls WHERE startTime >= ?', weekAgo).n;
+  const callsMonth = q('SELECT COUNT(*) AS n FROM calls WHERE startTime >= ?', monthTs).n;
+
+  // ── Outcomes ─────────────────────────────────────────────────────────────────
+  const apptsTotal = q("SELECT COUNT(*) AS n FROM calls WHERE outcome = 'Appointment'").n;
+  const apptsToday = q("SELECT COUNT(*) AS n FROM calls WHERE outcome = 'Appointment' AND startTime >= ?", todayTs).n;
+  const apptsWeek  = q("SELECT COUNT(*) AS n FROM calls WHERE outcome = 'Appointment' AND startTime >= ?", weekAgo).n;
+  const apptsMonth = q("SELECT COUNT(*) AS n FROM calls WHERE outcome = 'Appointment' AND startTime >= ?", monthTs).n;
+
+  const compTotal = q("SELECT COUNT(*) AS n FROM calls WHERE outcome IN ('Appointment','HangUp')").n;
+  const compToday = q("SELECT COUNT(*) AS n FROM calls WHERE outcome IN ('Appointment','HangUp') AND startTime >= ?", todayTs).n;
+  const compWeek  = q("SELECT COUNT(*) AS n FROM calls WHERE outcome IN ('Appointment','HangUp') AND startTime >= ?", weekAgo).n;
+  const compMonth = q("SELECT COUNT(*) AS n FROM calls WHERE outcome IN ('Appointment','HangUp') AND startTime >= ?", monthTs).n;
+
+  const rate = (a, b) => b > 0 ? Math.round(a / b * 1000) / 10 : 0;
+
+  // ── Average scores ───────────────────────────────────────────────────────────
+  const scoreBase = "SELECT ROUND(AVG(CAST(json_extract(score,'$.overallScore') AS REAL)),1) AS v FROM calls WHERE score IS NOT NULL";
+  const avgAll   = q(scoreBase).v || 0;
+  const avgWeek  = q(scoreBase + ' AND startTime >= ?', weekAgo).v || 0;
+  const avgToday = q(scoreBase + ' AND startTime >= ?', todayTs).v || 0;
+
+  // ── Dimension averages (all-time) ─────────────────────────────────────────────
+  const dimRow = db.prepare(`
+    SELECT
+      ROUND(AVG(CAST(json_extract(score,'$.opening')            AS REAL)),1) AS opening,
+      ROUND(AVG(CAST(json_extract(score,'$.infoCapture')        AS REAL)),1) AS infoCapture,
+      ROUND(AVG(CAST(json_extract(score,'$.discovery')          AS REAL)),1) AS discovery,
+      ROUND(AVG(CAST(json_extract(score,'$.objectionHandling')  AS REAL)),1) AS objectionHandling,
+      ROUND(AVG(CAST(json_extract(score,'$.appointment')        AS REAL)),1) AS appointment
+    FROM calls WHERE score IS NOT NULL
+  `).get();
+
+  const dims = {
+    opening:            dimRow?.opening            || 0,
+    infoCapture:        dimRow?.infoCapture        || 0,
+    discovery:          dimRow?.discovery          || 0,
+    objectionHandling:  dimRow?.objectionHandling  || 0,
+    appointment:        dimRow?.appointment        || 0,
+  };
+  const sortedDims = Object.entries(dims).sort((a, b) => a[1] - b[1]);
+  const topWeakness = sortedDims[0]?.[0]   || null;
+  const topStrength = sortedDims.at(-1)?.[0] || null;
+
+  // ── Active reps + headcount ──────────────────────────────────────────────────
+  const activeToday = q('SELECT COUNT(DISTINCT userId) AS n FROM calls WHERE startTime >= ? AND userId IS NOT NULL', todayTs).n;
+  const activeWeek  = q('SELECT COUNT(DISTINCT userId) AS n FROM calls WHERE startTime >= ? AND userId IS NOT NULL', weekAgo).n;
+  const totalReps   = q("SELECT COUNT(*) AS n FROM users WHERE role = 'rep'").n;
+
+  // ── Revenue pipeline (appointments × 25% close × avgDealValue) ───────────────
+  const teams = db.prepare("SELECT config FROM teams WHERE config IS NOT NULL AND config != '{}'").all();
+  let configuredDealValue = null;
+  for (const t of teams) {
+    try {
+      const cfg = JSON.parse(t.config || '{}');
+      if (cfg.avgDealValue) { configuredDealValue = Number(cfg.avgDealValue); break; }
+    } catch {}
+  }
+  const dealValue = configuredDealValue || 35000;
+  const pipeline = (appts) => Math.round(appts * 0.25 * dealValue);
+
+  // ── Top performers this week ──────────────────────────────────────────────────
+  const topPerformers = db.prepare(`
+    SELECT
+      u.name,
+      ROUND(AVG(CAST(json_extract(c.score,'$.overallScore') AS REAL)),1) AS avg_score,
+      COUNT(*)                                                             AS call_count,
+      SUM(CASE WHEN c.outcome = 'Appointment' THEN 1 ELSE 0 END)         AS appointments
+    FROM calls c
+    JOIN users u ON u.id = c.userId
+    WHERE c.score IS NOT NULL AND c.startTime >= ? AND c.userId IS NOT NULL
+    GROUP BY c.userId
+    ORDER BY avg_score DESC
+    LIMIT 5
+  `).all(weekAgo);
+
+  return {
+    generated_at: new Date().toISOString(),
+    calls: {
+      today:    callsToday,
+      week:     callsWeek,
+      month:    callsMonth,
+      all_time: callsTotal,
+    },
+    appointments: {
+      today:    apptsToday,
+      week:     apptsWeek,
+      month:    apptsMonth,
+      all_time: apptsTotal,
+    },
+    appointment_rate: {
+      today:    rate(apptsToday, compToday),
+      week:     rate(apptsWeek,  compWeek),
+      month:    rate(apptsMonth, compMonth),
+      all_time: rate(apptsTotal, compTotal),
+    },
+    avg_score: {
+      today:    avgToday,
+      week:     avgWeek,
+      all_time: avgAll,
+    },
+    revenue_pipeline_usd: {
+      today: pipeline(apptsToday),
+      week:  pipeline(apptsWeek),
+      month: pipeline(apptsMonth),
+      avg_deal_value: dealValue,
+      close_rate_assumption: 0.25,
+    },
+    reps: {
+      active_today: activeToday,
+      active_week:  activeWeek,
+      total:        totalReps,
+    },
+    dimension_averages: { ...dims, max_per_dimension: 20 },
+    top_weakness: topWeakness,
+    top_strength: topStrength,
+    top_performers_this_week: topPerformers,
+  };
+}
+
 // ── Module completions ────────────────────────────────────────────────────────
 
 function completeModule({ userId, moduleId, courseId, callSid, score, passed }) {
@@ -394,4 +526,5 @@ module.exports = {
   getCall, setCall, updateCall, getAllCalls,
   completeModule, getProgress,
   getLeaderboard,
+  getAnalytics,
 };

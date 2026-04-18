@@ -1,17 +1,5 @@
 'use strict';
 
-const {
-  createUser, updateUser, getUserById, getUserByEmail,
-  createTeam, getTeamByCode, getTeamByManagerId, getTeamMembers,
-  getCall, setCall, updateCall, getAllCalls,
-  completeModule, getProgress,
-  getLeaderboard,
-} = require('./db');
-
-module.exports = {
-  createUser, updateUser, getUserById, getUserByEmail,
-  createTeam, getTeamByCode, getTeamByManagerId, getTeamMembers,
-  getCall, setCall, updateCall, getAllCalls,
-  completeModule, getProgress,
-  getLeaderboard,
-};
+// store.js is a thin re-export so route files don't import directly from db.js.
+// Add any new db.js exports here too.
+module.exports = require('./db');
