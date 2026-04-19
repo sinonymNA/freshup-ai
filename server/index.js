@@ -31,6 +31,30 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: Date.now() });
 });
 
+// Quick connectivity check — opens a WebSocket to OpenAI Realtime and closes it
+app.get('/health/openai', async (req, res) => {
+  const { WebSocket } = require('ws');
+  const key = process.env.OPENAI_API_KEY;
+  if (!key) {
+    res.status(500).json({ ok: false, error: 'OPENAI_API_KEY is not set' });
+    return;
+  }
+  try {
+    await new Promise((resolve, reject) => {
+      const ws = new WebSocket(
+        'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview',
+        { headers: { Authorization: `Bearer ${key}`, 'OpenAI-Beta': 'realtime=v1' } }
+      );
+      const timeout = setTimeout(() => { ws.terminate(); reject(new Error('Connection timed out after 8s')); }, 8000);
+      ws.on('open', () => { clearTimeout(timeout); ws.close(); resolve(); });
+      ws.on('error', (err) => { clearTimeout(timeout); reject(err); });
+    });
+    res.json({ ok: true, model: 'gpt-4o-realtime-preview' });
+  } catch (err) {
+    res.status(502).json({ ok: false, error: err.message });
+  }
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/courses', coursesRoutes);

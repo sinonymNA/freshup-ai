@@ -118,7 +118,7 @@ function handleMediaStream(twilioWs, rawUrl) {
   // ── Start OpenAI session (called once we have persona from 'start' message) ──
   function startOpenAiSession(storedCall) {
     openAiWs = new WebSocket(
-      'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2025-06-03',
+      'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview',
       {
         headers: {
           Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
