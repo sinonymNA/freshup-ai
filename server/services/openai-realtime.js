@@ -101,6 +101,7 @@ function handleMediaStream(twilioWs, rawUrl) {
   // NOTE: query params (callSid, personaId) may be stripped by the hosting proxy.
   // We defer persona lookup until the Twilio 'start' message arrives, which always
   // includes callSid in msg.start.callSid — no proxy strips message-body values.
+  console.log(`[media-stream] Twilio WebSocket connected url=${rawUrl}`);
 
   let callSid = null;
   let streamSid = null;
@@ -117,6 +118,7 @@ function handleMediaStream(twilioWs, rawUrl) {
 
   // ── Start OpenAI session (called once we have persona from 'start' message) ──
   function startOpenAiSession(storedCall) {
+    console.log(`[media-stream] Opening OpenAI Realtime WS callSid=${callSid} persona=${persona.id}`);
     openAiWs = new WebSocket(
       'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview',
       {
@@ -128,6 +130,7 @@ function handleMediaStream(twilioWs, rawUrl) {
     );
 
     openAiWs.on('open', () => {
+      console.log(`[media-stream] OpenAI WS open callSid=${callSid} — sending session.update`);
       const contactInfo = storedCall && storedCall.contactInfo;
       const instructions = buildInstructions(persona, contactInfo);
 
@@ -175,6 +178,7 @@ function handleMediaStream(twilioWs, rawUrl) {
         },
       }));
       openAiWs.send(JSON.stringify({ type: 'response.create' }));
+      console.log(`[media-stream] Session seeded — AI should speak shortly callSid=${callSid}`);
     });
 
     openAiWs.on('message', async (data) => {
@@ -261,7 +265,7 @@ function handleMediaStream(twilioWs, rawUrl) {
             break;
 
           case 'error':
-            console.error('[openai-realtime] OpenAI error:', msg.error);
+            console.error('[openai-realtime] OpenAI error callSid=%s:', callSid, JSON.stringify(msg.error));
             break;
         }
       } catch (err) {
@@ -269,8 +273,8 @@ function handleMediaStream(twilioWs, rawUrl) {
       }
     });
 
-    openAiWs.on('error', (err) => console.error('[openai-realtime] OpenAI WS error:', err));
-    openAiWs.on('close', () => console.log('[openai-realtime] OpenAI WS closed'));
+    openAiWs.on('error', (err) => console.error('[openai-realtime] OpenAI WS error callSid=%s:', callSid, err.message));
+    openAiWs.on('close', (code, reason) => console.log(`[openai-realtime] OpenAI WS closed callSid=${callSid} code=${code} reason=${reason}`));
   }
 
   // ── Handle messages from Twilio ──────────────────────────────────────────────
@@ -319,12 +323,12 @@ function handleMediaStream(twilioWs, rawUrl) {
     }
   });
 
-  twilioWs.on('close', () => {
-    console.log('[openai-realtime] Twilio WS closed');
+  twilioWs.on('close', (code, reason) => {
+    console.log(`[media-stream] Twilio WS closed callSid=${callSid} code=${code} reason=${reason}`);
     if (openAiWs && openAiWs.readyState === WebSocket.OPEN) openAiWs.close();
   });
 
-  twilioWs.on('error', (err) => console.error('[openai-realtime] Twilio WS error:', err));
+  twilioWs.on('error', (err) => console.error(`[media-stream] Twilio WS error callSid=${callSid}:`, err.message));
 }
 
 module.exports = { handleMediaStream };
