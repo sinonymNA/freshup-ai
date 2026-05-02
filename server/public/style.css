@@ -3918,3 +3918,93 @@ body[data-page="landing"] #nav-links a:hover {
   .scenario-chips { gap: 6px; }
   .scenario-chip { font-size: 12px; padding: 6px 10px; }
 }
+
+/* ── Lead Capture Section ──────────────────────────────────────────────────── */
+.lead-capture-section {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 80px 24px;
+}
+.lc-inner {
+  max-width: 680px;
+  margin: 0 auto;
+  text-align: center;
+}
+.lc-sub {
+  color: var(--text-muted);
+  font-size: 16px;
+  margin: 12px 0 32px;
+}
+.lead-form {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.lf-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 540px) {
+  .lf-row { grid-template-columns: 1fr; }
+}
+.lf-input {
+  width: 100%;
+  padding: 13px 16px;
+  font-size: 15px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-sizing: border-box;
+}
+.lf-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+.lf-textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+.lf-submit {
+  align-self: flex-end;
+  padding: 14px 32px;
+  font-size: 16px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  border-radius: 10px;
+  margin-top: 4px;
+}
+.lead-form-msg {
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.lf-success { background: color-mix(in srgb, var(--success) 15%, transparent); color: var(--success); }
+.lf-error   { background: color-mix(in srgb, var(--error) 12%, transparent);   color: var(--error); }
+
+/* ── Team Code Display ─────────────────────────────────────────────────────── */
+.team-code-display {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+.team-code-value {
+  font-family: monospace;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px dashed var(--accent);
+  flex: 1;
+  text-align: center;
+}

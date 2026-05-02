@@ -9,16 +9,23 @@ async function analyzeCall(transcript, persona) {
     throw new Error('Persona is required to analyze call');
   }
   const prompt =
-    `You are a car dealership phone-up coach. The sales rep RECEIVED an inbound call from ${persona.name}. ` +
-    `Score the rep 0-20 on each of five phone-up skills:\n` +
-    `opening: warm greeting, gave name + dealership, got caller's name in first 15 sec\n` +
-    `infoCapture: secured callback phone number before giving any pricing info\n` +
-    `discovery: asked about vehicle needs, timeline, trade-in\n` +
-    `objectionHandling: bridged price/availability questions toward an in-person visit\n` +
-    `appointment: asked for a specific day + time and confirmed it\n` +
-    `overallScore: 0-100 weighted total. feedback: 2-3 sentences of specific coaching.\n` +
+    `You are a car dealership phone-up coach. The sales rep RECEIVED an inbound call from ${persona.name}.\n\n` +
+    `HARD SCORING CAPS — apply these strictly before assigning overallScore:\n` +
+    `• If the rep did NOT set an appointment → overallScore MUST be ≤ 69\n` +
+    `• If the rep got name + only one of (phone OR email) AND did set an appointment → overallScore MUST be ≤ 85\n` +
+    `• If the rep got name + phone + email + appointment → score freely 70–100 based on quality\n` +
+    `• Do NOT penalize for the ORDER information was collected — grade holistically\n\n` +
+    `POSITIVE factors (raise score): strong positive greeting, compliment/validate the customer's reason for calling, reassure vehicle availability, ask if open to other options, verify wants and needs, offer personalized walk-around video, collect first+last name (with spelling), collect phone number, collect email, set specific appointment type (Test Drive/Trade Appraisal/Finance App/Purchase), confirm specific day+time, offer reminder text+email, handle/bypass objections.\n\n` +
+    `NEGATIVE factors (reduce score): pushy language, weak confidence, negative tone, defensive phrases ("I understand, but..."), lazy one-word responses, lack of ownership, conversation killers, interrupting the customer.\n\n` +
+    `Score 0–20 on each dimension:\n` +
+    `opening: greeting warmth, gave name+dealership, complimented or validated caller's reason for calling\n` +
+    `rapport: discovered wants/needs, asked about vehicle, offered walk-around video, reassured availability, asked if open to options\n` +
+    `infoCapture: secured first+last name (with spelling), callback phone number, and email — order does not matter, grade holistically\n` +
+    `objectionHandling: bridged objections, avoided pushy/defensive/lazy language, owned the conversation, no interruptions\n` +
+    `appointment: asked for specific appointment type, specific day+time, offered reminder via text+email\n\n` +
+    `overallScore: 0–100, applying the hard caps above. feedback: 2–3 sentences of specific, actionable coaching.\n\n` +
     `Respond ONLY in this exact JSON format with no other text: ` +
-    `{ "opening": number, "infoCapture": number, "discovery": number, "objectionHandling": number, "appointment": number, "overallScore": number, "feedback": string }\n\n` +
+    `{ "opening": number, "rapport": number, "infoCapture": number, "objectionHandling": number, "appointment": number, "overallScore": number, "feedback": string }\n\n` +
     `Transcript:\n${transcript}`;
 
   const message = await client.messages.create({
@@ -42,8 +49,8 @@ async function analyzeCall(transcript, persona) {
     }
     return {
       opening: 0,
+      rapport: 0,
       infoCapture: 0,
-      discovery: 0,
       objectionHandling: 0,
       appointment: 0,
       overallScore: 0,

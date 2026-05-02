@@ -5,7 +5,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const router = express.Router();
 
-const { createUser, updateUser, getUserByEmail, getUserById, createTeam, getTeamByCode, updateCall } = require('../store');
+const { createUser, updateUser, getUserByEmail, getUserById, createTeam, getTeamByCode, getTeamByManagerId, updateCall } = require('../store');
 const { requireAuth, JWT_SECRET } = require('../middleware/requireAuth');
 
 function makeToken(user) {
@@ -30,7 +30,7 @@ function userPayload(user) {
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
   try {
-    const { email, name, password, role = 'rep', team_name, invite_code } = req.body;
+    const { email, name, password, role = 'rep', team_name, invite_code, access_code } = req.body;
 
     if (!email || !name || !password) {
       res.status(400).json({ error: 'Email, name, and password are required' });
@@ -55,6 +55,12 @@ router.post('/register', async (req, res) => {
     let user = createUser({ email: email.toLowerCase().trim(), name: name.trim(), password_hash, role });
 
     if (role === 'manager') {
+      // Validate manager access code
+      const validCode = process.env.MANAGER_ACCESS_CODE || 'FRESHUP-MANAGER';
+      if (!access_code || access_code.trim().toUpperCase() !== validCode.toUpperCase()) {
+        res.status(403).json({ error: 'Invalid manager access code. Contact FreshUp to get your code.' });
+        return;
+      }
       // Create a team automatically
       const tName = (team_name && team_name.trim()) || `${name.trim()}'s Team`;
       const team = createTeam({ name: tName, managerId: user.id });
@@ -124,6 +130,20 @@ router.patch('/profile', requireAuth, async (req, res) => {
     console.error('[auth/profile] error:', err);
     res.status(500).json({ error: 'Profile update failed' });
   }
+});
+
+// GET /api/auth/team-code — returns the team invite code for the manager (shown in settings)
+router.get('/team-code', requireAuth, (req, res) => {
+  if (req.user.role !== 'manager') {
+    res.status(403).json({ error: 'Only managers can access team codes' });
+    return;
+  }
+  const team = getTeamByManagerId(req.user.id);
+  if (!team) {
+    res.status(404).json({ error: 'No team found for this manager' });
+    return;
+  }
+  res.json({ teamCode: team.invite_code, teamName: team.name });
 });
 
 // POST /api/auth/claim-challenge — create account and link a challenge call to it

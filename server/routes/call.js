@@ -8,9 +8,16 @@ const { getAllPersonas, getPersonaById, getRandomPersona, getPersonasByDifficult
 const callEmitter = require('../services/callEvents');
 
 // ── Random contact info generation ────────────────────────────────────────────
-const _FIRST = ['James','John','Robert','Michael','William','David','Richard','Joseph','Thomas','Charles','Mary','Patricia','Jennifer','Linda','Barbara','Elizabeth','Susan','Jessica','Sarah','Karen','Lisa','Nancy','Betty','Sandra','Emily','Megan','Ashley','Amanda','Brittany','Stephanie'];
+const _FIRST_MALE   = ['James','John','Robert','Michael','William','David','Richard','Joseph','Thomas','Charles','Daniel','Mark','Kevin','Brian','George','Edward','Ronald','Timothy','Jason','Jeffrey'];
+const _FIRST_FEMALE = ['Mary','Patricia','Jennifer','Linda','Barbara','Elizabeth','Susan','Jessica','Sarah','Karen','Lisa','Nancy','Betty','Sandra','Emily','Megan','Ashley','Amanda','Brittany','Stephanie'];
 const _LAST  = ['Smith','Johnson','Williams','Brown','Jones','Garcia','Miller','Davis','Wilson','Martinez','Anderson','Taylor','Thomas','Hernandez','Moore','Jackson','Thompson','White','Lopez','Lee','Harris','Clark','Lewis','Robinson','Walker','Young','Allen','King','Wright','Scott'];
 const _DOMAINS = ['gmail.com','yahoo.com','hotmail.com','outlook.com','icloud.com'];
+const _PERSONA_GENDER = {
+  'ashley-thompson': 'F', 'brittany-walsh': 'F', 'margaret-kim': 'F',
+  'nina-patel': 'F', 'priya-chandrasekaran': 'F', 'rosa-delgado': 'F',
+  'carlos-mendoza': 'M', 'david-chen': 'M', 'james-okafor': 'M',
+  'marcus-webb': 'M', 'robert-hayes': 'M', 'tyler-kowalski': 'M',
+};
 const _CARS = [
   '2025 Toyota Camry','2025 Honda Accord','2025 Ford F-150','2025 Toyota RAV4',
   '2025 Honda CR-V','2025 Chevrolet Silverado','2025 Nissan Altima','2025 Toyota Corolla',
@@ -21,9 +28,11 @@ const _CARS = [
   '2025 Hyundai Sonata','2025 Kia Sorento','2025 Volkswagen Jetta','2025 Subaru Forester',
 ];
 function _rand(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
-function generateContactInfo() {
-  const first = _rand(_FIRST);
-  const last  = _rand(_LAST);
+function generateContactInfo(persona) {
+  const gender = (persona && _PERSONA_GENDER[persona.id]) || (Math.random() < 0.5 ? 'M' : 'F');
+  const pool   = gender === 'M' ? _FIRST_MALE : _FIRST_FEMALE;
+  const first  = _rand(pool);
+  const last   = _rand(_LAST);
   const area  = String(200 + Math.floor(Math.random() * 800));
   const mid   = String(200 + Math.floor(Math.random() * 800));
   const end   = String(1000 + Math.floor(Math.random() * 9000));
@@ -78,7 +87,7 @@ router.post('/call/start', requireAuth, startCallRateLimit, async (req, res) => 
     const call = await initiateCall(parsedPhone.phoneNumber, persona.id, req.user.id);
 
     // Generate random contact info for this call (rep must capture during call)
-    const contactInfo = generateContactInfo();
+    const contactInfo = generateContactInfo(persona);
 
     // Pre-store with validated persona so webhook reads from DB instead of re-resolving URL params
     setCall(call.sid, {
@@ -205,7 +214,7 @@ router.post('/call/challenge', startCallRateLimit, async (req, res) => {
     // Initiate Twilio call with no userId (FK enforcement is OFF)
     const call = await initiateCall(parsedPhone.phoneNumber, persona.id, null);
 
-    const contactInfo = generateContactInfo();
+    const contactInfo = generateContactInfo(persona);
     setCall(call.sid, {
       userId: null,
       personaId: persona.id,

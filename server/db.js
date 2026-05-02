@@ -77,6 +77,21 @@ if (!existingTeamCols.includes('config')) {
   db.exec("ALTER TABLE teams ADD COLUMN config TEXT DEFAULT '{}'");
 }
 
+// Leads table (contact/demo request form submissions)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS leads (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    contactName    TEXT NOT NULL,
+    dealershipName TEXT NOT NULL,
+    phone          TEXT,
+    email          TEXT,
+    zip            TEXT,
+    repCount       INTEGER,
+    message        TEXT,
+    createdAt      INTEGER NOT NULL
+  );
+`);
+
 // ── Users ────────────────────────────────────────────────────────────────────
 
 function createUser({ email, name, password_hash, role = 'rep', team_id = null }) {
@@ -499,6 +514,20 @@ function getProgress(userId) {
     .all(userId);
 }
 
+// ── Leads ────────────────────────────────────────────────────────────────────
+
+function createLead({ contactName, dealershipName, phone, email, zip, repCount, message }) {
+  const stmt = db.prepare(
+    'INSERT INTO leads (contactName, dealershipName, phone, email, zip, repCount, message, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+  );
+  const result = stmt.run(contactName, dealershipName, phone || null, email || null, zip || null, repCount ? parseInt(repCount, 10) : null, message || null, Date.now());
+  return db.prepare('SELECT * FROM leads WHERE id = ?').get(result.lastInsertRowid);
+}
+
+function getLeads(limit = 100) {
+  return db.prepare('SELECT * FROM leads ORDER BY createdAt DESC LIMIT ?').all(limit);
+}
+
 // ── Leaderboard ───────────────────────────────────────────────────────────────
 
 function getLeaderboard(limit = 20) {
@@ -527,4 +556,5 @@ module.exports = {
   completeModule, getProgress,
   getLeaderboard,
   getAnalytics,
+  createLead, getLeads,
 };

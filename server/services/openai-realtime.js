@@ -84,6 +84,14 @@ function buildInstructions(persona, contactInfo) {
     '\n• Vary your pace and energy. Some moments quick and clipped, others slower and more measured' +
     '\n• NEVER use bracketed markers like [HANG_UP] or [APPOINTMENT_SET]. Use the end_call function instead.';
 
+  if (persona.difficulty === 'Medium') {
+    instructions +=
+      '\n\nHANG-UP RULE: Only end this call if the rep is repeatedly rude or dismissive (at least twice) with zero attempt to recover. Give them chances to correct mistakes. You are reluctant to hang up.';
+  } else if (persona.difficulty === 'Hard') {
+    instructions +=
+      '\n\nHANG-UP RULE: Do NOT hang up unless the rep is aggressively rude or completely ignores you after you have asked the same question twice with no response. You are extremely reluctant to end this call — make them earn that hang-up.';
+  }
+
   if (contactInfo) {
     instructions +=
       `\n\nYour personal details for this call (share these ONLY when the rep asks):` +

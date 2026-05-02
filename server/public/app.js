@@ -202,12 +202,12 @@ function updateNav(path) {
     linksEl.innerHTML = '';
     authEl.innerHTML = `
       <a href="#/login" class="btn btn-ghost btn-sm">Log In</a>
-      <a href="#/register" class="btn btn-primary btn-sm">Sign Up</a>
+      <a href="#/register" class="btn btn-primary btn-sm">Join Now</a>
     `;
     if (drawer) {
       drawer.innerHTML = `
         <a href="#/login" class="nav-link">Log In</a>
-        <a href="#/register" class="nav-link">Sign Up</a>
+        <a href="#/register" class="nav-link">Join Now</a>
       `;
     }
   }
@@ -275,8 +275,8 @@ function initPhoneInput(el) {
 
 function weakestDimPill(score) {
   if (!score) return '';
-  const dimLabels = { opening: 'Opening', infoCapture: 'Lead Capture', discovery: 'Discovery', objectionHandling: 'Objection Handling', appointment: 'Close' };
-  const keys = ['opening', 'infoCapture', 'discovery', 'objectionHandling', 'appointment'];
+  const dimLabels = { opening: 'Opening', rapport: 'Rapport', infoCapture: 'Lead Capture', objectionHandling: 'Objection Handling', appointment: 'Close' };
+  const keys = ['opening', 'rapport', 'infoCapture', 'objectionHandling', 'appointment'];
   let worst = null, worstVal = Infinity;
   for (const k of keys) {
     const v = score[k];
@@ -358,8 +358,8 @@ let _challengeToken   = null;
 let _challengePollTimer = null;
 
 const CHALLENGE_DIM_LABELS = {
-  opening: 'Opening', infoCapture: 'Lead Capture',
-  discovery: 'Discovery', objectionHandling: 'Objection Handling', appointment: 'Close',
+  opening: 'Opening', rapport: 'Rapport', infoCapture: 'Lead Capture',
+  objectionHandling: 'Objection Handling', appointment: 'Close',
 };
 
 function bindChallengeBlock() {
@@ -487,7 +487,7 @@ function renderChallengeResults(data) {
   }
 
   // Coaching callout
-  const dimKeys = ['opening', 'infoCapture', 'discovery', 'objectionHandling', 'appointment'];
+  const dimKeys = ['opening', 'rapport', 'infoCapture', 'objectionHandling', 'appointment'];
   const sortedByScore = dimKeys.slice().sort((a, b) => (score[a] ?? 0) - (score[b] ?? 0));
   const worstKey  = sortedByScore[0];
   const worstVal  = score[worstKey] ?? 0;
@@ -569,8 +569,8 @@ function renderLanding() {
             </h1>
             <p class="hero-sub reveal" data-delay="260">Your reps practice on AI buyers that push back, object, and hang up — powered by the KORA framework. Every call scored. Every rep improving.</p>
             <div class="hero-ctas reveal" data-delay="360">
-              <a href="#/register" class="btn-shimmer">Start Free Trial</a>
-              <a href="#/register?role=manager" class="btn-ghost-hero" id="gm-cta">I'm a Sales Manager →</a>
+              <a href="#/register" class="btn-shimmer">Join Now</a>
+              <a href="#/register?role=manager" class="btn-ghost-hero" id="gm-cta">Join Now →</a>
             </div>
             <p class="hero-note reveal" data-delay="420">No credit card required · Setup in 2 minutes</p>
           </div>
@@ -604,7 +604,7 @@ function renderLanding() {
       <!-- ── STATS ─────────────────────────────────────────────────────────── -->
       <section class="stats-bar-section">
         <div class="stats-bar-inner">
-          <div class="stat-pill reveal" data-delay="0"><span class="count-up stat-num" data-target="12">0</span><span class="stat-lbl">Buyer Personas</span></div>
+          <div class="stat-pill reveal" data-delay="0"><span class="stat-num">∞</span><span class="stat-lbl">Customers</span></div>
           <div class="stat-pill-divider"></div>
           <div class="stat-pill reveal" data-delay="80"><span class="count-up stat-num" data-target="35">0</span><span class="stat-lbl">Training Modules</span></div>
           <div class="stat-pill-divider"></div>
@@ -707,8 +707,8 @@ function renderLanding() {
               <div class="step-icon-wrap">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0112 0v2"/></svg>
               </div>
-              <h3>Pick a Persona</h3>
-              <p>Choose from 12 KORA-trained AI buyer types — each with unique behavioral anchors, internal emotional states, and authentic speech patterns.</p>
+              <h3>Take a Call</h3>
+              <p>Head to the Call Arena, pick a difficulty, and press Take a Call. A real buyer dials your phone — no scripts, no shortcuts.</p>
             </div>
             <div class="step-card glass reveal" data-delay="100">
               <div class="step-num-badge">02</div>
@@ -724,7 +724,7 @@ function renderLanding() {
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
               </div>
               <h3>Get Scored Instantly</h3>
-              <p>AI coaching grades your opening, info capture, discovery, objection handling, and appointment close — with specific feedback you can act on today.</p>
+              <p>AI coaching grades your opening, rapport, info capture, objection handling, and appointment close — with specific feedback you can act on today.</p>
             </div>
           </div>
         </div>
@@ -757,11 +757,11 @@ function renderLanding() {
                   <div class="kora-demo-tag">KORA Active</div>
                 </div>
                 <div class="kora-exchange">
-                  <div class="kora-line kora-rep">Rep: "What brought you to call today?"</div>
-                  <div class="kora-line kora-buyer">"Saw an ad. Just checking what you've got."</div>
+                  <div class="kora-line kora-rep">Rep: "Thanks for calling — what brought you in today?"</div>
+                  <div class="kora-line kora-buyer">"Yeah, I saw the Silverado online. What's the out-the-door price?"</div>
                   <div class="kora-exchange-gap"></div>
-                  <div class="kora-line kora-rep">Rep: "What are you currently driving?"</div>
-                  <div class="kora-line kora-buyer">"A Camry. It's fine."</div>
+                  <div class="kora-line kora-rep">Rep: "Great question — before I pull that number, what are you currently driving?"</div>
+                  <div class="kora-line kora-buyer">"Look, I just need the price. Can you give me that or not?"</div>
                 </div>
                 <div class="kora-anchor-label">Behavioral Anchor Exchange</div>
               </div>
@@ -773,8 +773,8 @@ function renderLanding() {
       <!-- ── FEATURES ───────────────────────────────────────────────────────── -->
       <section class="features-section">
         <div class="section-inner">
-          <div class="section-eyebrow reveal">Built for Dealerships</div>
-          <h2 class="section-headline reveal" data-delay="60">Everything a GM needs to build an elite phone team.</h2>
+          <div class="section-eyebrow reveal">Built for Dealers</div>
+          <h2 class="section-headline reveal" data-delay="60">Everything a dealer needs to build an elite phone team.</h2>
           <div class="features-grid">
             <div class="feature-card glass reveal" data-delay="0">
               <div class="feature-icon-wrap">
@@ -795,7 +795,7 @@ function renderLanding() {
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
               </div>
               <h3>Structured Curriculum</h3>
-              <p>7 progressive courses take reps from phone basics to elite-level closing, with real lessons before every challenge call.</p>
+              <p>From phone basics to elite closing — the FreshUp Framework, Objection Gauntlet, Call Arena, and guided courses cover every skill your team needs to win on the phone.</p>
             </div>
             <div class="feature-card glass reveal" data-delay="240">
               <div class="feature-icon-wrap">
@@ -808,50 +808,29 @@ function renderLanding() {
         </div>
       </section>
 
-      <!-- ── TESTIMONIALS ────────────────────────────────────────────────────── -->
-      <section class="testimonials-section">
-        <div class="section-inner">
-          <div class="section-eyebrow reveal">What GMs Say</div>
-          <h2 class="section-headline reveal" data-delay="60">The difference shows up on the board.</h2>
-          <div class="testimonials-grid">
-            <div class="testimonial-card reveal" data-delay="0">
-              <div class="testimonial-stars">★★★★★</div>
-              <div class="testimonial-quote">"Within three weeks our phone-up appointment rate jumped 22%. The reps who practiced daily were the ones making the difference."</div>
-              <div class="testimonial-author">
-                <div class="testimonial-avatar">S</div>
-                <div><div class="testimonial-name">Sarah Mitchell</div><div class="testimonial-role">GM · Westfield Toyota, Columbus OH</div></div>
-              </div>
+      <!-- ── LEAD CAPTURE ───────────────────────────────────────────────────── -->
+      <section class="lead-capture-section" id="contact-section">
+        <div class="lc-inner">
+          <div class="section-eyebrow">GET CUSTOM PRICING</div>
+          <h2 class="section-headline">Built for your dealership.</h2>
+          <p class="lc-sub">Tell us about your store and we'll reach out with a custom demo and pricing for your team size.</p>
+          <form class="lead-form" id="lead-form">
+            <div class="lf-row">
+              <input type="text"   name="contactName"    placeholder="Your name"           class="lf-input" required />
+              <input type="text"   name="dealershipName" placeholder="Dealership name"      class="lf-input" required />
             </div>
-            <div class="testimonial-card reveal" data-delay="120">
-              <div class="testimonial-stars">★★★★★</div>
-              <div class="testimonial-quote">"I've tried every training tool out there. Nothing creates pressure like FreshUp. The KORA AI actually pushes back — you can't script your way through it."</div>
-              <div class="testimonial-author">
-                <div class="testimonial-avatar">D</div>
-                <div><div class="testimonial-name">Darius King</div><div class="testimonial-role">Sales Director · Prestige Auto Group, Atlanta GA</div></div>
-              </div>
+            <div class="lf-row">
+              <input type="tel"    name="phone"          placeholder="(555) 123-4567"       class="lf-input" required />
+              <input type="email"  name="email"          placeholder="Email address"         class="lf-input" required />
             </div>
-            <div class="testimonial-card reveal" data-delay="240">
-              <div class="testimonial-stars">★★★★★</div>
-              <div class="testimonial-quote">"My BDC team uses it every morning. The leaderboard keeps them competing. I haven't had to remind anyone to practice in two months."</div>
-              <div class="testimonial-author">
-                <div class="testimonial-avatar">L</div>
-                <div><div class="testimonial-name">Lisa Navarro</div><div class="testimonial-role">BDC Manager · Summit Honda, Phoenix AZ</div></div>
-              </div>
+            <div class="lf-row">
+              <input type="text"   name="zip"            placeholder="Zip code"             class="lf-input" />
+              <input type="number" name="repCount"       placeholder="Estimated # of reps"  class="lf-input" min="1" />
             </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ── FINAL CTA ───────────────────────────────────────────────────────── -->
-      <section class="final-cta-section">
-        <div class="final-cta-glow"></div>
-        <div class="final-cta-inner reveal">
-          <h2 class="final-cta-headline">Ready to build an elite phone team?</h2>
-          <p class="final-cta-sub">Start training your reps on AI buyers that push back. Free trial, no credit card required.</p>
-          <div class="hero-ctas">
-            <a href="#/register" class="btn-shimmer">Start Free Trial</a>
-            <a href="#/login" class="btn-ghost-hero">Sign In</a>
-          </div>
+            <textarea name="message" placeholder="Anything else you'd like us to know?" class="lf-input lf-textarea"></textarea>
+            <div id="lead-form-msg" class="lead-form-msg" style="display:none"></div>
+            <button type="submit" class="btn-shimmer lf-submit">Request a Demo →</button>
+          </form>
         </div>
       </section>
 
@@ -866,6 +845,46 @@ function renderLanding() {
 
   bindChallengeBlock();
   initScrollReveal();
+
+  const leadForm = document.getElementById('lead-form');
+  if (leadForm) {
+    leadForm.addEventListener('submit', async e => {
+      e.preventDefault();
+      const btn = leadForm.querySelector('.lf-submit');
+      const msgEl = document.getElementById('lead-form-msg');
+      btn.disabled = true;
+      btn.textContent = 'Sending…';
+      msgEl.style.display = 'none';
+      const body = Object.fromEntries(new FormData(leadForm));
+      try {
+        const res = await fetch('/api/contact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        if (res.ok) {
+          leadForm.reset();
+          msgEl.textContent = "Thanks! We'll be in touch within 1 business day.";
+          msgEl.className = 'lead-form-msg lf-success';
+          msgEl.style.display = 'block';
+          btn.textContent = 'Sent ✓';
+        } else {
+          const d = await res.json().catch(() => ({}));
+          msgEl.textContent = d.error || 'Something went wrong. Please try again.';
+          msgEl.className = 'lead-form-msg lf-error';
+          msgEl.style.display = 'block';
+          btn.disabled = false;
+          btn.textContent = 'Request a Demo →';
+        }
+      } catch {
+        msgEl.textContent = 'Network error. Please try again.';
+        msgEl.className = 'lead-form-msg lf-error';
+        msgEl.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Request a Demo →';
+      }
+    });
+  }
 }
 
 // ── LOGIN ─────────────────────────────────────────────────────────────────────
@@ -889,7 +908,7 @@ function renderLogin() {
           <div id="auth-error" class="auth-error" style="display:none"></div>
           <button type="submit" class="btn btn-primary btn-full" id="login-btn">Sign In</button>
         </form>
-        <p class="auth-switch">Don't have an account? <a href="#/register" class="link">Sign Up</a></p>
+        <p class="auth-switch">First time here? <a href="#/register" class="link">Join Now</a></p>
       </div>
     </div>
   `;
@@ -940,8 +959,8 @@ function renderRegister() {
         <h2>Create account</h2>
 
         <div class="role-toggle" id="role-toggle">
-          <button type="button" class="role-btn${defaultRole === 'rep' ? ' active' : ''}" data-role="rep">Sales Rep</button>
-          <button type="button" class="role-btn${defaultRole === 'manager' ? ' active' : ''}" data-role="manager">Sales Manager / GM</button>
+          <button type="button" class="role-btn${defaultRole === 'rep' ? ' active' : ''}" data-role="rep">Rep</button>
+          <button type="button" class="role-btn${defaultRole === 'manager' ? ' active' : ''}" data-role="manager">Manager</button>
         </div>
 
         <form id="register-form">
@@ -960,14 +979,19 @@ function renderRegister() {
 
           <div id="manager-fields" style="display:${defaultRole === 'manager' ? 'block' : 'none'}">
             <div class="form-group">
-              <label for="reg-team">Team / Dealership Name</label>
-              <input type="text" id="reg-team" placeholder="Metro Ford Sales Team" autocomplete="organization" />
+              <label for="reg-team">Dealership Name</label>
+              <input type="text" id="reg-team" placeholder="Metro Ford" autocomplete="organization" />
+            </div>
+            <div class="form-group">
+              <label for="reg-access-code">Manager Access Code</label>
+              <input type="text" id="reg-access-code" placeholder="Enter your access code" autocomplete="off" style="text-transform:uppercase" />
+              <p class="input-hint">Contact FreshUp to get your dealership access code.</p>
             </div>
           </div>
 
           <div id="rep-fields" style="display:${defaultRole === 'rep' ? 'block' : 'none'}">
             <div class="form-group">
-              <label for="reg-invite">Team Invite Code <span class="label-optional">(optional)</span></label>
+              <label for="reg-invite">Team Invite Code</label>
               <input type="text" id="reg-invite" placeholder="Enter code from your manager" autocomplete="off" style="text-transform:uppercase" />
               <p class="input-hint">Ask your manager for your team's invite code to join their dashboard.</p>
             </div>
@@ -1008,9 +1032,9 @@ function renderRegister() {
     };
     if (currentRole === 'manager') {
       body.team_name = document.getElementById('reg-team').value.trim();
+      body.access_code = document.getElementById('reg-access-code').value.trim();
     } else {
-      const code = document.getElementById('reg-invite').value.trim();
-      if (code) body.invite_code = code;
+      body.invite_code = document.getElementById('reg-invite').value.trim();
     }
 
     try {
@@ -1115,8 +1139,8 @@ async function renderDashboard() {
   const apptRate = completedCalls.length > 0 ? Math.round(apptCalls.length / completedCalls.length * 100) : null;
 
   // Dimension averages (last 20 scored calls)
-  const dimKeys = ['opening', 'infoCapture', 'discovery', 'objectionHandling', 'appointment'];
-  const dimLabels = { opening: 'Opening', infoCapture: 'Lead Capture', discovery: 'Discovery', objectionHandling: 'Objection Handling', appointment: 'Close' };
+  const dimKeys = ['opening', 'rapport', 'infoCapture', 'objectionHandling', 'appointment'];
+  const dimLabels = { opening: 'Opening', rapport: 'Rapport', infoCapture: 'Lead Capture', objectionHandling: 'Objection Handling', appointment: 'Close' };
   const recent20 = scored.slice(0, 20);
   const dimAvgs = {};
   for (const k of dimKeys) {
@@ -1215,9 +1239,9 @@ async function renderDashboard() {
     ` : ''}
 
     <div class="cert-strip">
-      ${certBadge('phone-open', 'PHONUP Ready', certs.foundations)}
-      ${certBadge('phone-price', 'PHONUP Expert', certs.expert)}
-      ${certBadge('phone-close', 'PHONUP Elite', certs.elite)}
+      ${certBadge('phone-open', 'FreshUp Ready', certs.foundations)}
+      ${certBadge('phone-price', 'FreshUp Expert', certs.expert)}
+      ${certBadge('phone-close', 'FreshUp Elite', certs.elite)}
     </div>
 
     ${allCertified ? `
@@ -1362,8 +1386,8 @@ function arenaGaugeSvg(id = '') {
 function arenaDimensions(prefix = '') {
   return [
     ['Opening', 'opening'],
+    ['Rapport', 'rapport'],
     ['Info Capture', 'infoCapture'],
-    ['Discovery', 'discovery'],
     ['Objection Hdl', 'objectionHandling'],
     ['Appointment', 'appointment'],
   ].map(([label, key]) => `
@@ -1799,7 +1823,7 @@ function updateGauge(score) {
       gaugeDisplayedScore = overall;
     }
   }
-  ['opening', 'infoCapture', 'discovery', 'objectionHandling', 'appointment'].forEach(dim => {
+  ['opening', 'rapport', 'infoCapture', 'objectionHandling', 'appointment'].forEach(dim => {
     const val = score[dim];
     if (val == null) return;
     // Each dimension is scored 0-20; scale to percentage for bar (0-20 → 0-100%)
@@ -2299,7 +2323,7 @@ async function renderTeam() {
   const monthlyCallsEst = typeof callsThisWeek === 'number' ? callsThisWeek * 4 : 0;
   const monthlyApptsEst = Math.round((analytics?.appointmentRate || 0) * monthlyCallsEst);
 
-  const dimLabels = { opening: 'Opening', infoCapture: 'Lead Capture', discovery: 'Discovery', objectionHandling: 'Objection Handling', appointment: 'Close' };
+  const dimLabels = { opening: 'Opening', rapport: 'Rapport', infoCapture: 'Lead Capture', objectionHandling: 'Objection Handling', appointment: 'Close' };
   let weakestDimKey = null, weakestDimVal = Infinity;
   if (dims) {
     for (const [k, v] of Object.entries(dims)) {
@@ -2431,7 +2455,7 @@ function repCard(rep, now, WEEK) {
   const apptPct = Math.round((rep.appointmentRate || 0) * 100);
   const trendIcon = rep.trend === 'up' ? '↑' : rep.trend === 'down' ? '↓' : '→';
   const trendClass = rep.trend === 'up' ? 'rc-trend-up' : rep.trend === 'down' ? 'rc-trend-down' : 'rc-trend-flat';
-  const dimLabels = { opening: 'Opening', infoCapture: 'Lead Capture', discovery: 'Discovery', objectionHandling: 'Objection Handling', appointment: 'Close' };
+  const dimLabels = { opening: 'Opening', rapport: 'Rapport', infoCapture: 'Lead Capture', objectionHandling: 'Objection Handling', appointment: 'Close' };
   const weakestLabel = rep.weakestDim ? dimLabels[rep.weakestDim.key] : null;
 
   return `
@@ -2502,9 +2526,9 @@ async function renderRepDetail(userId) {
     </div>
 
     <div class="cert-strip">
-      ${certBadge('phone-open', 'PHONUP Ready', certs.foundations)}
-      ${certBadge('phone-price', 'PHONUP Expert', certs.expert)}
-      ${certBadge('phone-close', 'PHONUP Elite', certs.elite)}
+      ${certBadge('phone-open', 'FreshUp Ready', certs.foundations)}
+      ${certBadge('phone-price', 'FreshUp Expert', certs.expert)}
+      ${certBadge('phone-close', 'FreshUp Elite', certs.elite)}
     </div>
 
     <div class="section-header" style="margin-top:24px"><h2>Call History</h2></div>
@@ -2616,9 +2640,12 @@ async function renderSettings() {
       </div>
 
       <div class="settings-section card">
-        <h3 class="settings-section-title">Team Invite Code</h3>
-        <p class="settings-section-desc">Share this with reps so they can join your team when registering.</p>
-        <button class="btn btn-secondary" id="copy-invite-btn">Copy Invite Link</button>
+        <h3 class="settings-section-title">Team Code for Reps</h3>
+        <p class="settings-section-desc">Share this code with your reps — they enter it when signing up to join your team.</p>
+        <div class="team-code-display" id="team-code-display">
+          <span class="team-code-value" id="team-code-value">Loading…</span>
+          <button class="btn btn-secondary btn-sm" id="copy-invite-btn">Copy Code</button>
+        </div>
       </div>
       ` : ''}
 
@@ -2697,13 +2724,28 @@ async function renderSettings() {
     }
   });
 
-  // Copy invite
+  // Load and display team code for managers
+  if (user && user.role === 'manager') {
+    api('/api/auth/team-code').then(data => {
+      const el = document.getElementById('team-code-value');
+      if (el) el.textContent = data.teamCode || '—';
+    }).catch(() => {
+      const el = document.getElementById('team-code-value');
+      if (el) el.textContent = 'Error loading code';
+    });
+  }
+
   document.getElementById('copy-invite-btn')?.addEventListener('click', async () => {
+    const codeEl = document.getElementById('team-code-value');
+    const code = codeEl ? codeEl.textContent : '';
+    if (!code || code === '—' || code.startsWith('Error')) {
+      showToast('Code not available.', 'error');
+      return;
+    }
     try {
-      const inv = await api('/api/team/invite');
-      await navigator.clipboard.writeText(inv.invite_url);
-      showToast('Invite link copied!', 'success');
-    } catch { showToast('Could not copy link.', 'error'); }
+      await navigator.clipboard.writeText(code);
+      showToast('Team code copied!', 'success');
+    } catch { showToast('Could not copy code.', 'error'); }
   });
 }
 
@@ -2721,7 +2763,7 @@ function renderLearn() {
       <a href="#/learn/framework" class="learn-hub-card" style="--hub-color:#3b82f6">
         <div class="lhc-icon">🏗️</div>
         <div class="lhc-body">
-          <h3>PHONUP Framework</h3>
+          <h3>FreshUp Framework</h3>
           <p>The 7-step proprietary system behind every great phone up. Learn the method, master the methodology.</p>
         </div>
         <span class="lhc-arrow">→</span>
@@ -2754,65 +2796,65 @@ function renderLearn() {
   `;
 }
 
-// ── PHONUP FRAMEWORK ──────────────────────────────────────────────────────────
+// ── FRESHUP FRAMEWORK ─────────────────────────────────────────────────────────
 
 function renderFramework() {
   const steps = [
     {
-      letter: 'P', color: '#3b82f6',
-      title: 'Pick Up with Confidence',
+      letter: 'F', color: '#3b82f6',
+      title: 'First Things First',
       desc: 'The first 5 words set the tone for the entire call. A warm, clear greeting with your name and dealership signals professionalism and makes the caller feel they reached the right person.',
       doThis: 'Smile before you answer. Say your name + dealership clearly. End with an open question.',
       notThis: 'Answer with "Yeah?" or mumble the dealership name. Never answer distracted.',
       example: '"Good afternoon, this is Marcus at Riverside Toyota — thanks for calling in, how can I help you today?"',
     },
     {
-      letter: 'H', color: '#8b5cf6',
-      title: 'Hold Their Attention',
-      desc: 'Get their name within 20 seconds. Use reciprocity — give your name first, and they will naturally give theirs. Once you have their name, use it to deepen connection throughout the call.',
-      doThis: 'Give your name, then ask theirs. Use their name 2-3 times naturally in conversation.',
-      notThis: 'Dive into their question without introducing yourself. Overuse their name until it feels robotic.',
-      example: '"I\'m Marcus, by the way — and who do I have the pleasure of speaking with today?"',
+      letter: 'R', color: '#8b5cf6',
+      title: 'Reassure and Validate',
+      desc: 'After greeting, let the customer share why they\'re calling. Then validate and compliment their reason — make them feel genuinely heard before asking anything. This builds trust and opens the conversation.',
+      doThis: 'Let them talk first. Compliment their interest or reason. Use their words back to them.',
+      notThis: 'Immediately pivot to your script. Jump to discovery questions before they feel heard.',
+      example: '"That\'s a great choice — the Silverado is one of our most popular trucks right now. I\'m glad you called."',
     },
     {
-      letter: 'O', color: '#06b6d4',
-      title: 'Open the Discovery',
-      desc: 'Before answering their question, ask yours. Use the four question types — situational, problem, implication, vision — to understand what they really need and why they really need it.',
+      letter: 'E', color: '#06b6d4',
+      title: 'Evaluate Needs and Wants',
+      desc: 'Before answering their question, ask yours. Understand what they really need and why they need it. Are they replacing a vehicle? Adding to a fleet? What matters most — features, price, timeline?',
       doThis: 'Ask needs questions before answering price/availability questions. Use the Rule of 3.',
-      notThis: 'Answer their first question without asking anything. Skip discovery because the vehicle seems obvious.',
-      example: '"Before I look that up — are you replacing a current vehicle, or adding to the family fleet?"',
+      notThis: 'Answer their first question without asking anything. Assume you know what they want.',
+      example: '"Before I look that up — are you replacing a current vehicle, or is this an addition? And what matters most to you in the switch?"',
     },
     {
-      letter: 'N', color: '#f59e0b',
-      title: 'Number Exchange',
-      desc: 'Secure their callback phone number before giving any substantial pricing or availability information. Frame it as follow-up, not data collection. This is the most important capture of the call.',
-      doThis: 'Ask for the number after rapport but before pricing. Frame as "in case we get disconnected."',
-      notThis: 'Give price before getting their number. Ask for number as the first thing — it kills trust.',
-      example: '"I want to pull up the exact availability on that — just in case we get cut off, what\'s the best number to reach you at?"',
+      letter: 'S', color: '#f59e0b',
+      title: 'Send a Video',
+      desc: 'Offer to shoot a personalized walk-around video of the vehicle and text it to them. This separates you from every other dealer, creates a reason to exchange contact info naturally, and keeps the conversation alive.',
+      doThis: 'Offer the video early and enthusiastically. Frame it as exclusive, personal, and easy.',
+      notThis: 'Skip the offer because you think they just want price. Every customer appreciates effort.',
+      example: '"I\'d love to shoot you a quick walk-around video of it — would that be helpful? I can text it right to your phone."',
     },
     {
-      letter: 'U', color: '#ef4444',
-      title: 'Uncover Objections Early',
-      desc: 'Surface objections before they derail the close. Use the Acknowledge-Explore-Respond framework: hear the objection fully, ask what\'s really behind it, and address the actual concern.',
-      doThis: 'Welcome objections as signals of interest. Use the dig-down question to find the real concern.',
-      notThis: 'Argue with objections. Use "I understand, but..." which signals you don\'t actually understand.',
-      example: '"Totally fair — can I ask, is it more about the timing, the vehicle itself, or something around the numbers?"',
+      letter: 'H', color: '#ef4444',
+      title: 'Harvest Contact Info',
+      desc: 'Capture their name, phone, and email at the right moment — when it feels natural, not forced. This might be early, middle, or late in the call. The video offer is a great natural opening. Grade is holistic — order doesn\'t matter.',
+      doThis: 'Collect name (with spelling), phone, and email. Let the flow of the call guide when.',
+      notThis: 'Demand info at the start before any rapport is built. Rush through info capture.',
+      example: '"Let me grab your info so I can send that video over — what\'s the best number, and what name should I put on it?"',
     },
     {
-      letter: 'P', color: '#10b981',
-      title: 'Push for the Appointment',
-      desc: 'The only goal of the call is the appointment. Use the tie-down to confirm interest, then the assumptive close to make the appointment feel like the obvious next step.',
-      doThis: 'Tie down interest first. Use assumptive close (Tuesday or Saturday?) not yes/no question.',
+      letter: 'U', color: '#10b981',
+      title: 'Unlock the Appointment',
+      desc: 'The only goal of the call is the appointment. Use an assumptive close — make the appointment feel like the obvious next step. Offer a specific time choice, confirm the type, and send a reminder.',
+      doThis: 'Use assumptive close (Tuesday or Saturday?). Confirm appointment type. Offer reminder text + email.',
       notThis: '"Would you like to come in?" — too easy to say no. Never ask for a yes/no appointment.',
-      example: '"Based on what you\'ve told me, it sounds like the Camry could be a strong fit — I\'ve got tomorrow afternoon or Saturday morning. Which works better for you?"',
+      example: '"Based on what you\'ve shared, I think the F-150 XLT is worth a look in person — I\'ve got tomorrow at 2 or Saturday at 10. Which works better?"',
     },
     {
-      letter: '!', color: '#1e293b',
-      title: 'UP — Confirm & Follow Through',
-      desc: 'A verbal yes is worth nothing without a confirmed appointment. Lock it in with the five-point confirmation: day/time, their name, what you\'ll prepare, your direct number, and your name.',
-      doThis: 'Repeat day + time. Use their name. Create anticipation. Give your direct number.',
-      notThis: 'End the call without a confirmed time. Assume they\'ll show up without a confirmation.',
-      example: '"Perfect — so we\'ve got you for Saturday at 11, [Name]. I\'ll have a couple of options pulled that match exactly what you described. Just ask for Marcus when you arrive."',
+      letter: 'P', color: '#f97316',
+      title: 'Punch Through Objections',
+      desc: 'This step isn\'t just at the end — it runs through the entire call. Every objection is a signal of interest. Use the Acknowledge-Explore-Respond method: hear it fully, find the real concern, and bridge to the next step.',
+      doThis: 'Welcome objections. Use the dig-down question to find the root concern. Stay calm and confident.',
+      notThis: 'Argue or fold at the first pushback. Use "I understand, but..." which signals defensiveness.',
+      example: '"Totally fair — can I ask, is it more about the timing, the numbers, or something about the vehicle itself?"',
     },
   ];
 
@@ -2820,7 +2862,7 @@ function renderFramework() {
     <a href="#/learn" class="back-link">← Learn</a>
     <div class="page-header">
       <div>
-        <h1>The PHONUP Framework™</h1>
+        <h1>The FreshUp Framework™</h1>
         <p class="subtitle">FreshUp's proprietary 7-step methodology for mastering the inbound dealership phone call</p>
       </div>
     </div>
