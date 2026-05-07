@@ -3317,25 +3317,14 @@ body[data-page="landing"] {
 
 /* ── V8 POLISH ───────────────────────────────────────────────────────────────── */
 
-/* Landing page dark nav override */
+/* Landing page nav — white, uses natural app styling */
 body[data-page="landing"] #nav {
-  background: rgba(5, 10, 20, 0.85) !important;
-  border-bottom: 1px solid rgba(255,255,255,0.07) !important;
+  background: #ffffff !important;
+  border-bottom: 1px solid #e2e8f0 !important;
 }
-body[data-page="landing"] .nav-brand { color: #f1f5f9 !important; }
-body[data-page="landing"] .nav-brand span { color: #60a5fa !important; }
-body[data-page="landing"] #nav-auth .btn-ghost {
-  color: rgba(255,255,255,0.7) !important;
-  border-color: rgba(255,255,255,0.15) !important;
-}
-body[data-page="landing"] #nav-auth .btn-ghost:hover {
-  background: rgba(255,255,255,0.06) !important;
-}
-body[data-page="landing"] #nav-links a {
-  color: rgba(255,255,255,0.7) !important;
-}
-body[data-page="landing"] #nav-links a:hover {
-  color: #f1f5f9 !important;
+body[data-page="landing"] .nav-logo {
+  height: 64px;
+  width: auto;
 }
 
 /* AI typing indicator */
