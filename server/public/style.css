@@ -4611,3 +4611,56 @@ body[data-page="landing"] .nav-logo {
   .mgr-call-wrap { grid-template-columns: 1fr; }
   .mgr-call-right .live-transcript-card { height: 500px; }
 }
+
+/* ── Hero Live Notifications ─────────────────────────────────────────────── */
+.hero-notif-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.hero-notif {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.10), 0 1px 4px rgba(0,0,0,0.06);
+  border-radius: 14px;
+  padding: 10px 14px;
+  max-width: 260px;
+  backdrop-filter: blur(8px);
+  animation: heroNotifPop 3.5s ease forwards;
+}
+
+@keyframes heroNotifPop {
+  0%   { opacity: 0; transform: translateY(10px) scale(0.92); }
+  12%  { opacity: 1; transform: translateY(0)   scale(1); }
+  72%  { opacity: 1; transform: translateY(0)   scale(1); }
+  100% { opacity: 0; transform: translateY(-6px) scale(0.96); }
+}
+
+.hn-icon { font-size: 20px; flex-shrink: 0; }
+.hn-body { min-width: 0; }
+.hn-name { font-size: 12px; font-weight: 700; color: #0f172a; letter-spacing: 0.01em; }
+.hn-text { font-size: 13px; color: #475569; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+@media (max-width: 640px) { .hero-notif { display: none; } }
+
+/* ── Lead capture section headline override ───────────────────────────────── */
+.lead-capture-section .section-headline { color: #0f172a; }
+.lead-capture-section .section-eyebrow  { color: var(--accent); }
+
+/* ── Forgot/Reset password ────────────────────────────────────────────────── */
+.auth-info-box {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  border-radius: 10px;
+  padding: 14px 16px;
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.6;
+}

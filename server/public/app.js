@@ -59,7 +59,15 @@ async function api(path, opts = {}) {
 const app = document.getElementById('app');
 function getRoute() {
   const hash = location.hash || '#/';
-  return hash.slice(1) || '/';
+  const full = hash.slice(1) || '/';
+  return full.split('?')[0];
+}
+
+function getRouteQuery() {
+  const hash = location.hash || '#/';
+  const full = hash.slice(1) || '/';
+  const i = full.indexOf('?');
+  return i >= 0 ? new URLSearchParams(full.slice(i + 1)) : new URLSearchParams();
 }
 
 function navigate(path) {
@@ -119,6 +127,8 @@ function render() {
 
   if (path === '/login') return renderLogin();
   if (path === '/register') return renderRegister();
+  if (path === '/forgot-password') return renderForgotPassword();
+  if (path === '/reset-password') return renderResetPassword(getRouteQuery().get('token'));
   if (path === '/start') return renderStart();
   if (path === '/history') return renderHistory();
   if (path === '/personas') return renderPersonas();
@@ -560,6 +570,7 @@ function renderLanding() {
       <!-- ── HERO ─────────────────────────────────────────────────────────── -->
       <section class="hero-section-v3">
         <div class="hero-bg-minimal"></div>
+        <div class="hero-notif-layer" id="hero-notif-layer"></div>
         <div class="hero-content-v3">
           <h1 class="hero-h1 reveal" data-delay="0">
             Train like it's real.
@@ -821,6 +832,7 @@ function renderLanding() {
 
   bindChallengeBlock();
   initScrollReveal();
+  startHeroNotifications();
 
   const leadForm = document.getElementById('lead-form');
   if (leadForm) {
@@ -863,6 +875,212 @@ function renderLanding() {
   }
 }
 
+// ── HERO LIVE NOTIFICATIONS ───────────────────────────────────────────────────
+
+const HERO_NOTIFS = [
+  { name: 'Marcus W.',  text: 'Taking a phone up right now',         icon: '📞' },
+  { name: 'Daniel J.',  text: 'Scored 96 on a Hard caller!',          icon: '🏆' },
+  { name: 'Ashley T.',  text: 'Appointment set — Ford F-150',         icon: '✅' },
+  { name: 'Tyler K.',   text: '5-call streak on the Gauntlet',        icon: '🔥' },
+  { name: 'Team Score', text: 'Up 22% this week',                     icon: '📈' },
+  { name: 'Sarah M.',   text: 'Completed Objection Gauntlet',         icon: '⚡' },
+  { name: 'James O.',   text: 'First appointment — Silverado HD',     icon: '🎯' },
+  { name: 'Nina P.',    text: 'Personal best — 88/100',               icon: '⭐' },
+  { name: 'Emma R.',    text: 'Handling a tough trade-in caller',      icon: '📞' },
+  { name: 'Carlos M.', text: 'Just closed a price objection call',    icon: '✅' },
+  { name: 'Brian S.',   text: 'Scored 74 — best run this month',      icon: '📊' },
+  { name: 'Rachel D.',  text: 'Appointment set — Toyota Camry',       icon: '✅' },
+];
+
+// Zones: [top%, left%] pairs — kept to the sides so they don't block content
+const NOTIF_ZONES = [
+  [8,  3], [12, 4], [18, 2], [25, 5],   // left column, various heights
+  [8,  72], [14, 74], [20, 71], [28, 73], // right column
+  [70, 3], [76, 5], [82, 2],              // bottom-left
+  [70, 68], [78, 70], [84, 72],           // bottom-right
+];
+
+let _heroNotifTimer = null;
+let _heroNotifIdx = 0;
+let _heroZoneIdx = 0;
+
+function startHeroNotifications() {
+  const layer = document.getElementById('hero-notif-layer');
+  if (!layer) return;
+
+  // Shuffle zone order
+  const zones = [...NOTIF_ZONES].sort(() => Math.random() - 0.5);
+  const msgs  = [...HERO_NOTIFS].sort(() => Math.random() - 0.5);
+
+  function spawnNotif() {
+    const layer2 = document.getElementById('hero-notif-layer');
+    if (!layer2) return; // navigated away
+
+    const notif = msgs[_heroNotifIdx % msgs.length];
+    const zone  = zones[_heroZoneIdx % zones.length];
+    _heroNotifIdx++;
+    _heroZoneIdx++;
+
+    const el = document.createElement('div');
+    el.className = 'hero-notif';
+    el.style.top  = `${zone[0]}%`;
+    el.style.left = `${zone[1]}%`;
+    el.innerHTML =
+      `<span class="hn-icon">${notif.icon}</span>` +
+      `<div class="hn-body"><div class="hn-name">${escHtml(notif.name)}</div>` +
+      `<div class="hn-text">${escHtml(notif.text)}</div></div>`;
+
+    layer2.appendChild(el);
+    // Remove after animation completes (3.5s)
+    setTimeout(() => el.remove(), 3500);
+
+    _heroNotifTimer = setTimeout(spawnNotif, 2800);
+  }
+
+  // Stagger the first appearance slightly
+  _heroNotifTimer = setTimeout(spawnNotif, 800);
+}
+
+// ── FORGOT PASSWORD ───────────────────────────────────────────────────────────
+
+function renderForgotPassword() {
+  app.innerHTML = `
+    <div class="auth-wrap">
+      <div class="auth-card">
+        <div class="auth-brand">FreshUp<span> AI</span></div>
+        <h2>Reset your password</h2>
+        <p class="subtitle">Enter your email and we'll generate a reset link.</p>
+        <form id="forgot-form">
+          <div class="form-group">
+            <label for="forgot-email">Email</label>
+            <input type="email" id="forgot-email" placeholder="you@dealership.com" required autocomplete="email" />
+          </div>
+          <div id="forgot-msg" style="display:none"></div>
+          <button type="submit" class="btn btn-primary btn-full" id="forgot-btn">Send Reset Link</button>
+        </form>
+        <p class="auth-switch"><a href="#/login" class="link">← Back to sign in</a></p>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('forgot-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn   = document.getElementById('forgot-btn');
+    const msgEl = document.getElementById('forgot-msg');
+    btn.disabled = true;
+    btn.textContent = 'Generating link…';
+    msgEl.style.display = 'none';
+
+    try {
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: document.getElementById('forgot-email').value.trim() }),
+      });
+      const data = await res.json();
+
+      if (data.resetUrl) {
+        // Email service not configured — show link directly
+        msgEl.innerHTML =
+          `<div class="auth-info-box">
+            <strong>Reset link generated.</strong><br>
+            Copy and open this link to set your new password:<br>
+            <a href="${escHtml(data.resetUrl)}" class="link" style="word-break:break-all;font-size:13px">${escHtml(data.resetUrl)}</a>
+            <div style="margin-top:8px;font-size:12px;color:var(--text-muted)">Link expires in 1 hour.</div>
+          </div>`;
+      } else {
+        msgEl.innerHTML = `<div class="auth-info-box">If that email is registered, a reset link has been sent.</div>`;
+      }
+      msgEl.style.display = 'block';
+      btn.style.display = 'none';
+    } catch {
+      msgEl.textContent = 'Network error. Please try again.';
+      msgEl.className = 'auth-error';
+      msgEl.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Send Reset Link';
+    }
+  });
+}
+
+// ── RESET PASSWORD ────────────────────────────────────────────────────────────
+
+function renderResetPassword(token) {
+  if (!token) {
+    app.innerHTML = `<div class="auth-wrap"><div class="auth-card">
+      <div class="auth-brand">FreshUp<span> AI</span></div>
+      <h2>Invalid link</h2>
+      <p class="subtitle">This reset link is missing or malformed.</p>
+      <p class="auth-switch"><a href="#/forgot-password" class="link">Request a new one →</a></p>
+    </div></div>`;
+    return;
+  }
+
+  app.innerHTML = `
+    <div class="auth-wrap">
+      <div class="auth-card">
+        <div class="auth-brand">FreshUp<span> AI</span></div>
+        <h2>Set new password</h2>
+        <p class="subtitle">Choose a strong password for your account.</p>
+        <form id="reset-form">
+          <div class="form-group">
+            <label for="reset-password">New Password</label>
+            <input type="password" id="reset-password" placeholder="At least 6 characters" required autocomplete="new-password" minlength="6" />
+          </div>
+          <div class="form-group">
+            <label for="reset-confirm">Confirm Password</label>
+            <input type="password" id="reset-confirm" placeholder="Repeat password" required autocomplete="new-password" />
+          </div>
+          <div id="reset-error" class="auth-error" style="display:none"></div>
+          <button type="submit" class="btn btn-primary btn-full" id="reset-btn">Update Password</button>
+        </form>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('reset-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn    = document.getElementById('reset-btn');
+    const errEl  = document.getElementById('reset-error');
+    const pw     = document.getElementById('reset-password').value;
+    const confirm = document.getElementById('reset-confirm').value;
+
+    errEl.style.display = 'none';
+    if (pw !== confirm) {
+      errEl.textContent = 'Passwords do not match.';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Updating…';
+
+    try {
+      const res = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, password: pw }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || res.statusText);
+
+      // Success — redirect to login with a message
+      app.innerHTML = `
+        <div class="auth-wrap"><div class="auth-card">
+          <div class="auth-brand">FreshUp<span> AI</span></div>
+          <h2>Password updated!</h2>
+          <p class="subtitle">You can now sign in with your new password.</p>
+          <a href="#/login" class="btn btn-primary btn-full">Sign In →</a>
+        </div></div>`;
+    } catch (err) {
+      errEl.textContent = err.message;
+      errEl.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Update Password';
+    }
+  });
+}
+
 // ── LOGIN ─────────────────────────────────────────────────────────────────────
 
 function renderLogin() {
@@ -878,7 +1096,10 @@ function renderLogin() {
             <input type="email" id="login-email" placeholder="you@dealership.com" required autocomplete="email" />
           </div>
           <div class="form-group">
-            <label for="login-password">Password</label>
+            <div style="display:flex;justify-content:space-between;align-items:baseline">
+              <label for="login-password">Password</label>
+              <a href="#/forgot-password" class="link" style="font-size:13px">Forgot password?</a>
+            </div>
             <input type="password" id="login-password" placeholder="••••••••" required autocomplete="current-password" />
           </div>
           <div id="auth-error" class="auth-error" style="display:none"></div>

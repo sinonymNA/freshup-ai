@@ -5,7 +5,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const router = express.Router();
 
-const { createUser, updateUser, getUserByEmail, getUserById, createTeam, getTeamByCode, getTeamByManagerId, updateCall } = require('../store');
+const { createUser, updateUser, getUserByEmail, getUserById, createTeam, getTeamByCode, getTeamByManagerId, updateCall, createResetToken, validateResetToken, consumeResetToken } = require('../store');
 const { requireAuth, JWT_SECRET } = require('../middleware/requireAuth');
 
 function makeToken(user) {
@@ -200,6 +200,56 @@ router.post('/claim-challenge', async (req, res) => {
   } catch (err) {
     console.error('[auth/claim-challenge] error:', err);
     res.status(500).json({ error: 'Account creation failed' });
+  }
+});
+
+// POST /api/auth/forgot-password
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) { res.status(400).json({ error: 'Email is required' }); return; }
+
+    const user = getUserByEmail(email.toLowerCase().trim());
+    if (!user) {
+      // Don't reveal whether email exists
+      res.json({ ok: true });
+      return;
+    }
+
+    const token = createResetToken(user.id);
+    const base = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+    const resetUrl = `${base}/#/reset-password?token=${token}`;
+
+    // TODO: send resetUrl via email when email service is configured.
+    // For now, return it in the response so the UI can display it.
+    res.json({ ok: true, resetUrl });
+  } catch (err) {
+    console.error('[auth/forgot-password]', err);
+    res.status(500).json({ error: 'Failed to generate reset link' });
+  }
+});
+
+// POST /api/auth/reset-password
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { token, password } = req.body;
+    if (!token || !password) { res.status(400).json({ error: 'Token and new password are required' }); return; }
+    if (password.length < 6) { res.status(400).json({ error: 'Password must be at least 6 characters' }); return; }
+
+    const record = validateResetToken(token);
+    if (!record) {
+      res.status(400).json({ error: 'This reset link is invalid or has expired. Please request a new one.' });
+      return;
+    }
+
+    const password_hash = await bcrypt.hash(password, 12);
+    updateUser(record.userId, { password_hash });
+    consumeResetToken(token);
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[auth/reset-password]', err);
+    res.status(500).json({ error: 'Password reset failed' });
   }
 });
 

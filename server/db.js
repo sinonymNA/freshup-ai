@@ -88,6 +88,17 @@ db.exec(`
   );
 `);
 
+// Password reset tokens
+db.exec(`
+  CREATE TABLE IF NOT EXISTS password_resets (
+    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    token     TEXT UNIQUE NOT NULL,
+    userId    INTEGER NOT NULL,
+    expiresAt INTEGER NOT NULL,
+    usedAt    INTEGER
+  );
+`);
+
 // Leads table (contact/demo request form submissions)
 db.exec(`
   CREATE TABLE IF NOT EXISTS leads (
@@ -579,6 +590,29 @@ function getLeaderboard(limit = 20, teamId = null) {
   return db.prepare(sql).all(...(teamId ? [teamId, limit] : [limit]));
 }
 
+// ── Password Resets ───────────────────────────────────────────────────────────
+
+const crypto = require('crypto');
+
+function createResetToken(userId) {
+  const token = crypto.randomBytes(32).toString('hex');
+  const expiresAt = Date.now() + 60 * 60 * 1000; // 1 hour
+  db.prepare('DELETE FROM password_resets WHERE userId = ?').run(userId);
+  db.prepare('INSERT INTO password_resets (token, userId, expiresAt) VALUES (?, ?, ?)').run(token, userId, expiresAt);
+  return token;
+}
+
+function validateResetToken(token) {
+  const row = db.prepare('SELECT * FROM password_resets WHERE token = ? AND usedAt IS NULL').get(token);
+  if (!row) return null;
+  if (Date.now() > row.expiresAt) return null;
+  return row;
+}
+
+function consumeResetToken(token) {
+  db.prepare('UPDATE password_resets SET usedAt = ? WHERE token = ?').run(Date.now(), token);
+}
+
 module.exports = {
   createUser, updateUser, getUserById, getUserByEmail,
   createTeam, getTeamByCode, getTeamByManagerId, getTeamById,
@@ -588,4 +622,5 @@ module.exports = {
   saveGauntletScore, getLeaderboard,
   getAnalytics,
   createLead, getLeads,
+  createResetToken, validateResetToken, consumeResetToken,
 };
