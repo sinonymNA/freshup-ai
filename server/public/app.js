@@ -3085,6 +3085,7 @@ function renderGauntletChallenge() {
   const c = gauntletState.current;
   if (!c) return renderGauntletIdle();
   const diffColors = { easy: '#10b981', medium: '#f59e0b', hard: '#ef4444' };
+  const streak = parseInt(sessionStorage.getItem('gauntlet_streak') || '0', 10);
 
   app.innerHTML = `
     <a href="#/learn" class="back-link">← Learn</a>
@@ -3093,6 +3094,7 @@ function renderGauntletChallenge() {
         <h1>Objection Gauntlet</h1>
         <p class="subtitle"><span class="badge" style="background:${diffColors[c.difficulty] || '#888'};color:#fff">${c.difficulty}</span> &nbsp;${c.category}</p>
       </div>
+      ${streak > 0 ? `<span class="gauntlet-streak-badge">🔥 ${streak} in a row</span>` : ''}
     </div>
     <div class="gauntlet-challenge-wrap">
       <div class="challenge-context card">${escHtml(c.context)}</div>
@@ -3115,7 +3117,7 @@ function renderGauntletChallenge() {
         <textarea id="gauntlet-response" rows="4" placeholder="Type exactly what you would say on the phone…" class="gauntlet-textarea"></textarea>
       </div>
       <button class="btn btn-primary btn-lg" id="gauntlet-submit-btn">
-        📞 Respond &amp; End Call
+        Submit Response
       </button>
     </div>
   `;
@@ -3127,7 +3129,7 @@ function renderGauntletChallenge() {
     // Hang-up animation
     const btn = document.getElementById('gauntlet-submit-btn');
     btn.disabled = true;
-    btn.innerHTML = '<span class="hangup-anim">📞</span> Scoring…';
+    btn.innerHTML = 'Scoring…';
 
     try {
       const result = await api('/api/gauntlet/grade', {
@@ -3139,7 +3141,7 @@ function renderGauntletChallenge() {
     } catch (err) {
       showToast(err.message, 'error');
       btn.disabled = false;
-      btn.innerHTML = '📞 Respond &amp; End Call';
+      btn.innerHTML = 'Submit Response';
     }
   });
 }
@@ -3155,6 +3157,13 @@ function renderGauntletResult(challenge, userResponse, result) {
   const color = scoreColor(score);
   const canSave = score >= 70;
 
+  // Update sessionStorage streak and best
+  const prevStreak = parseInt(sessionStorage.getItem('gauntlet_streak') || '0', 10);
+  const newStreak = prevStreak + 1;
+  sessionStorage.setItem('gauntlet_streak', String(newStreak));
+  const prevBest = parseInt(sessionStorage.getItem('gauntlet_best') || '0', 10);
+  if (score > prevBest) sessionStorage.setItem('gauntlet_best', String(score));
+
   const abarItems = [
     { key: 'acknowledge', label: 'Acknowledge', color: '#3b82f6' },
     { key: 'bridge',      label: 'Bridge',      color: '#8b5cf6' },
@@ -3164,9 +3173,10 @@ function renderGauntletResult(challenge, userResponse, result) {
   const hasAbar = result.acknowledge != null || result.bridge != null || result.answer != null || result.redirect != null;
 
   app.innerHTML = `
-    <a href="#/learn" class="back-link">← Learn</a>
+    <a href="#/learn" class="back-link" id="gauntlet-result-back">← Learn</a>
     <div class="page-header">
       <div><h1>Gauntlet Result</h1></div>
+      <span class="gauntlet-streak-badge">🔥 ${newStreak} in a row</span>
     </div>
     <div class="gauntlet-result-wrap">
       <div class="result-score-circle" style="--score-color:${color}">
@@ -3218,12 +3228,16 @@ function renderGauntletResult(challenge, userResponse, result) {
 
       <div class="gauntlet-result-actions">
         ${canSave ? `<button class="btn btn-secondary" id="save-playbook-btn">📖 Save to Playbook</button>` : ''}
-        <button class="btn btn-primary" id="next-challenge-btn">⚡ Next Challenge</button>
+        <button class="btn-gauntlet-enter" id="next-challenge-btn">NEXT CHALLENGE →</button>
       </div>
 
       <div id="playbook-save-msg" style="display:none" class="settings-msg success">Saved to your playbook!</div>
     </div>
   `;
+
+  document.getElementById('gauntlet-result-back').addEventListener('click', () => {
+    sessionStorage.setItem('gauntlet_streak', '0');
+  });
 
   document.getElementById('next-challenge-btn').addEventListener('click', () => {
     const pool = getFilteredChallenges();
