@@ -6,6 +6,7 @@ const router = express.Router();
 const challenges = require('../gauntlet/challenges');
 const { gradeGauntlet } = require('../services/claude');
 const { requireAuth } = require('../middleware/requireAuth');
+const { saveGauntletScore } = require('../db');
 
 // GET /api/gauntlet/challenges
 router.get('/challenges', (req, res) => {
@@ -26,6 +27,7 @@ router.post('/grade', requireAuth, async (req, res) => {
       return;
     }
     const score = await gradeGauntlet(challenge, response.trim());
+    try { saveGauntletScore(req.user.id, challengeId, score.score); } catch { /* non-fatal */ }
     res.json(score);
   } catch (err) {
     console.error('[gauntlet/grade] error:', err);

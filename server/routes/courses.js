@@ -57,9 +57,13 @@ router.post('/:courseId/modules/:moduleId/complete', requireAuth, (req, res) => 
   res.json({ ok: true });
 });
 
-// GET /api/leaderboard
-router.get('/leaderboard/top', (req, res) => {
-  const rows = getLeaderboard(20);
+// GET /api/leaderboard  (?scope=team requires auth)
+router.get('/leaderboard/top', (req, res, next) => {
+  if (req.query.scope === 'team') return requireAuth(req, res, next);
+  next();
+}, (req, res) => {
+  const teamId = req.query.scope === 'team' ? (req.user?.team_id ?? null) : null;
+  const rows = getLeaderboard(20, teamId);
   const ranked = rows.map((row, i) => ({ rank: i + 1, ...row }));
   res.json(ranked);
 });

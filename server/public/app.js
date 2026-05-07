@@ -1066,7 +1066,6 @@ function renderRegister() {
 const CERT_IDS = {
   foundations: [
     'phone-open-1','phone-open-2','phone-open-3','phone-open-4','phone-open-5',
-    'phone-capture-1','phone-capture-2','phone-capture-3','phone-capture-4','phone-capture-5',
     'phone-discovery-1','phone-discovery-2','phone-discovery-3','phone-discovery-4','phone-discovery-5',
   ],
   expert: [
@@ -1917,7 +1916,6 @@ function showCallAnalysis(data, callSid) {
         const results = fields.map(f => {
           const expected = (ci[f] || '').toLowerCase().trim();
           const actual = answers[f] || '';
-          // Partial match: either exact or expected contains answer (or vice versa)
           const ok = actual.length > 0 && (actual === expected || expected.includes(actual) || actual.includes(expected));
           if (ok) correct++;
           return `<div class="quiz-result-row ${ok ? 'quiz-ok' : 'quiz-miss'}">
@@ -1927,9 +1925,30 @@ function showCallAnalysis(data, callSid) {
           </div>`;
         });
         const pct = Math.round(correct / fields.length * 100);
+
+        // Bonus points: +2.5 per correct field, max +10, cap total at 100
+        const bonus = correct * 2.5;
+        if (bonus > 0 && data.score) {
+          const newScore = Math.min(100, (data.score.overallScore || 0) + bonus);
+          updateGauge({ ...data.score, overallScore: newScore });
+          const gaugeEl = document.getElementById('gauge-score-live');
+          if (gaugeEl) {
+            const start = data.score.overallScore || 0;
+            const end = newScore;
+            let cur = start;
+            const step = (end - start) / 20;
+            const tick = setInterval(() => {
+              cur = Math.min(end, cur + step);
+              gaugeEl.textContent = Math.round(cur);
+              if (cur >= end) clearInterval(tick);
+            }, 30);
+          }
+        }
+
         document.getElementById('quiz-results').innerHTML = `
           <div class="quiz-score-banner" style="color:${scoreColor(pct)}">
             ${correct}/${fields.length} captured correctly (${pct}%)
+            ${bonus > 0 ? `<span class="quiz-bonus">+${bonus} bonus pts!</span>` : ''}
           </div>
           ${results.join('')}`;
         document.getElementById('quiz-submit-btn').style.display = 'none';
@@ -2239,42 +2258,66 @@ function startChallenge(courseId, moduleId, personaId, minScore) {
 
 async function renderLeaderboard() {
   app.innerHTML = '<div class="page-skeleton"><div class="skel skel-title"></div><div class="skel skel-text"></div><div class="skel skel-text skel-short"></div></div>';
-  let rows = [];
-  try { rows = await api('/api/courses/leaderboard/top'); } catch (e) {
-    app.innerHTML = '<div class="empty-state">Failed to load leaderboard.</div>';
-    return;
-  }
 
   const user = getUser();
+  let allRows = [], teamRows = [];
+
+  try { allRows = await api('/api/courses/leaderboard/top'); } catch { /* fall through */ }
+
+  const userHasTeam = user && user.team_id;
+  if (userHasTeam) {
+    try { teamRows = await api('/api/courses/leaderboard/top?scope=team'); } catch { /* fall through */ }
+  }
+
+  let activeTab = 'all';
+
+  function buildTable(rows) {
+    if (rows.length === 0) return '<tr><td colspan="6" class="empty-row">No data yet — start training!</td></tr>';
+    return rows.map(r => leaderboardRow(r, user)).join('');
+  }
 
   app.innerHTML = `
     <div class="page-header">
       <div>
         <h1>Leaderboard</h1>
-        <p class="subtitle">Top performers across all training calls</p>
+        <p class="subtitle">Composite score: 70% calls · 25% gauntlet · 5% courses</p>
       </div>
     </div>
+    ${userHasTeam ? `
+    <div class="lb-tabs">
+      <button class="lb-tab active" data-tab="all">All of FreshUp</button>
+      <button class="lb-tab" data-tab="team">My Dealership</button>
+    </div>` : ''}
     <div class="table-wrap">
       <table class="leaderboard-table">
         <thead><tr>
-          <th>Rank</th><th>Name</th><th>Avg Score</th><th>Best Score</th><th>Total Calls</th><th>Modules</th>
+          <th>Rank</th><th>Name</th><th>Composite</th><th>Calls</th><th>Call Avg</th><th>Gauntlet Avg</th><th>Courses</th>
         </tr></thead>
-        <tbody>
-          ${rows.length === 0
-            ? '<tr><td colspan="6" class="empty-row">No data yet — start training!</td></tr>'
-            : rows.map(r => leaderboardRow(r, user)).join('')
-          }
+        <tbody id="lb-tbody">
+          ${buildTable(allRows)}
         </tbody>
       </table>
     </div>
   `;
+
+  if (userHasTeam) {
+    app.querySelectorAll('.lb-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        app.querySelectorAll('.lb-tab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        activeTab = btn.dataset.tab;
+        document.getElementById('lb-tbody').innerHTML = buildTable(activeTab === 'team' ? teamRows : allRows);
+      });
+    });
+  }
 }
 
 function leaderboardRow(r, user) {
   const isMe = user && user.id === r.id;
   const rankDisplay = r.rank <= 3 ? ['🥇', '🥈', '🥉'][r.rank - 1] : r.rank;
-  const avgDisplay = r.avgScore != null ? r.avgScore : '—';
-  const bestDisplay = r.bestScore != null ? r.bestScore : '—';
+  const composite = r.compositeScore != null ? r.compositeScore : '—';
+  const callAvg = r.avgCallScore != null ? r.avgCallScore : '—';
+  const gauntletAvg = r.avgGauntletScore != null ? r.avgGauntletScore : '—';
 
   return `
     <tr class="${isMe ? 'leaderboard-me' : ''}">
@@ -2285,9 +2328,10 @@ function leaderboardRow(r, user) {
           <span>${escHtml(r.name)}${isMe ? ' <span class="you-badge">You</span>' : ''}</span>
         </div>
       </td>
-      <td class="score-num" style="color:${r.avgScore ? scoreColor(r.avgScore) : 'var(--text-muted)'}">${avgDisplay}</td>
-      <td class="score-num" style="color:${r.bestScore ? scoreColor(r.bestScore) : 'var(--text-muted)'}">${bestDisplay}</td>
+      <td class="score-num" style="color:${r.compositeScore ? scoreColor(r.compositeScore) : 'var(--text-muted)'}">${composite}</td>
       <td>${r.totalCalls}</td>
+      <td class="score-num" style="color:${r.avgCallScore ? scoreColor(r.avgCallScore) : 'var(--text-muted)'}">${callAvg}</td>
+      <td class="score-num" style="color:${r.avgGauntletScore ? scoreColor(r.avgGauntletScore) : 'var(--text-muted)'}">${gauntletAvg}</td>
       <td>${r.modulesCompleted}</td>
     </tr>
   `;

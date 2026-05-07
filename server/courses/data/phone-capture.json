@@ -1,5 +1,6 @@
 {
   "id": "phone-capture",
+  "hidden": true,
   "order": 2,
   "title": "Information Before Education",
   "description": "Learn the cardinal rule of phone ups: never educate a customer about price, availability, or financing before you have their contact information. Master the art of capturing without feeling like an interrogation.",

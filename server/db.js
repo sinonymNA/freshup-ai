@@ -77,6 +77,17 @@ if (!existingTeamCols.includes('config')) {
   db.exec("ALTER TABLE teams ADD COLUMN config TEXT DEFAULT '{}'");
 }
 
+// Gauntlet scores
+db.exec(`
+  CREATE TABLE IF NOT EXISTS gauntlet_scores (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    userId      INTEGER NOT NULL,
+    challengeId TEXT NOT NULL,
+    score       INTEGER NOT NULL,
+    createdAt   INTEGER NOT NULL
+  );
+`);
+
 // Leads table (contact/demo request form submissions)
 db.exec(`
   CREATE TABLE IF NOT EXISTS leads (
@@ -528,24 +539,44 @@ function getLeads(limit = 100) {
   return db.prepare('SELECT * FROM leads ORDER BY createdAt DESC LIMIT ?').all(limit);
 }
 
+// ── Gauntlet scores ───────────────────────────────────────────────────────────
+
+function saveGauntletScore(userId, challengeId, score) {
+  db.prepare(
+    'INSERT INTO gauntlet_scores (userId, challengeId, score, createdAt) VALUES (?, ?, ?, ?)'
+  ).run(userId, challengeId, score, Date.now());
+}
+
 // ── Leaderboard ───────────────────────────────────────────────────────────────
 
-function getLeaderboard(limit = 20) {
-  return db.prepare(`
+function getLeaderboard(limit = 20, teamId = null) {
+  const teamFilter = teamId ? 'AND u.team_id = ?' : '';
+
+  // Composite: 0.70 * avgCallScore + 0.25 * avgGauntletScore + 0.25 * MIN(20, modulesCompleted)
+  const sql = `
     SELECT
       u.id,
       u.name,
+      u.team_id,
       COUNT(DISTINCT CASE WHEN c.score IS NOT NULL THEN c.callSid END) AS totalCalls,
-      ROUND(AVG(CASE WHEN c.score IS NOT NULL THEN CAST(json_extract(c.score, '$.overallScore') AS REAL) END), 1) AS avgScore,
-      MAX(CASE WHEN c.score IS NOT NULL THEN CAST(json_extract(c.score, '$.overallScore') AS INTEGER) END) AS bestScore,
-      COUNT(DISTINCT CASE WHEN mc.passed = 1 THEN mc.moduleId END) AS modulesCompleted
+      ROUND(AVG(CASE WHEN c.score IS NOT NULL THEN CAST(json_extract(c.score, '$.overallScore') AS REAL) END), 1) AS avgCallScore,
+      ROUND(AVG(gs.score), 1) AS avgGauntletScore,
+      COUNT(DISTINCT CASE WHEN mc.passed = 1 THEN mc.moduleId END) AS modulesCompleted,
+      ROUND(
+        COALESCE(AVG(CASE WHEN c.score IS NOT NULL THEN CAST(json_extract(c.score, '$.overallScore') AS REAL) END), 0) * 0.70
+        + COALESCE(AVG(gs.score), 0) * 0.25
+        + MIN(20, COUNT(DISTINCT CASE WHEN mc.passed = 1 THEN mc.moduleId END)) * 0.25
+      , 1) AS compositeScore
     FROM users u
     LEFT JOIN calls c ON c.userId = u.id
+    LEFT JOIN gauntlet_scores gs ON gs.userId = u.id
     LEFT JOIN module_completions mc ON mc.userId = u.id
+    WHERE 1=1 ${teamFilter}
     GROUP BY u.id
-    ORDER BY avgScore DESC, totalCalls DESC
+    ORDER BY compositeScore DESC, totalCalls DESC
     LIMIT ?
-  `).all(limit);
+  `;
+  return db.prepare(sql).all(...(teamId ? [teamId, limit] : [limit]));
 }
 
 module.exports = {
@@ -554,7 +585,7 @@ module.exports = {
   getTeamMembers, getTeamConfig, setTeamConfig, getTeamAnalytics,
   getCall, setCall, updateCall, getAllCalls,
   completeModule, getProgress,
-  getLeaderboard,
+  saveGauntletScore, getLeaderboard,
   getAnalytics,
   createLead, getLeads,
 };

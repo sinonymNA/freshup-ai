@@ -10,6 +10,7 @@ function getAllCourses() {
     .readdirSync(DATA_DIR)
     .filter((f) => f.endsWith('.json'))
     .map((f) => JSON.parse(fs.readFileSync(path.join(DATA_DIR, f), 'utf8')))
+    .filter((c) => !c.hidden)
     .sort((a, b) => a.order - b.order);
 }
 
