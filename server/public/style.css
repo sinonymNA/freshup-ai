@@ -2641,7 +2641,13 @@ body[data-page="landing"] .hero-section-v3 {
   margin: 0;
 }
 
-/* Landing page nav styling */
+/* Landing page nav styling - override all nav defaults */
+body[data-page="landing"] nav {
+  background: #ffffff !important;
+  border-bottom: 1px solid rgba(0,0,0,0.08) !important;
+  border: none !important;
+}
+
 body[data-page="landing"] #nav {
   background: #ffffff !important;
   border-bottom: 1px solid rgba(0,0,0,0.08) !important;
@@ -2689,7 +2695,7 @@ body[data-page="landing"] #nav-auth .btn-primary:hover {
 }
 
 body[data-page="landing"] .nav-logo {
-  height: 56px;
+  height: 112px;
   width: auto;
 }
 
