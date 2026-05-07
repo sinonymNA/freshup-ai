@@ -2500,10 +2500,7 @@ body[data-page="landing"] .hero-section-v3 {
 }
 
 .hero-bg-minimal {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
-  z-index: 0;
+  display: none;
 }
 
 .hero-accent-circles {
@@ -2551,7 +2548,7 @@ body[data-page="landing"] .hero-section-v3 {
   font-weight: 800;
   line-height: 1.15;
   letter-spacing: -0.02em;
-  color: #ffffff;
+  color: #0f172a;
   margin: 0;
 }
 
@@ -2565,7 +2562,7 @@ body[data-page="landing"] .hero-section-v3 {
 .hero-p {
   font-size: 18px;
   line-height: 1.7;
-  color: #cbd5e1;
+  color: #475569;
   max-width: 640px;
   margin: 0;
 }
@@ -2618,18 +2615,18 @@ body[data-page="landing"] .hero-section-v3 {
   font-size: 16px;
   font-weight: 700;
   border-radius: 10px;
-  border: 1.5px solid rgba(255,255,255,0.3);
+  border: 1.5px solid #cbd5e1;
   background: transparent;
-  color: #ffffff;
+  color: #0f172a;
   cursor: pointer;
   transition: all 0.3s ease;
   position: relative;
 }
 .btn-cta-secondary:hover {
-  border-color: rgba(255,255,255,0.6);
-  background: rgba(255,255,255,0.08);
+  border-color: #94a3b8;
+  background: #f8fafc;
   transform: translateY(-3px);
-  box-shadow: 0 12px 32px rgba(255,255,255,0.1);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
 }
 .btn-cta-secondary:active {
   transform: translateY(-1px);
@@ -2641,62 +2638,16 @@ body[data-page="landing"] .hero-section-v3 {
   margin: 0;
 }
 
-/* Landing page nav styling - override all nav defaults */
-body[data-page="landing"] nav {
-  background: #ffffff !important;
-  border-bottom: 1px solid rgba(0,0,0,0.08) !important;
-  border: none !important;
+body[data-page="landing"] .hero-section-v3 {
+  background: #ffffff;
+  padding-top: 0;
 }
 
+/* Landing page nav - use natural app nav (already white) */
+body[data-page="landing"] nav,
 body[data-page="landing"] #nav {
-  background: #ffffff !important;
-  border-bottom: 1px solid rgba(0,0,0,0.08) !important;
-  position: fixed;
+  position: sticky;
   top: 0;
-  left: 0;
-  right: 0;
-  width: 100%;
-  padding: 0 40px !important;
-  z-index: 200;
-  height: 72px !important;
-  border: none !important;
-}
-
-body[data-page="landing"] #nav-auth {
-  gap: 12px;
-}
-
-body[data-page="landing"] #nav-auth .btn {
-  font-size: 15px;
-  padding: 10px 26px;
-}
-
-body[data-page="landing"] #nav-auth .btn-ghost {
-  color: #374151;
-  border-color: rgba(0,0,0,0.2);
-  transition: all 0.2s ease;
-}
-
-body[data-page="landing"] #nav-auth .btn-ghost:hover {
-  color: #111827;
-  border-color: rgba(0,0,0,0.35);
-  background: rgba(0,0,0,0.04);
-}
-
-body[data-page="landing"] #nav-auth .btn-primary {
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-  color: #fff;
-  box-shadow: 0 4px 14px rgba(59,130,246,0.3);
-}
-
-body[data-page="landing"] #nav-auth .btn-primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 20px rgba(59,130,246,0.4);
-}
-
-body[data-page="landing"] .nav-logo {
-  height: 112px;
-  width: auto;
 }
 
 /* Full-screen hero on landing */
