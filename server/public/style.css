@@ -59,8 +59,16 @@ nav.scrolled { box-shadow: var(--shadow-md); }
   text-decoration: none;
   letter-spacing: -0.02em;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
 }
 .nav-brand span { color: var(--accent); }
+
+.nav-logo {
+  height: 32px;
+  width: auto;
+  display: block;
+}
 
 #nav-links {
   display: flex;
