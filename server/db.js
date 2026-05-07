@@ -66,6 +66,12 @@ if (!existingUserCols.includes('team_id')) {
 if (!existingUserCols.includes('phone_number')) {
   db.exec('ALTER TABLE users ADD COLUMN phone_number TEXT');
 }
+if (!existingUserCols.includes('security_question')) {
+  db.exec('ALTER TABLE users ADD COLUMN security_question TEXT');
+}
+if (!existingUserCols.includes('security_answer_hash')) {
+  db.exec('ALTER TABLE users ADD COLUMN security_answer_hash TEXT');
+}
 
 const existingCallCols = db.prepare('PRAGMA table_info(calls)').all().map(r => r.name);
 if (!existingCallCols.includes('contactInfo')) {
@@ -116,12 +122,17 @@ db.exec(`
 
 // ── Users ────────────────────────────────────────────────────────────────────
 
-function createUser({ email, name, password_hash, role = 'rep', team_id = null }) {
+function createUser({ email, name, password_hash, role = 'rep', team_id = null, security_question = null, security_answer_hash = null }) {
   const stmt = db.prepare(
-    'INSERT INTO users (email, name, password_hash, role, team_id, created_at) VALUES (?, ?, ?, ?, ?, ?)'
+    'INSERT INTO users (email, name, password_hash, role, team_id, security_question, security_answer_hash, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
   );
-  const result = stmt.run(email, name, password_hash, role, team_id, Date.now());
+  const result = stmt.run(email, name, password_hash, role, team_id, security_question, security_answer_hash, Date.now());
   return getUserById(result.lastInsertRowid);
+}
+
+function getSecurityQuestionByEmail(email) {
+  const row = db.prepare('SELECT security_question, security_answer_hash FROM users WHERE email = ?').get(email);
+  return row || null;
 }
 
 function updateUser(id, updates) {
@@ -614,7 +625,7 @@ function consumeResetToken(token) {
 }
 
 module.exports = {
-  createUser, updateUser, getUserById, getUserByEmail,
+  createUser, updateUser, getUserById, getUserByEmail, getSecurityQuestionByEmail,
   createTeam, getTeamByCode, getTeamByManagerId, getTeamById,
   getTeamMembers, getTeamConfig, setTeamConfig, getTeamAnalytics,
   getCall, setCall, updateCall, getAllCalls,

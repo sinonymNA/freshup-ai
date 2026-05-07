@@ -5,7 +5,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const router = express.Router();
 
-const { createUser, updateUser, getUserByEmail, getUserById, createTeam, getTeamByCode, getTeamByManagerId, updateCall, createResetToken, validateResetToken, consumeResetToken } = require('../store');
+const { createUser, updateUser, getUserByEmail, getUserById, createTeam, getTeamByCode, getTeamByManagerId, updateCall, createResetToken, validateResetToken, consumeResetToken, getSecurityQuestionByEmail } = require('../store');
 const { requireAuth, JWT_SECRET } = require('../middleware/requireAuth');
 
 function makeToken(user) {
@@ -30,7 +30,7 @@ function userPayload(user) {
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
   try {
-    const { email, name, password, role = 'rep', team_name, invite_code, access_code } = req.body;
+    const { email, name, password, role = 'rep', team_name, invite_code, access_code, security_question, security_answer } = req.body;
 
     if (!email || !name || !password) {
       res.status(400).json({ error: 'Email, name, and password are required' });
@@ -72,7 +72,11 @@ router.post('/register', async (req, res) => {
     }
 
     const password_hash = await bcrypt.hash(password, 12);
-    let user = createUser({ email: email.toLowerCase().trim(), name: name.trim(), password_hash, role });
+    let security_answer_hash = null;
+    if (security_question && security_answer && security_answer.trim()) {
+      security_answer_hash = await bcrypt.hash(security_answer.trim().toLowerCase(), 12);
+    }
+    let user = createUser({ email: email.toLowerCase().trim(), name: name.trim(), password_hash, role, security_question: security_question || null, security_answer_hash });
 
     if (role === 'manager') {
       const tName = (team_name && team_name.trim()) || `${name.trim()}'s Team`;
@@ -229,10 +233,44 @@ router.post('/forgot-password', async (req, res) => {
   }
 });
 
-// POST /api/auth/reset-password
+// POST /api/auth/security-question — returns the security question for an email (step 1 of reset)
+router.post('/security-question', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) { res.status(400).json({ error: 'Email is required' }); return; }
+    const row = getSecurityQuestionByEmail(email.toLowerCase().trim());
+    // Always respond OK to avoid revealing whether an account exists; return null if no question set
+    res.json({ question: row?.security_question || null });
+  } catch (err) {
+    console.error('[auth/security-question]', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// POST /api/auth/reset-password — supports both token-based and security-question-based reset
 router.post('/reset-password', async (req, res) => {
   try {
-    const { token, password } = req.body;
+    const { token, password, email, answer } = req.body;
+
+    // Security-question flow: email + answer + password
+    if (!token && email && answer) {
+      if (!password || password.length < 6) { res.status(400).json({ error: 'Password must be at least 6 characters' }); return; }
+      const user = getUserByEmail(email.toLowerCase().trim());
+      if (!user) { res.status(400).json({ error: 'Incorrect answer. Please try again.' }); return; }
+      const row = getSecurityQuestionByEmail(email.toLowerCase().trim());
+      if (!row || !row.security_answer_hash) {
+        res.status(400).json({ error: 'No security question is set for this account.' });
+        return;
+      }
+      const match = await bcrypt.compare(answer.trim().toLowerCase(), row.security_answer_hash);
+      if (!match) { res.status(400).json({ error: 'Incorrect answer. Please try again.' }); return; }
+      const password_hash = await bcrypt.hash(password, 12);
+      updateUser(user.id, { password_hash });
+      res.json({ ok: true });
+      return;
+    }
+
+    // Token-based flow (legacy, still supported)
     if (!token || !password) { res.status(400).json({ error: 'Token and new password are required' }); return; }
     if (password.length < 6) { res.status(400).json({ error: 'Password must be at least 6 characters' }); return; }
 

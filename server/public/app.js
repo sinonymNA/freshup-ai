@@ -949,56 +949,121 @@ function renderForgotPassword() {
       <div class="auth-card">
         <div class="auth-brand">FreshUp<span> AI</span></div>
         <h2>Reset your password</h2>
-        <p class="subtitle">Enter your email and we'll generate a reset link.</p>
-        <form id="forgot-form">
-          <div class="form-group">
-            <label for="forgot-email">Email</label>
-            <input type="email" id="forgot-email" placeholder="you@dealership.com" required autocomplete="email" />
-          </div>
-          <div id="forgot-msg" style="display:none"></div>
-          <button type="submit" class="btn btn-primary btn-full" id="forgot-btn">Send Reset Link</button>
-        </form>
-        <p class="auth-switch"><a href="#/login" class="link">← Back to sign in</a></p>
+
+        <div id="fp-step1">
+          <p class="subtitle">Enter your email to find your account.</p>
+          <form id="fp-email-form">
+            <div class="form-group">
+              <label for="fp-email">Email</label>
+              <input type="email" id="fp-email" placeholder="you@dealership.com" required autocomplete="email" />
+            </div>
+            <div id="fp-email-msg" class="auth-error" style="display:none"></div>
+            <button type="submit" class="btn btn-primary btn-full" id="fp-email-btn">Continue →</button>
+          </form>
+          <p class="auth-switch"><a href="#/login" class="link">← Back to sign in</a></p>
+        </div>
+
+        <div id="fp-step2" style="display:none">
+          <p class="subtitle">Answer your security question to verify your identity.</p>
+          <div class="auth-info-box" id="fp-question-box" style="margin-bottom:16px"></div>
+          <form id="fp-answer-form">
+            <div class="form-group">
+              <label for="fp-answer">Your Answer</label>
+              <input type="text" id="fp-answer" placeholder="Answer (case-insensitive)" autocomplete="off" required />
+            </div>
+            <div class="form-group">
+              <label for="fp-new-pw">New Password</label>
+              <input type="password" id="fp-new-pw" placeholder="At least 6 characters" required minlength="6" autocomplete="new-password" />
+            </div>
+            <div class="form-group">
+              <label for="fp-confirm-pw">Confirm Password</label>
+              <input type="password" id="fp-confirm-pw" placeholder="Repeat password" required autocomplete="new-password" />
+            </div>
+            <div id="fp-answer-msg" class="auth-error" style="display:none"></div>
+            <button type="submit" class="btn btn-primary btn-full" id="fp-answer-btn">Reset Password</button>
+          </form>
+        </div>
+
+        <div id="fp-step3" style="display:none">
+          <p class="subtitle" style="color:var(--success)">Password updated successfully!</p>
+          <p style="color:var(--text-muted);font-size:14px;margin-bottom:20px">You can now sign in with your new password.</p>
+          <a href="#/login" class="btn btn-primary btn-full">Sign In →</a>
+        </div>
       </div>
     </div>
   `;
 
-  document.getElementById('forgot-form').addEventListener('submit', async e => {
+  let userEmail = '';
+
+  document.getElementById('fp-email-form').addEventListener('submit', async e => {
     e.preventDefault();
-    const btn   = document.getElementById('forgot-btn');
-    const msgEl = document.getElementById('forgot-msg');
+    const btn   = document.getElementById('fp-email-btn');
+    const msgEl = document.getElementById('fp-email-msg');
     btn.disabled = true;
-    btn.textContent = 'Generating link…';
+    btn.textContent = 'Looking up…';
     msgEl.style.display = 'none';
+    userEmail = document.getElementById('fp-email').value.trim();
 
     try {
-      const res = await fetch('/api/auth/forgot-password', {
+      const res = await fetch('/api/auth/security-question', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: document.getElementById('forgot-email').value.trim() }),
+        body: JSON.stringify({ email: userEmail }),
       });
       const data = await res.json();
 
-      if (data.resetUrl) {
-        // Email service not configured — show link directly
-        msgEl.innerHTML =
-          `<div class="auth-info-box">
-            <strong>Reset link generated.</strong><br>
-            Copy and open this link to set your new password:<br>
-            <a href="${escHtml(data.resetUrl)}" class="link" style="word-break:break-all;font-size:13px">${escHtml(data.resetUrl)}</a>
-            <div style="margin-top:8px;font-size:12px;color:var(--text-muted)">Link expires in 1 hour.</div>
-          </div>`;
-      } else {
-        msgEl.innerHTML = `<div class="auth-info-box">If that email is registered, a reset link has been sent.</div>`;
+      if (!data.question) {
+        msgEl.textContent = 'No security question found for this account. Contact support for help.';
+        msgEl.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Continue →';
+        return;
       }
-      msgEl.style.display = 'block';
-      btn.style.display = 'none';
+
+      document.getElementById('fp-question-box').textContent = data.question;
+      document.getElementById('fp-step1').style.display = 'none';
+      document.getElementById('fp-step2').style.display = 'block';
     } catch {
       msgEl.textContent = 'Network error. Please try again.';
-      msgEl.className = 'auth-error';
       msgEl.style.display = 'block';
       btn.disabled = false;
-      btn.textContent = 'Send Reset Link';
+      btn.textContent = 'Continue →';
+    }
+  });
+
+  document.getElementById('fp-answer-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn     = document.getElementById('fp-answer-btn');
+    const msgEl   = document.getElementById('fp-answer-msg');
+    const pw      = document.getElementById('fp-new-pw').value;
+    const confirm = document.getElementById('fp-confirm-pw').value;
+    msgEl.style.display = 'none';
+
+    if (pw !== confirm) {
+      msgEl.textContent = 'Passwords do not match.';
+      msgEl.style.display = 'block';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Resetting…';
+
+    try {
+      const res = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: userEmail, answer: document.getElementById('fp-answer').value, password: pw }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || res.statusText);
+
+      document.getElementById('fp-step2').style.display = 'none';
+      document.getElementById('fp-step3').style.display = 'block';
+    } catch (err) {
+      msgEl.textContent = err.message;
+      msgEl.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Reset Password';
     }
   });
 }
@@ -1194,6 +1259,26 @@ function renderRegister() {
             </div>
           </div>
 
+          <div class="form-group">
+            <label for="reg-sq">Security Question <span style="color:var(--text-muted);font-weight:400;font-size:12px">(for password recovery)</span></label>
+            <select id="reg-sq" class="lf-input" style="background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px 12px;width:100%;font-size:14px">
+              <option value="">— Select a question —</option>
+              <option value="What was the name of your first pet?">What was the name of your first pet?</option>
+              <option value="What city were you born in?">What city were you born in?</option>
+              <option value="What is your mother's maiden name?">What is your mother's maiden name?</option>
+              <option value="What was the name of your first school?">What was the name of your first school?</option>
+              <option value="What was the make of your first car?">What was the make of your first car?</option>
+              <option value="What is the name of the street you grew up on?">What is the name of the street you grew up on?</option>
+              <option value="What was your childhood nickname?">What was your childhood nickname?</option>
+              <option value="What is the middle name of your oldest sibling?">What is the middle name of your oldest sibling?</option>
+            </select>
+          </div>
+          <div class="form-group" id="sq-answer-group">
+            <label for="reg-sq-answer">Your Answer</label>
+            <input type="text" id="reg-sq-answer" placeholder="Answer (case-insensitive)" autocomplete="off" />
+            <p class="input-hint">Remember this — it's how you'll reset your password if you forget it.</p>
+          </div>
+
           <div id="auth-error" class="auth-error" style="display:none"></div>
           <button type="submit" class="btn btn-primary btn-full" id="register-btn">Create Account</button>
         </form>
@@ -1235,6 +1320,9 @@ function renderRegister() {
     } else {
       body.invite_code = document.getElementById('reg-invite').value.trim();
     }
+    const sq = document.getElementById('reg-sq').value;
+    const sqa = document.getElementById('reg-sq-answer').value.trim();
+    if (sq && sqa) { body.security_question = sq; body.security_answer = sqa; }
 
     try {
       const res = await fetch('/api/auth/register', {
