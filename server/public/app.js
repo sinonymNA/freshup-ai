@@ -2962,72 +2962,103 @@ function renderGauntletIdle() {
     { id: 'hard', label: 'Hard' },
   ];
 
+  const streak = parseInt(sessionStorage.getItem('gauntlet_streak') || '0', 10);
+  const best = sessionStorage.getItem('gauntlet_best') || null;
+
+  // Build active filter tag text
+  const activeCat = cats.find(c => c.id === gauntletState.categoryFilter && c.id !== 'all');
+  const activeDiff = diffs.find(d => d.id === gauntletState.difficultyFilter && d.id !== 'all');
+  const activeTag = [activeCat ? activeCat.label : null, activeDiff ? activeDiff.label : null].filter(Boolean).join(' \xb7 ');
+
+  // Phone label for active filters
+  const phoneLabel = [
+    activeCat ? activeCat.label + ' Objection' : 'Any Category',
+    activeDiff ? activeDiff.label : 'Any Difficulty',
+  ].join(' \xb7 ');
+
   app.innerHTML = `
-    <a href="#/learn" class="back-link">← Learn</a>
-    <div class="page-header">
-      <div>
-        <h1>Objection Gauntlet</h1>
-        <p class="subtitle">One objection. One response. Instant AI coaching.</p>
-      </div>
-    </div>
-    <div class="gauntlet-wrap">
+    <a href="#/learn" class="back-link" id="gauntlet-back-link">← Learn</a>
+    <div class="gauntlet-arena">
+      <div class="gauntlet-left">
+        <span class="gauntlet-live-badge">LIVE TRAINING</span>
+        <h1 class="gauntlet-arena-title">The Gauntlet</h1>
+        <p class="gauntlet-arena-sub">One objection. No script. No mercy.</p>
 
-      <div class="gauntlet-guide glass" id="gauntlet-guide">
-        <button class="gg-header" id="gg-toggle" type="button">
-          <span>How Objection Handling Works</span>
-          <span class="gg-chevron" id="gg-chevron">▾</span>
+        <div class="gauntlet-stats-row">
+          <div class="gauntlet-stat">
+            <span class="gauntlet-stat-val">${streak}</span>
+            <span class="gauntlet-stat-lbl">Session Streak</span>
+          </div>
+          <div class="gauntlet-stat-divider"></div>
+          <div class="gauntlet-stat">
+            <span class="gauntlet-stat-val">${best !== null ? best : '—'}</span>
+            <span class="gauntlet-stat-lbl">Best Score</span>
+          </div>
+        </div>
+
+        <div class="gauntlet-prefs-wrap">
+          <button class="gauntlet-prefs-btn" id="gauntlet-prefs-btn" type="button">
+            Preferences ▾${activeTag ? `<span class="gauntlet-prefs-active-tag">\xb7 ${escHtml(activeTag)}</span>` : ''}
+          </button>
+          <div class="gauntlet-prefs-dropdown" id="gauntlet-prefs-dropdown" style="display:none">
+            <div class="gauntlet-filter-group">
+              <span class="gauntlet-filter-label">Category</span>
+              <div class="gauntlet-filter-btns" id="cat-filter">
+                ${cats.map(c => `<button class="gf-btn${gauntletState.categoryFilter === c.id ? ' active' : ''}" data-val="${c.id}">${c.label}</button>`).join('')}
+              </div>
+            </div>
+            <div class="gauntlet-filter-group">
+              <span class="gauntlet-filter-label">Difficulty</span>
+              <div class="gauntlet-filter-btns" id="diff-filter">
+                ${diffs.map(d => `<button class="gf-btn${gauntletState.difficultyFilter === d.id ? ' active' : ''}" data-val="${d.id}">${d.label}</button>`).join('')}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn-gauntlet-enter" id="gauntlet-start-btn" ${filtered.length === 0 ? 'disabled' : ''}>
+          ENTER THE GAUNTLET
         </button>
-        <div class="gg-body" id="gg-body" style="display:none">
-          <p class="gg-intro">An objection is not a rejection — it's a signal. When a customer pushes back, they're telling you they're still interested. They just need more before they move forward. Strong objection handling is not about being slick. It's about being prepared.</p>
-          <div class="gg-framework-label">The Four-Part Response Framework</div>
-          <div class="gg-framework">
-            <div class="gg-step"><span class="gg-step-letter" style="background:#3b82f6">A</span><div><strong>Acknowledge</strong><span>Validate the concern without agreeing or folding</span></div></div>
-            <div class="gg-step"><span class="gg-step-letter" style="background:#8b5cf6">B</span><div><strong>Bridge</strong><span>Shift toward a solution without dismissing</span></div></div>
-            <div class="gg-step"><span class="gg-step-letter" style="background:#f59e0b">A</span><div><strong>Answer</strong><span>Address the REAL concern beneath the objection</span></div></div>
-            <div class="gg-step"><span class="gg-step-letter" style="background:#10b981">R</span><div><strong>Redirect</strong><span>Guide the conversation back to the appointment</span></div></div>
-          </div>
-          <div class="gg-avoid-label">What to Avoid</div>
-          <ul class="gg-avoid-list">
-            <li>Giving up when the customer pushes back the first time</li>
-            <li>Matching the customer's resistance with pressure</li>
-            <li>Answering the surface objection without the real concern underneath</li>
-            <li>Rushing to give price, payment, or info before building any rapport</li>
-            <li>Going silent or saying "I understand" and stopping there</li>
-          </ul>
-        </div>
       </div>
 
-      <div class="gauntlet-filters">
-        <div class="gauntlet-filter-group">
-          <span class="gauntlet-filter-label">Category</span>
-          <div class="gauntlet-filter-btns" id="cat-filter">
-            ${cats.map(c => `<button class="gf-btn${gauntletState.categoryFilter === c.id ? ' active' : ''}" data-val="${c.id}">${c.label}</button>`).join('')}
-          </div>
-          ${gauntletState.categoryFilter !== 'all' ? (() => {
-            const found = cats.find(c => c.id === gauntletState.categoryFilter);
-            return found && found.desc ? `<div class="gauntlet-cat-desc">${escHtml(found.desc)}</div>` : '';
-          })() : ''}
-        </div>
-        <div class="gauntlet-filter-group">
-          <span class="gauntlet-filter-label">Difficulty</span>
-          <div class="gauntlet-filter-btns" id="diff-filter">
-            ${diffs.map(d => `<button class="gf-btn${gauntletState.difficultyFilter === d.id ? ' active' : ''}" data-val="${d.id}">${d.label}</button>`).join('')}
+      <div class="gauntlet-phone-wrap">
+        <div class="gauntlet-phone">
+          <div class="gp-notch"></div>
+          <div class="gp-screen">
+            <div class="gp-incoming-badge">INCOMING CALL</div>
+            <div class="gp-rings">
+              <div class="gp-ring"></div>
+              <div class="gp-ring"></div>
+              <div class="gp-ring"></div>
+              <div class="gp-icon">📞</div>
+            </div>
+            <div class="gp-caller">UNKNOWN CALLER</div>
+            <div class="gp-category">${escHtml(phoneLabel)}</div>
+            <div class="gp-answer-bar">ANSWER NOW →</div>
           </div>
         </div>
       </div>
-      <div class="gauntlet-count">${filtered.length} challenge${filtered.length !== 1 ? 's' : ''} available</div>
-      <button class="btn btn-primary btn-lg" id="gauntlet-start-btn" ${filtered.length === 0 ? 'disabled' : ''}>
-        ⚡ Start Random Challenge
-      </button>
     </div>
   `;
 
-  document.getElementById('gg-toggle').addEventListener('click', () => {
-    const body = document.getElementById('gg-body');
-    const chevron = document.getElementById('gg-chevron');
-    const open = body.style.display !== 'none';
-    body.style.display = open ? 'none' : 'block';
-    chevron.textContent = open ? '▾' : '▴';
+  document.getElementById('gauntlet-back-link').addEventListener('click', () => {
+    sessionStorage.setItem('gauntlet_streak', '0');
+  });
+
+  const prefsBtn = document.getElementById('gauntlet-prefs-btn');
+  const prefsDropdown = document.getElementById('gauntlet-prefs-dropdown');
+  prefsBtn.addEventListener('click', () => {
+    const open = prefsDropdown.style.display !== 'none';
+    prefsDropdown.style.display = open ? 'none' : 'block';
+    prefsBtn.classList.toggle('open', !open);
+  });
+
+  document.addEventListener('click', function closePrefs(e) {
+    if (!document.getElementById('gauntlet-prefs-btn')) { document.removeEventListener('click', closePrefs); return; }
+    if (!document.getElementById('gauntlet-prefs-btn').contains(e.target) && !prefsDropdown.contains(e.target)) {
+      prefsDropdown.style.display = 'none';
+      prefsBtn.classList.remove('open');
+    }
   });
 
   document.getElementById('cat-filter').addEventListener('click', e => {
