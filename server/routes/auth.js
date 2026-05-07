@@ -56,7 +56,7 @@ router.post('/register', async (req, res) => {
 
     if (role === 'manager') {
       // Validate manager access code
-      const validCode = process.env.MANAGER_ACCESS_CODE || 'FRESHUP-MANAGER';
+      const validCode = process.env.MANAGER_ACCESS_CODE || 'FRESHUP123';
       if (!access_code || access_code.trim().toUpperCase() !== validCode.toUpperCase()) {
         res.status(403).json({ error: 'Invalid manager access code. Contact FreshUp to get your code.' });
         return;
@@ -65,10 +65,18 @@ router.post('/register', async (req, res) => {
       const tName = (team_name && team_name.trim()) || `${name.trim()}'s Team`;
       const team = createTeam({ name: tName, managerId: user.id });
       user = updateUser(user.id, { team_id: team.id });
-    } else if (invite_code && invite_code.trim()) {
-      // Join an existing team via invite code
+    } else {
+      // Rep must provide invite code to join a team
+      if (!invite_code || !invite_code.trim()) {
+        res.status(400).json({ error: 'Invite code from your manager is required to create an account.' });
+        return;
+      }
       const team = getTeamByCode(invite_code.trim());
-      if (team) user = updateUser(user.id, { team_id: team.id });
+      if (!team) {
+        res.status(400).json({ error: 'Invalid invite code. Ask your manager to check the code.' });
+        return;
+      }
+      user = updateUser(user.id, { team_id: team.id });
     }
 
     res.json({ token: makeToken(user), user: userPayload(user) });

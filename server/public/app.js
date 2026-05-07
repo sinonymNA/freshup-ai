@@ -557,48 +557,22 @@ function renderLanding() {
     <div class="landing-v2">
 
       <!-- ── HERO ─────────────────────────────────────────────────────────── -->
-      <section class="hero-section">
-        <div class="hero-bg"></div>
-        <div class="hero-grid-overlay"></div>
-        <div class="hero-inner">
-          <div class="hero-content">
-            <div class="hero-badge reveal">AI-Powered Inbound Training</div>
-            <h1 class="hero-headline">
-              <span class="hero-line1 reveal" data-delay="60">Train Like It's Real.</span>
-              <span class="hero-line2 gradient-text reveal" data-delay="160">Close Like It Counts.</span>
-            </h1>
-            <p class="hero-sub reveal" data-delay="260">Your reps practice on AI buyers that push back, object, and hang up — on their actual phone. Every call scored instantly. Every rep improving.</p>
-            <div class="hero-ctas reveal" data-delay="360">
-              <button class="btn-shimmer" id="hero-request-info">Request Info</button>
-              <button class="btn-ghost-hero" id="hero-try-call">Try a Call →</button>
-            </div>
-            <p class="hero-note reveal" data-delay="420">No credit card required · Setup in 2 minutes</p>
+      <section class="hero-section-v3">
+        <div class="hero-bg-minimal"></div>
+        <div class="hero-content-v3">
+          <h1 class="hero-h1 reveal" data-delay="0">
+            Train like it's real.
+            <br/>
+            <span class="hero-h1-accent">Close like it counts.</span>
+          </h1>
+          <p class="hero-p reveal" data-delay="120">Your reps practice on AI buyers that push back, object, and hang up—on their actual phone. Real pressure. Real scoring. Real improvement.</p>
+          <div class="hero-buttons reveal" data-delay="240">
+            <button class="btn-cta-primary" id="hero-request-info">Request Info</button>
+            <button class="btn-cta-secondary" id="hero-try-call">Try a Call</button>
           </div>
-          <div class="hero-phone-wrap">
-            <div class="phone-mockup reveal-right" data-delay="100">
-              <div class="phone-notch"></div>
-              <div class="phone-screen">
-                <div class="phone-call-header">
-                  <div class="phone-call-dot"></div>
-                  <span>Live Call</span>
-                </div>
-                <div class="phone-persona">
-                  <div class="phone-avatar">A</div>
-                  <div class="phone-persona-info">
-                    <div class="phone-persona-name">Ashley Thompson</div>
-                    <div class="phone-persona-role">Stay-at-Home Parent · Easy</div>
-                  </div>
-                </div>
-                <div class="phone-score-section">
-                  <div class="phone-score-label">Call Score</div>
-                  <div class="phone-score-num count-up" data-target="87">0</div>
-                  <div class="phone-score-bar"><div class="phone-score-fill" style="width:87%"></div></div>
-                </div>
-                <div class="phone-feedback">"Strong opening. Excellent info capture. Work on appointment close."</div>
-              </div>
-            </div>
-          </div>
+          <p class="hero-footer reveal" data-delay="300">No credit card · No commitment · Setup in 2 minutes</p>
         </div>
+        <div class="hero-accent-circles"></div>
       </section>
 
       <!-- ── STATS ─────────────────────────────────────────────────────────── -->
@@ -992,9 +966,9 @@ function renderRegister() {
 
           <div id="rep-fields" style="display:${defaultRole === 'rep' ? 'block' : 'none'}">
             <div class="form-group">
-              <label for="reg-invite">Team Invite Code</label>
-              <input type="text" id="reg-invite" placeholder="Enter code from your manager" autocomplete="off" style="text-transform:uppercase" />
-              <p class="input-hint">Ask your manager for your team's invite code to join their dashboard.</p>
+              <label for="reg-invite">Team Invite Code <span style="color:var(--error)">*</span></label>
+              <input type="text" id="reg-invite" placeholder="Enter code from your manager" autocomplete="off" style="text-transform:uppercase" required />
+              <p class="input-hint">Your manager will send you a unique invite code when you join their team.</p>
             </div>
           </div>
 
