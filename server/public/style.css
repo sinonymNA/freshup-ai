@@ -2496,7 +2496,7 @@ a.link:hover { text-decoration: underline; }
 }
 
 body[data-page="landing"] .hero-section-v3 {
-  padding-top: 60px;
+  padding-top: 72px;
 }
 
 .hero-bg-minimal {
@@ -2643,16 +2643,16 @@ body[data-page="landing"] .hero-section-v3 {
 
 /* Landing page nav styling */
 body[data-page="landing"] #nav {
-  background: transparent;
-  border-bottom: none;
+  background: #ffffff;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   width: 100%;
-  padding: 16px 32px;
+  padding: 0 40px;
   z-index: 200;
-  height: auto;
+  height: 72px;
 }
 
 body[data-page="landing"] #nav-auth {
@@ -2660,34 +2660,35 @@ body[data-page="landing"] #nav-auth {
 }
 
 body[data-page="landing"] #nav-auth .btn {
-  font-size: 14px;
-  padding: 10px 22px;
+  font-size: 15px;
+  padding: 10px 26px;
 }
 
 body[data-page="landing"] #nav-auth .btn-ghost {
-  color: #cbd5e1;
-  border-color: rgba(255,255,255,0.2);
+  color: #374151;
+  border-color: rgba(0,0,0,0.2);
   transition: all 0.2s ease;
 }
 
 body[data-page="landing"] #nav-auth .btn-ghost:hover {
-  color: #f1f5f9;
-  border-color: rgba(255,255,255,0.4);
-  background: rgba(255,255,255,0.05);
+  color: #111827;
+  border-color: rgba(0,0,0,0.35);
+  background: rgba(0,0,0,0.04);
 }
 
 body[data-page="landing"] #nav-auth .btn-primary {
   background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-  box-shadow: 0 8px 20px rgba(59,130,246,0.25);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(59,130,246,0.3);
 }
 
 body[data-page="landing"] #nav-auth .btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 28px rgba(59,130,246,0.35);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(59,130,246,0.4);
 }
 
 body[data-page="landing"] .nav-logo {
-  height: 28px;
+  height: 44px;
   width: auto;
 }
 
