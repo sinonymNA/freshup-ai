@@ -66,9 +66,6 @@ if (!existingUserCols.includes('team_id')) {
 if (!existingUserCols.includes('phone_number')) {
   db.exec('ALTER TABLE users ADD COLUMN phone_number TEXT');
 }
-if (!existingUserCols.includes('clerk_id')) {
-  db.exec('ALTER TABLE users ADD COLUMN clerk_id TEXT');
-}
 
 const existingCallCols = db.prepare('PRAGMA table_info(calls)').all().map(r => r.name);
 if (!existingCallCols.includes('contactInfo')) {
@@ -119,11 +116,11 @@ db.exec(`
 
 // ── Users ────────────────────────────────────────────────────────────────────
 
-function createUser({ email, name, password_hash, role = 'rep', team_id = null, clerk_id = null }) {
+function createUser({ email, name, password_hash, role = 'rep', team_id = null }) {
   const stmt = db.prepare(
-    'INSERT INTO users (email, name, password_hash, role, team_id, clerk_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    'INSERT INTO users (email, name, password_hash, role, team_id, created_at) VALUES (?, ?, ?, ?, ?, ?)'
   );
-  const result = stmt.run(email, name, password_hash, role, team_id, clerk_id, Date.now());
+  const result = stmt.run(email, name, password_hash, role, team_id, Date.now());
   return getUserById(result.lastInsertRowid);
 }
 
@@ -139,10 +136,6 @@ function getUserById(id) {
 
 function getUserByEmail(email) {
   return db.prepare('SELECT * FROM users WHERE email = ?').get(email);
-}
-
-function getUserByClerkId(clerkId) {
-  return db.prepare('SELECT * FROM users WHERE clerk_id = ?').get(clerkId);
 }
 
 // ── Teams ─────────────────────────────────────────────────────────────────────
@@ -622,7 +615,6 @@ function consumeResetToken(token) {
 
 module.exports = {
   createUser, updateUser, getUserById, getUserByEmail,
-  getUserByClerkId,
   createTeam, getTeamByCode, getTeamByManagerId, getTeamById,
   getTeamMembers, getTeamConfig, setTeamConfig, getTeamAnalytics,
   getCall, setCall, updateCall, getAllCalls,
