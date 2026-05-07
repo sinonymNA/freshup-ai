@@ -1,20 +1,13 @@
 'use strict';
 
 const express = require('express');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
 const router = express.Router();
 
-const { createUser, updateUser, getUserByEmail, getUserById, createTeam, getTeamByCode, getTeamByManagerId, updateCall, createResetToken, validateResetToken, consumeResetToken } = require('../store');
-const { requireAuth, JWT_SECRET } = require('../middleware/requireAuth');
-
-function makeToken(user) {
-  return jwt.sign(
-    { id: user.id, email: user.email, name: user.name, role: user.role || 'rep', teamId: user.team_id || null },
-    JWT_SECRET,
-    { expiresIn: '30d' }
-  );
-}
+const {
+  createUser, updateUser, getUserByEmail, getUserByClerkId,
+  createTeam, getTeamByCode, getTeamByManagerId,
+} = require('../store');
+const { requireAuth, requireClerkAuth } = require('../middleware/requireAuth');
 
 function userPayload(user) {
   return {
@@ -27,17 +20,20 @@ function userPayload(user) {
   };
 }
 
-// POST /api/auth/register
-router.post('/register', async (req, res) => {
-  try {
-    const { email, name, password, role = 'rep', team_name, invite_code, access_code } = req.body;
+// GET /api/auth/me — returns the local user record for the signed-in Clerk user
+router.get('/me', requireAuth, (req, res) => {
+  res.json({ user: req.user });
+});
 
-    if (!email || !name || !password) {
-      res.status(400).json({ error: 'Email, name, and password are required' });
-      return;
-    }
-    if (password.length < 6) {
-      res.status(400).json({ error: 'Password must be at least 6 characters' });
+// POST /api/auth/setup — called once after Clerk sign-up to link the account to a team
+// Uses requireClerkAuth (validates Clerk JWT) instead of requireAuth (needs local user)
+router.post('/setup', requireClerkAuth, async (req, res) => {
+  try {
+    const { role = 'rep', inviteCode, accessCode, teamName, name, email } = req.body;
+    const clerkId = req.clerkUserId;
+
+    if (!name || !email) {
+      res.status(400).json({ error: 'Name and email are required' });
       return;
     }
     if (!['rep', 'manager'].includes(role)) {
@@ -45,82 +41,61 @@ router.post('/register', async (req, res) => {
       return;
     }
 
-    const existing = getUserByEmail(email.toLowerCase().trim());
-    if (existing) {
-      res.status(409).json({ error: 'An account with that email already exists' });
-      return;
+    // If the Clerk user already has a local record, just return it
+    const alreadyLinked = getUserByClerkId(clerkId);
+    if (alreadyLinked) {
+      return res.json({ user: userPayload(alreadyLinked) });
     }
 
-    // Validate codes BEFORE creating the user so no orphaned records are left
+    // If a user with this email already exists (migrating from old auth), link them
+    const existingByEmail = getUserByEmail(email.toLowerCase().trim());
+    if (existingByEmail) {
+      const linked = updateUser(existingByEmail.id, { clerk_id: clerkId });
+      return res.json({ user: userPayload(linked) });
+    }
+
+    // Validate invite / access codes before creating any records
     let resolvedTeam = null;
     if (role === 'manager') {
       const validCode = process.env.MANAGER_ACCESS_CODE || 'FRESHUP123';
-      if (!access_code || access_code.trim().toUpperCase() !== validCode.toUpperCase()) {
-        res.status(403).json({ error: 'Invalid manager access code. Contact FreshUp to get your code.' });
+      if (!accessCode || accessCode.trim().toUpperCase() !== validCode.toUpperCase()) {
+        res.status(403).json({ error: 'Invalid manager access code. Contact FreshUp.' });
         return;
       }
     } else {
-      if (!invite_code || !invite_code.trim()) {
-        res.status(400).json({ error: 'Invite code from your manager is required to create an account.' });
+      if (!inviteCode || !inviteCode.trim()) {
+        res.status(400).json({ error: 'Invite code from your manager is required.' });
         return;
       }
-      resolvedTeam = getTeamByCode(invite_code.trim());
+      resolvedTeam = getTeamByCode(inviteCode.trim());
       if (!resolvedTeam) {
-        res.status(400).json({ error: 'Invalid invite code. Ask your manager to check the code.' });
+        res.status(400).json({ error: 'Invalid invite code. Ask your manager.' });
         return;
       }
     }
 
-    const password_hash = await bcrypt.hash(password, 12);
-    let user = createUser({ email: email.toLowerCase().trim(), name: name.trim(), password_hash, role });
+    // Create local user — no password (Clerk handles auth)
+    let user = createUser({
+      email: email.toLowerCase().trim(),
+      name: name.trim(),
+      password_hash: 'clerk_managed',
+      role,
+      clerk_id: clerkId,
+    });
 
     if (role === 'manager') {
-      const tName = (team_name && team_name.trim()) || `${name.trim()}'s Team`;
+      const tName = (teamName && teamName.trim()) || `${name.trim()}'s Team`;
       const team = createTeam({ name: tName, managerId: user.id });
       user = updateUser(user.id, { team_id: team.id });
     } else {
       user = updateUser(user.id, { team_id: resolvedTeam.id });
     }
 
-    res.json({ token: makeToken(user), user: userPayload(user) });
+    res.json({ user: userPayload(user) });
   } catch (err) {
-    console.error('[auth/register] error:', err);
-    res.status(500).json({ error: 'Registration failed' });
+    console.error('[auth/setup] error:', err);
+    res.status(500).json({ error: 'Account setup failed' });
   }
-});
-
-// POST /api/auth/login
-router.post('/login', async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      res.status(400).json({ error: 'Email and password are required' });
-      return;
-    }
-
-    const user = getUserByEmail(email.toLowerCase().trim());
-    if (!user) {
-      res.status(401).json({ error: 'Invalid email or password' });
-      return;
-    }
-
-    const valid = await bcrypt.compare(password, user.password_hash);
-    if (!valid) {
-      res.status(401).json({ error: 'Invalid email or password' });
-      return;
-    }
-
-    res.json({ token: makeToken(user), user: userPayload(user) });
-  } catch (err) {
-    console.error('[auth/login] error:', err);
-    res.status(500).json({ error: 'Login failed' });
-  }
-});
-
-// GET /api/auth/me
-router.get('/me', requireAuth, (req, res) => {
-  res.json({ user: req.user });
 });
 
 // PATCH /api/auth/profile — update name and/or phone number
@@ -135,15 +110,14 @@ router.patch('/profile', requireAuth, async (req, res) => {
       return;
     }
     const user = updateUser(req.user.id, updates);
-    const token = makeToken(user);
-    res.json({ token, user: userPayload(user) });
+    res.json({ user: userPayload(user) });
   } catch (err) {
     console.error('[auth/profile] error:', err);
     res.status(500).json({ error: 'Profile update failed' });
   }
 });
 
-// GET /api/auth/team-code — returns the team invite code for the manager (shown in settings)
+// GET /api/auth/team-code — returns the team invite code for the manager
 router.get('/team-code', requireAuth, (req, res) => {
   if (req.user.role !== 'manager') {
     res.status(403).json({ error: 'Only managers can access team codes' });
@@ -155,102 +129,6 @@ router.get('/team-code', requireAuth, (req, res) => {
     return;
   }
   res.json({ teamCode: team.invite_code, teamName: team.name });
-});
-
-// POST /api/auth/claim-challenge — create account and link a challenge call to it
-router.post('/claim-challenge', async (req, res) => {
-  try {
-    const { email, name, password, callSid, challengeToken } = req.body;
-
-    if (!email || !name || !password || !callSid || !challengeToken) {
-      res.status(400).json({ error: 'email, name, password, callSid, and challengeToken are required' });
-      return;
-    }
-    if (password.length < 6) {
-      res.status(400).json({ error: 'Password must be at least 6 characters' });
-      return;
-    }
-
-    // Verify the challenge token
-    let payload;
-    try {
-      payload = jwt.verify(challengeToken, JWT_SECRET);
-    } catch {
-      res.status(401).json({ error: 'Invalid or expired challenge token' });
-      return;
-    }
-    if (payload.type !== 'challenge' || payload.callSid !== callSid) {
-      res.status(403).json({ error: 'Token does not match this call' });
-      return;
-    }
-
-    const existing = getUserByEmail(email.toLowerCase().trim());
-    if (existing) {
-      res.status(409).json({ error: 'Email already registered — log in instead' });
-      return;
-    }
-
-    const password_hash = await bcrypt.hash(password, 12);
-    const user = createUser({ email: email.toLowerCase().trim(), name: name.trim(), password_hash, role: 'rep' });
-
-    // Link the challenge call to the new account
-    updateCall(callSid, { userId: user.id });
-
-    res.json({ token: makeToken(user), user: userPayload(user) });
-  } catch (err) {
-    console.error('[auth/claim-challenge] error:', err);
-    res.status(500).json({ error: 'Account creation failed' });
-  }
-});
-
-// POST /api/auth/forgot-password
-router.post('/forgot-password', async (req, res) => {
-  try {
-    const { email } = req.body;
-    if (!email) { res.status(400).json({ error: 'Email is required' }); return; }
-
-    const user = getUserByEmail(email.toLowerCase().trim());
-    if (!user) {
-      // Don't reveal whether email exists
-      res.json({ ok: true });
-      return;
-    }
-
-    const token = createResetToken(user.id);
-    const base = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
-    const resetUrl = `${base}/#/reset-password?token=${token}`;
-
-    // TODO: send resetUrl via email when email service is configured.
-    // For now, return it in the response so the UI can display it.
-    res.json({ ok: true, resetUrl });
-  } catch (err) {
-    console.error('[auth/forgot-password]', err);
-    res.status(500).json({ error: 'Failed to generate reset link' });
-  }
-});
-
-// POST /api/auth/reset-password
-router.post('/reset-password', async (req, res) => {
-  try {
-    const { token, password } = req.body;
-    if (!token || !password) { res.status(400).json({ error: 'Token and new password are required' }); return; }
-    if (password.length < 6) { res.status(400).json({ error: 'Password must be at least 6 characters' }); return; }
-
-    const record = validateResetToken(token);
-    if (!record) {
-      res.status(400).json({ error: 'This reset link is invalid or has expired. Please request a new one.' });
-      return;
-    }
-
-    const password_hash = await bcrypt.hash(password, 12);
-    updateUser(record.userId, { password_hash });
-    consumeResetToken(token);
-
-    res.json({ ok: true });
-  } catch (err) {
-    console.error('[auth/reset-password]', err);
-    res.status(500).json({ error: 'Password reset failed' });
-  }
 });
 
 module.exports = router;

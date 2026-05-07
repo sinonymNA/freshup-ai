@@ -1,26 +1,43 @@
 'use strict';
 
-const jwt = require('jsonwebtoken');
+const { getAuth } = require('@clerk/express');
+const { getUserByClerkId } = require('../store');
 
+// JWT_SECRET is still needed for anonymous challenge-call tokens in call.js/auth.js
 const JWT_SECRET = process.env.JWT_SECRET || 'freshup-dev-secret-change-in-production';
 
 function requireAuth(req, res, next) {
-  const header = req.get('Authorization') || '';
-  // Also accept ?token= query param so EventSource (SSE) can authenticate
-  const token = (header.startsWith('Bearer ') ? header.slice(7) : null) || req.query.token || null;
-
-  if (!token) {
+  const { userId } = getAuth(req);
+  if (!userId) {
     res.status(401).json({ error: 'Authentication required' });
     return;
   }
 
-  try {
-    const payload = jwt.verify(token, JWT_SECRET);
-    req.user = { id: payload.id, email: payload.email, name: payload.name, role: payload.role || 'rep', teamId: payload.teamId || null };
-    next();
-  } catch {
-    res.status(401).json({ error: 'Invalid or expired token' });
+  const user = getUserByClerkId(userId);
+  if (!user) {
+    res.status(401).json({ error: 'Account setup required. Please complete your profile.', code: 'setup_required' });
+    return;
   }
+
+  req.user = {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role || 'rep',
+    teamId: user.team_id || null,
+  };
+  next();
+}
+
+// Validates Clerk auth without requiring a local user record (used for /setup endpoint)
+function requireClerkAuth(req, res, next) {
+  const { userId } = getAuth(req);
+  if (!userId) {
+    res.status(401).json({ error: 'Authentication required' });
+    return;
+  }
+  req.clerkUserId = userId;
+  next();
 }
 
 function requireManager(req, res, next) {
@@ -31,4 +48,4 @@ function requireManager(req, res, next) {
   next();
 }
 
-module.exports = { requireAuth, requireManager, JWT_SECRET };
+module.exports = { requireAuth, requireClerkAuth, requireManager, JWT_SECRET };

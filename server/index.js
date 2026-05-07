@@ -16,6 +16,7 @@ const teamRoutes = require('./routes/team');
 const gauntletRoutes = require('./routes/gauntlet');
 const analyticsRoutes = require('./routes/analytics');
 const contactRoutes = require('./routes/contact');
+const { clerkMiddleware } = require('@clerk/express');
 const { handleMediaStream } = require('./services/openai-realtime');
 
 const app = express();
@@ -25,8 +26,21 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Allow SSE streams to pass Clerk token as ?token= (EventSource can't set headers)
+app.use((req, _res, next) => {
+  if (req.query.token && !req.headers.authorization) {
+    req.headers.authorization = `Bearer ${req.query.token}`;
+  }
+  next();
+});
+app.use(clerkMiddleware());
+
 // Serve the frontend SPA
 app.use(express.static(path.join(__dirname, 'public')));
+
+app.get('/api/config', (_req, res) => {
+  res.json({ clerkPublishableKey: process.env.CLERK_PUBLISHABLE_KEY || '' });
+});
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: Date.now() });

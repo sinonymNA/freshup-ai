@@ -12,46 +12,87 @@ function applyTheme(t) {
 
 applyTheme(localStorage.getItem('freshup_theme') || 'light');
 
-// ── AUTH ──────────────────────────────────────────────────────────────────────
+// ── AUTH (Clerk) ──────────────────────────────────────────────────────────────
 
-function getToken() {
-  return localStorage.getItem('freshup_token') || null;
+let _clerk = null;
+let _localUser = null; // user record from our DB (role, teamId, etc.)
+
+async function getToken() {
+  if (!_clerk?.session) return null;
+  try { return await _clerk.session.getToken(); } catch { return null; }
 }
 
 function getUser() {
-  try {
-    return JSON.parse(localStorage.getItem('freshup_user') || 'null');
-  } catch { return null; }
+  if (_localUser) return _localUser;
+  try { return JSON.parse(localStorage.getItem('freshup_user') || 'null'); } catch { return null; }
 }
 
-function setAuth(token, user) {
-  localStorage.setItem('freshup_token', token);
-  localStorage.setItem('freshup_user', JSON.stringify(user));
+function setLocalUser(user) {
+  _localUser = user;
+  if (user) localStorage.setItem('freshup_user', JSON.stringify(user));
+  else localStorage.removeItem('freshup_user');
 }
 
-function clearAuth() {
-  localStorage.removeItem('freshup_token');
-  localStorage.removeItem('freshup_user');
+async function signOut() {
+  setLocalUser(null);
+  await _clerk?.signOut();
+  navigate('/');
 }
+
+// Legacy stubs — some older call sites still reference these; map to new system
+function setAuth(_token, user) { setLocalUser(user); }
+function clearAuth() { setLocalUser(null); }
 
 // ── API ───────────────────────────────────────────────────────────────────────
 
 async function api(path, opts = {}) {
   const headers = new Headers(opts.headers || {});
-  const token = getToken();
+  const token = await getToken();
   if (token) headers.set('Authorization', `Bearer ${token}`);
 
   const res = await fetch(path, { ...opts, headers });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
     if (res.status === 401) {
-      clearAuth();
-      navigate('/login');
-      throw new Error('Session expired. Please log in again.');
+      if (err.code === 'setup_required') {
+        navigate('/onboarding');
+      } else {
+        setLocalUser(null);
+        _clerk?.redirectToSignIn();
+      }
+      throw new Error(err.error || 'Authentication required');
     }
     throw new Error(err.error || res.statusText);
   }
   return res.json();
+}
+
+// ── CLERK INIT ────────────────────────────────────────────────────────────────
+
+async function initClerk() {
+  const config = await fetch('/api/config').then(r => r.json()).catch(() => ({}));
+  const key = config.clerkPublishableKey;
+  if (!key || !window.Clerk) {
+    console.warn('[clerk] No publishable key or Clerk SDK not loaded.');
+    return;
+  }
+  _clerk = new window.Clerk(key);
+  await _clerk.load();
+
+  // If signed in via Clerk, sync the local user record
+  if (_clerk.user) {
+    try {
+      const data = await api('/api/auth/me');
+      setLocalUser(data.user);
+    } catch (e) {
+      if (!e.message?.includes('setup_required')) setLocalUser(null);
+    }
+  }
+
+  // Keep local user in sync when Clerk session changes
+  _clerk.addListener(({ user }) => {
+    if (!user) setLocalUser(null);
+  });
 }
 
 // ── ROUTER ────────────────────────────────────────────────────────────────────
@@ -75,7 +116,10 @@ function navigate(path) {
 }
 
 window.addEventListener('hashchange', render);
-window.addEventListener('load', render);
+window.addEventListener('load', async () => {
+  await initClerk();
+  render();
+});
 
 window.addEventListener('scroll', () => {
   document.getElementById('nav').classList.toggle('scrolled', window.scrollY > 4);
@@ -107,28 +151,25 @@ document.addEventListener('DOMContentLoaded', () => {
 function render() {
   delete document.body.dataset.page;
   const path = getRoute();
-  const token = getToken();
+  const signedIn = !!_clerk?.user;
 
   // Root: show landing page for guests, dashboard for logged-in users
   if (path === '/') {
     updateNav(path);
-    return token ? renderDashboard() : renderLanding();
+    return signedIn ? renderDashboard() : renderLanding();
   }
 
   const needsAuth = path === '/start' || path === '/history' || path === '/team'
-    || path === '/settings' || path === '/learn'
+    || path === '/settings' || path === '/learn' || path === '/onboarding'
     || path.startsWith('/call/') || path.startsWith('/team/') || path.startsWith('/learn/');
-  if (needsAuth && !token) {
-    navigate('/login');
+  if (needsAuth && !signedIn) {
+    _clerk?.redirectToSignIn() || navigate('/');
     return;
   }
 
   updateNav(path);
 
-  if (path === '/login') return renderLogin();
-  if (path === '/register') return renderRegister();
-  if (path === '/forgot-password') return renderForgotPassword();
-  if (path === '/reset-password') return renderResetPassword(getRouteQuery().get('token'));
+  if (path === '/onboarding') return renderOnboarding();
   if (path === '/start') return renderStart();
   if (path === '/history') return renderHistory();
   if (path === '/personas') return renderPersonas();
@@ -194,32 +235,32 @@ function updateNav(path) {
       <span class="nav-user">${escHtml(user.name)}</span>
       <button class="btn btn-ghost btn-sm" id="logout-btn">Log Out</button>
     `;
-    document.getElementById('logout-btn').addEventListener('click', () => {
-      clearAuth();
-      navigate('/login');
-    });
+    document.getElementById('logout-btn').addEventListener('click', () => signOut());
     if (drawer) {
       drawer.innerHTML = links + `
         <span class="nav-user">${escHtml(user.name)}</span>
         <button class="btn btn-ghost btn-sm" id="drawer-logout-btn">Log Out</button>
       `;
       drawer.querySelector('#drawer-logout-btn')?.addEventListener('click', () => {
-        clearAuth();
-        navigate('/login');
+        signOut();
         drawer.classList.remove('open');
       });
     }
   } else {
     linksEl.innerHTML = '';
     authEl.innerHTML = `
-      <a href="#/login" class="btn btn-ghost btn-sm">Log In</a>
-      <a href="#/register" class="btn btn-primary btn-sm">Join Now</a>
+      <button class="btn btn-ghost btn-sm" id="nav-signin-btn">Log In</button>
+      <button class="btn btn-primary btn-sm" id="nav-join-btn">Join Now</button>
     `;
+    document.getElementById('nav-signin-btn')?.addEventListener('click', () => _clerk?.redirectToSignIn());
+    document.getElementById('nav-join-btn')?.addEventListener('click', () => _clerk?.redirectToSignUp());
     if (drawer) {
       drawer.innerHTML = `
-        <a href="#/login" class="nav-link">Log In</a>
-        <a href="#/register" class="nav-link">Join Now</a>
+        <button class="nav-link" id="drawer-signin-btn">Log In</button>
+        <button class="nav-link" id="drawer-join-btn">Join Now</button>
       `;
+      drawer.querySelector('#drawer-signin-btn')?.addEventListener('click', () => _clerk?.redirectToSignIn());
+      drawer.querySelector('#drawer-join-btn')?.addEventListener('click', () => _clerk?.redirectToSignUp());
     }
   }
   // Close drawer on every nav update (page change)
@@ -527,37 +568,9 @@ function renderChallengeResults(data) {
   }
 }
 
-async function claimChallengeAccount() {
-  const name     = document.getElementById('claim-name')?.value.trim() || '';
-  const email    = document.getElementById('claim-email')?.value.trim() || '';
-  const password = document.getElementById('claim-password')?.value || '';
-  const errEl    = document.getElementById('challenge-claim-error');
-
-  if (!name || !email || !password) {
-    errEl.textContent = 'All fields are required.';
-    errEl.style.display = 'block'; return;
-  }
-  errEl.style.display = 'none';
-
-  const btn = document.getElementById('challenge-claim-btn');
-  btn.disabled = true; btn.textContent = 'Saving…';
-
-  try {
-    const res = await fetch('/api/auth/claim-challenge', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, name, password, callSid: _challengeCallSid, challengeToken: _challengeToken }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Account creation failed');
-
-    setAuth(data.token, data.user);
-    navigate('/');
-  } catch (err) {
-    btn.disabled = false; btn.textContent = 'Save My Results →';
-    errEl.textContent = err.message;
-    errEl.style.display = 'block';
-  }
+function claimChallengeAccount() {
+  // Redirect to Clerk sign-up; after onboarding the call can be linked manually
+  _clerk?.redirectToSignUp();
 }
 
 // ── LANDING PAGE ──────────────────────────────────────────────────────────────
@@ -941,319 +954,98 @@ function startHeroNotifications() {
   _heroNotifTimer = setTimeout(spawnNotif, 800);
 }
 
-// ── FORGOT PASSWORD ───────────────────────────────────────────────────────────
+// ── AUTH PAGES (Clerk handles these — redirect) ───────────────────────────────
 
-function renderForgotPassword() {
-  app.innerHTML = `
-    <div class="auth-wrap">
-      <div class="auth-card">
-        <div class="auth-brand">FreshUp<span> AI</span></div>
-        <h2>Reset your password</h2>
-        <p class="subtitle">Enter your email and we'll generate a reset link.</p>
-        <form id="forgot-form">
-          <div class="form-group">
-            <label for="forgot-email">Email</label>
-            <input type="email" id="forgot-email" placeholder="you@dealership.com" required autocomplete="email" />
-          </div>
-          <div id="forgot-msg" style="display:none"></div>
-          <button type="submit" class="btn btn-primary btn-full" id="forgot-btn">Send Reset Link</button>
-        </form>
-        <p class="auth-switch"><a href="#/login" class="link">← Back to sign in</a></p>
-      </div>
-    </div>
-  `;
+function renderLogin()          { _clerk?.redirectToSignIn();  }
+function renderRegister()       { _clerk?.redirectToSignUp();  }
+function renderForgotPassword() { _clerk?.redirectToSignIn();  }
+function renderResetPassword()  { _clerk?.redirectToSignIn();  }
 
-  document.getElementById('forgot-form').addEventListener('submit', async e => {
-    e.preventDefault();
-    const btn   = document.getElementById('forgot-btn');
-    const msgEl = document.getElementById('forgot-msg');
-    btn.disabled = true;
-    btn.textContent = 'Generating link…';
-    msgEl.style.display = 'none';
+// ── ONBOARDING ────────────────────────────────────────────────────────────────
 
-    try {
-      const res = await fetch('/api/auth/forgot-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: document.getElementById('forgot-email').value.trim() }),
-      });
-      const data = await res.json();
+function renderOnboarding() {
+  const clerkUser = _clerk?.user;
+  const clerkEmail = clerkUser?.primaryEmailAddress?.emailAddress || '';
+  const clerkName = [clerkUser?.firstName, clerkUser?.lastName].filter(Boolean).join(' ') || '';
 
-      if (data.resetUrl) {
-        // Email service not configured — show link directly
-        msgEl.innerHTML =
-          `<div class="auth-info-box">
-            <strong>Reset link generated.</strong><br>
-            Copy and open this link to set your new password:<br>
-            <a href="${escHtml(data.resetUrl)}" class="link" style="word-break:break-all;font-size:13px">${escHtml(data.resetUrl)}</a>
-            <div style="margin-top:8px;font-size:12px;color:var(--text-muted)">Link expires in 1 hour.</div>
-          </div>`;
-      } else {
-        msgEl.innerHTML = `<div class="auth-info-box">If that email is registered, a reset link has been sent.</div>`;
-      }
-      msgEl.style.display = 'block';
-      btn.style.display = 'none';
-    } catch {
-      msgEl.textContent = 'Network error. Please try again.';
-      msgEl.className = 'auth-error';
-      msgEl.style.display = 'block';
-      btn.disabled = false;
-      btn.textContent = 'Send Reset Link';
-    }
-  });
-}
-
-// ── RESET PASSWORD ────────────────────────────────────────────────────────────
-
-function renderResetPassword(token) {
-  if (!token) {
-    app.innerHTML = `<div class="auth-wrap"><div class="auth-card">
-      <div class="auth-brand">FreshUp<span> AI</span></div>
-      <h2>Invalid link</h2>
-      <p class="subtitle">This reset link is missing or malformed.</p>
-      <p class="auth-switch"><a href="#/forgot-password" class="link">Request a new one →</a></p>
-    </div></div>`;
-    return;
-  }
-
-  app.innerHTML = `
-    <div class="auth-wrap">
-      <div class="auth-card">
-        <div class="auth-brand">FreshUp<span> AI</span></div>
-        <h2>Set new password</h2>
-        <p class="subtitle">Choose a strong password for your account.</p>
-        <form id="reset-form">
-          <div class="form-group">
-            <label for="reset-password">New Password</label>
-            <input type="password" id="reset-password" placeholder="At least 6 characters" required autocomplete="new-password" minlength="6" />
-          </div>
-          <div class="form-group">
-            <label for="reset-confirm">Confirm Password</label>
-            <input type="password" id="reset-confirm" placeholder="Repeat password" required autocomplete="new-password" />
-          </div>
-          <div id="reset-error" class="auth-error" style="display:none"></div>
-          <button type="submit" class="btn btn-primary btn-full" id="reset-btn">Update Password</button>
-        </form>
-      </div>
-    </div>
-  `;
-
-  document.getElementById('reset-form').addEventListener('submit', async e => {
-    e.preventDefault();
-    const btn    = document.getElementById('reset-btn');
-    const errEl  = document.getElementById('reset-error');
-    const pw     = document.getElementById('reset-password').value;
-    const confirm = document.getElementById('reset-confirm').value;
-
-    errEl.style.display = 'none';
-    if (pw !== confirm) {
-      errEl.textContent = 'Passwords do not match.';
-      errEl.style.display = 'block';
-      return;
-    }
-
-    btn.disabled = true;
-    btn.textContent = 'Updating…';
-
-    try {
-      const res = await fetch('/api/auth/reset-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, password: pw }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || res.statusText);
-
-      // Success — redirect to login with a message
-      app.innerHTML = `
-        <div class="auth-wrap"><div class="auth-card">
-          <div class="auth-brand">FreshUp<span> AI</span></div>
-          <h2>Password updated!</h2>
-          <p class="subtitle">You can now sign in with your new password.</p>
-          <a href="#/login" class="btn btn-primary btn-full">Sign In →</a>
-        </div></div>`;
-    } catch (err) {
-      errEl.textContent = err.message;
-      errEl.style.display = 'block';
-      btn.disabled = false;
-      btn.textContent = 'Update Password';
-    }
-  });
-}
-
-// ── LOGIN ─────────────────────────────────────────────────────────────────────
-
-function renderLogin() {
-  app.innerHTML = `
-    <div class="auth-wrap">
-      <div class="auth-card">
-        <div class="auth-brand">FreshUp<span> AI</span></div>
-        <h2>Welcome back</h2>
-        <p class="subtitle">Sign in to your account</p>
-        <form id="login-form">
-          <div class="form-group">
-            <label for="login-email">Email</label>
-            <input type="email" id="login-email" placeholder="you@dealership.com" required autocomplete="email" />
-          </div>
-          <div class="form-group">
-            <div style="display:flex;justify-content:space-between;align-items:baseline">
-              <label for="login-password">Password</label>
-              <a href="#/forgot-password" class="link" style="font-size:13px">Forgot password?</a>
-            </div>
-            <input type="password" id="login-password" placeholder="••••••••" required autocomplete="current-password" />
-          </div>
-          <div id="auth-error" class="auth-error" style="display:none"></div>
-          <button type="submit" class="btn btn-primary btn-full" id="login-btn">Sign In</button>
-        </form>
-        <p class="auth-switch">First time here? <a href="#/register" class="link">Join Now</a></p>
-      </div>
-    </div>
-  `;
-
-  document.getElementById('login-form').addEventListener('submit', async e => {
-    e.preventDefault();
-    const btn = document.getElementById('login-btn');
-    const errEl = document.getElementById('auth-error');
-    btn.disabled = true;
-    btn.textContent = 'Signing in…';
-    errEl.style.display = 'none';
-
-    try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: document.getElementById('login-email').value.trim(),
-          password: document.getElementById('login-password').value,
-        }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: res.statusText }));
-        throw new Error(err.error || res.statusText);
-      }
-      const data = await res.json();
-      setAuth(data.token, data.user);
-      navigate('/');
-    } catch (err) {
-      errEl.textContent = err.message;
-      errEl.style.display = 'block';
-      btn.disabled = false;
-      btn.textContent = 'Sign In';
-    }
-  });
-}
-
-// ── REGISTER ──────────────────────────────────────────────────────────────────
-
-function renderRegister() {
-  const defaultRole = sessionStorage.getItem('register_role') || 'rep';
-  sessionStorage.removeItem('register_role');
+  let currentRole = 'rep';
 
   app.innerHTML = `
     <div class="auth-wrap">
       <div class="auth-card auth-card-wide">
         <div class="auth-brand">FreshUp<span> AI</span></div>
-        <h2>Create account</h2>
+        <h2>One last step</h2>
+        <p class="subtitle">Tell us your role to complete your account setup.</p>
 
         <div class="role-toggle" id="role-toggle">
-          <button type="button" class="role-btn${defaultRole === 'rep' ? ' active' : ''}" data-role="rep">Rep</button>
-          <button type="button" class="role-btn${defaultRole === 'manager' ? ' active' : ''}" data-role="manager">Manager</button>
+          <button class="role-btn active" data-role="rep">Sales Rep</button>
+          <button class="role-btn" data-role="manager">Manager</button>
         </div>
 
-        <form id="register-form">
-          <div class="form-group">
-            <label for="reg-name">Full Name</label>
-            <input type="text" id="reg-name" placeholder="Alex Johnson" required autocomplete="name" />
+        <form id="onboarding-form">
+          <div class="form-group" id="rep-invite-group">
+            <label for="ob-invite">Team Invite Code <span class="required-star">*</span></label>
+            <input type="text" id="ob-invite" placeholder="Ask your manager for the code" autocomplete="off" />
+            <div class="form-hint">Your manager's 8-character team code.</div>
           </div>
-          <div class="form-group">
-            <label for="reg-email">Email</label>
-            <input type="email" id="reg-email" placeholder="you@dealership.com" required autocomplete="email" />
+          <div class="form-group" id="manager-access-group" style="display:none">
+            <label for="ob-access">Manager Access Code <span class="required-star">*</span></label>
+            <input type="text" id="ob-access" placeholder="Contact FreshUp for access" autocomplete="off" />
           </div>
-          <div class="form-group">
-            <label for="reg-password">Password</label>
-            <input type="password" id="reg-password" placeholder="At least 6 characters" required minlength="6" autocomplete="new-password" />
+          <div class="form-group" id="manager-team-group" style="display:none">
+            <label for="ob-team">Dealership / Team Name</label>
+            <input type="text" id="ob-team" placeholder="e.g. Riverside Ford" autocomplete="organization" />
           </div>
-
-          <div id="manager-fields" style="display:${defaultRole === 'manager' ? 'block' : 'none'}">
-            <div class="form-group">
-              <label for="reg-team">Dealership Name</label>
-              <input type="text" id="reg-team" placeholder="Metro Ford" autocomplete="organization" />
-            </div>
-            <div class="form-group">
-              <label for="reg-access-code">Manager Access Code</label>
-              <input type="text" id="reg-access-code" placeholder="Enter your access code" autocomplete="off" style="text-transform:uppercase" />
-              <p class="input-hint">Contact FreshUp to get your dealership access code.</p>
-            </div>
-          </div>
-
-          <div id="rep-fields" style="display:${defaultRole === 'rep' ? 'block' : 'none'}">
-            <div class="form-group">
-              <label for="reg-invite">Team Invite Code <span style="color:var(--error)">*</span></label>
-              <input type="text" id="reg-invite" placeholder="Enter code from your manager" autocomplete="off" style="text-transform:uppercase" />
-              <p class="input-hint">Your manager will send you a unique invite code when you join their team.</p>
-            </div>
-          </div>
-
-          <div id="auth-error" class="auth-error" style="display:none"></div>
-          <button type="submit" class="btn btn-primary btn-full" id="register-btn">Create Account</button>
+          <div id="ob-error" class="auth-error" style="display:none"></div>
+          <button type="submit" class="btn btn-primary btn-full" id="ob-btn">Complete Setup</button>
         </form>
-        <p class="auth-switch">Already have an account? <a href="#/login" class="link">Sign In</a></p>
       </div>
     </div>
   `;
 
-  let currentRole = defaultRole;
-
-  document.getElementById('role-toggle').addEventListener('click', e => {
-    const btn = e.target.closest('.role-btn');
-    if (!btn) return;
-    currentRole = btn.dataset.role;
-    document.querySelectorAll('.role-btn').forEach(b => b.classList.toggle('active', b.dataset.role === currentRole));
-    document.getElementById('manager-fields').style.display = currentRole === 'manager' ? 'block' : 'none';
-    document.getElementById('rep-fields').style.display = currentRole === 'rep' ? 'block' : 'none';
-    // Only mark invite code required when rep tab is active — hidden required fields block submission
-    document.getElementById('reg-invite').required = currentRole === 'rep';
+  document.querySelectorAll('.role-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentRole = btn.dataset.role;
+      document.getElementById('rep-invite-group').style.display     = currentRole === 'rep'     ? '' : 'none';
+      document.getElementById('manager-access-group').style.display = currentRole === 'manager' ? '' : 'none';
+      document.getElementById('manager-team-group').style.display   = currentRole === 'manager' ? '' : 'none';
+    });
   });
 
-  document.getElementById('register-form').addEventListener('submit', async e => {
+  document.getElementById('onboarding-form').addEventListener('submit', async e => {
     e.preventDefault();
-    const btn = document.getElementById('register-btn');
-    const errEl = document.getElementById('auth-error');
-    btn.disabled = true;
-    btn.textContent = 'Creating account…';
+    const btn   = document.getElementById('ob-btn');
+    const errEl = document.getElementById('ob-error');
     errEl.style.display = 'none';
-
-    const body = {
-      name: document.getElementById('reg-name').value.trim(),
-      email: document.getElementById('reg-email').value.trim(),
-      password: document.getElementById('reg-password').value,
-      role: currentRole,
-    };
-    if (currentRole === 'manager') {
-      body.team_name = document.getElementById('reg-team').value.trim();
-      body.access_code = document.getElementById('reg-access-code').value.trim();
-    } else {
-      body.invite_code = document.getElementById('reg-invite').value.trim();
-    }
+    btn.disabled = true;
+    btn.textContent = 'Setting up…';
 
     try {
-      const res = await fetch('/api/auth/register', {
+      const body = {
+        role: currentRole,
+        name: clerkName,
+        email: clerkEmail,
+        ...(currentRole === 'rep'
+          ? { inviteCode: document.getElementById('ob-invite').value.trim() }
+          : {
+              accessCode: document.getElementById('ob-access').value.trim(),
+              teamName:   document.getElementById('ob-team').value.trim(),
+            }),
+      };
+      const data = await api('/api/auth/setup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: res.statusText }));
-        throw new Error(err.error || res.statusText);
-      }
-      const data = await res.json();
-      setAuth(data.token, data.user);
+      setLocalUser(data.user);
       navigate('/');
     } catch (err) {
       errEl.textContent = err.message;
       errEl.style.display = 'block';
       btn.disabled = false;
-      btn.textContent = 'Create Account';
+      btn.textContent = 'Complete Setup';
     }
   });
 }
@@ -1493,7 +1285,7 @@ async function renderDashboard() {
           method: 'PATCH', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ phone_number: phone }),
         });
-        setAuth(profileRes.token, profileRes.user);
+        setLocalUser(profileRes.user);
       }
       const callRes = await api('/api/call/start', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -1899,9 +1691,9 @@ function pollResults(callSid) {
   });
 }
 
-function connectCallStream(callSid) {
+async function connectCallStream(callSid) {
   gaugeDisplayedScore = 0;
-  const token = getToken();
+  const token = await getToken();
   const src = new EventSource(`/api/call/${callSid}/stream?token=${encodeURIComponent(token || '')}`);
   let currentAssistantBubble = null;
 
@@ -3003,7 +2795,7 @@ async function renderSettings() {
     if (!name) { msgEl.textContent = 'Name cannot be empty.'; msgEl.className = 'settings-msg error'; msgEl.style.display = 'block'; return; }
     try {
       const res = await api('/api/auth/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) });
-      setAuth(res.token, res.user);
+      setLocalUser(res.user);
       msgEl.textContent = 'Name updated!';
       msgEl.className = 'settings-msg success';
       msgEl.style.display = 'block';
@@ -3022,7 +2814,7 @@ async function renderSettings() {
     const msgEl = document.getElementById('settings-phone-msg');
     try {
       const res = await api('/api/auth/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone_number }) });
-      setAuth(res.token, res.user);
+      setLocalUser(res.user);
       msgEl.textContent = phone_number ? 'Phone number saved!' : 'Phone number cleared.';
       msgEl.className = 'settings-msg success';
       msgEl.style.display = 'block';
