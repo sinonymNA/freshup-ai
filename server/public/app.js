@@ -967,7 +967,7 @@ function renderRegister() {
           <div id="rep-fields" style="display:${defaultRole === 'rep' ? 'block' : 'none'}">
             <div class="form-group">
               <label for="reg-invite">Team Invite Code <span style="color:var(--error)">*</span></label>
-              <input type="text" id="reg-invite" placeholder="Enter code from your manager" autocomplete="off" style="text-transform:uppercase" required />
+              <input type="text" id="reg-invite" placeholder="Enter code from your manager" autocomplete="off" style="text-transform:uppercase" />
               <p class="input-hint">Your manager will send you a unique invite code when you join their team.</p>
             </div>
           </div>
@@ -989,6 +989,8 @@ function renderRegister() {
     document.querySelectorAll('.role-btn').forEach(b => b.classList.toggle('active', b.dataset.role === currentRole));
     document.getElementById('manager-fields').style.display = currentRole === 'manager' ? 'block' : 'none';
     document.getElementById('rep-fields').style.display = currentRole === 'rep' ? 'block' : 'none';
+    // Only mark invite code required when rep tab is active — hidden required fields block submission
+    document.getElementById('reg-invite').required = currentRole === 'rep';
   });
 
   document.getElementById('register-form').addEventListener('submit', async e => {
