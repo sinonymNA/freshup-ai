@@ -2238,7 +2238,7 @@ async function renderLeaderboard() {
 
   try { allRows = await api('/api/courses/leaderboard/top'); } catch { /* fall through */ }
 
-  const userHasTeam = user && user.team_id;
+  const userHasTeam = user && user.teamId;
   if (userHasTeam) {
     try { teamRows = await api('/api/courses/leaderboard/top?scope=team'); } catch { /* fall through */ }
   }

@@ -51,32 +51,35 @@ router.post('/register', async (req, res) => {
       return;
     }
 
-    const password_hash = await bcrypt.hash(password, 12);
-    let user = createUser({ email: email.toLowerCase().trim(), name: name.trim(), password_hash, role });
-
+    // Validate codes BEFORE creating the user so no orphaned records are left
+    let resolvedTeam = null;
     if (role === 'manager') {
-      // Validate manager access code
       const validCode = process.env.MANAGER_ACCESS_CODE || 'FRESHUP123';
       if (!access_code || access_code.trim().toUpperCase() !== validCode.toUpperCase()) {
         res.status(403).json({ error: 'Invalid manager access code. Contact FreshUp to get your code.' });
         return;
       }
-      // Create a team automatically
-      const tName = (team_name && team_name.trim()) || `${name.trim()}'s Team`;
-      const team = createTeam({ name: tName, managerId: user.id });
-      user = updateUser(user.id, { team_id: team.id });
     } else {
-      // Rep must provide invite code to join a team
       if (!invite_code || !invite_code.trim()) {
         res.status(400).json({ error: 'Invite code from your manager is required to create an account.' });
         return;
       }
-      const team = getTeamByCode(invite_code.trim());
-      if (!team) {
+      resolvedTeam = getTeamByCode(invite_code.trim());
+      if (!resolvedTeam) {
         res.status(400).json({ error: 'Invalid invite code. Ask your manager to check the code.' });
         return;
       }
+    }
+
+    const password_hash = await bcrypt.hash(password, 12);
+    let user = createUser({ email: email.toLowerCase().trim(), name: name.trim(), password_hash, role });
+
+    if (role === 'manager') {
+      const tName = (team_name && team_name.trim()) || `${name.trim()}'s Team`;
+      const team = createTeam({ name: tName, managerId: user.id });
       user = updateUser(user.id, { team_id: team.id });
+    } else {
+      user = updateUser(user.id, { team_id: resolvedTeam.id });
     }
 
     res.json({ token: makeToken(user), user: userPayload(user) });

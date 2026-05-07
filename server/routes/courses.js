@@ -62,7 +62,7 @@ router.get('/leaderboard/top', (req, res, next) => {
   if (req.query.scope === 'team') return requireAuth(req, res, next);
   next();
 }, (req, res) => {
-  const teamId = req.query.scope === 'team' ? (req.user?.team_id ?? null) : null;
+  const teamId = req.query.scope === 'team' ? (req.user?.teamId ?? null) : null;
   const rows = getLeaderboard(20, teamId);
   const ranked = rows.map((row, i) => ({ rank: i + 1, ...row }));
   res.json(ranked);
