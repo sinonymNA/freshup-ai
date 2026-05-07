@@ -65,13 +65,21 @@ async function gradeGauntlet(challenge, response) {
     `Scenario: ${challenge.context}\n` +
     `Customer said: "${challenge.challenge}"\n` +
     `Sales rep responded: "${response}"\n\n` +
-    `Score 0-100. Consider: did they avoid giving price before getting contact info? ` +
-    `Did they redirect toward an appointment? Did they maintain rapport? ` +
-    `Respond ONLY in JSON: { "score": number, "whatWorked": string, "whatMissed": string, "strongerLine": string }`;
+    `Grade using the Four-Part Response Framework. Score each part 0–25:\n` +
+    `• acknowledge (0–25): Did they validate the concern without agreeing or folding?\n` +
+    `• bridge (0–25): Did they shift conversation toward a solution without dismissing the concern?\n` +
+    `• answer (0–25): Did they give a clear, confident response addressing the REAL concern beneath the objection?\n` +
+    `• redirect (0–25): Did they guide the conversation back toward the appointment?\n\n` +
+    `Penalize for: giving up at first pushback, matching resistance with pressure, answering only the surface objection, rushing to give price or payment, going silent or stopping at "I understand."\n\n` +
+    `score: sum of all four parts (0–100).\n` +
+    `whatWorked: 1 sentence on what they did right.\n` +
+    `whatMissed: 1 sentence on what they missed or could improve.\n` +
+    `strongerLine: one line they could have said instead, written in first person as the rep.\n\n` +
+    `Respond ONLY in JSON: { "score": number, "acknowledge": number, "bridge": number, "answer": number, "redirect": number, "whatWorked": string, "whatMissed": string, "strongerLine": string }`;
 
   const msg = await client.messages.create({
     model: 'claude-sonnet-4-5',
-    max_tokens: 300,
+    max_tokens: 400,
     messages: [{ role: 'user', content: prompt }],
   });
 
@@ -87,7 +95,7 @@ async function gradeGauntlet(challenge, response) {
         // fall through
       }
     }
-    return { score: 0, whatWorked: '', whatMissed: 'Could not parse response', strongerLine: '' };
+    return { score: 0, acknowledge: 0, bridge: 0, answer: 0, redirect: 0, whatWorked: '', whatMissed: 'Could not parse response', strongerLine: '' };
   }
 }
 

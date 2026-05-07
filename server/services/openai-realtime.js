@@ -92,14 +92,17 @@ function buildInstructions(persona, contactInfo) {
       '\n\nHANG-UP RULE: Do NOT hang up unless the rep is aggressively rude or completely ignores you after you have asked the same question twice with no response. You are extremely reluctant to end this call — make them earn that hang-up.';
   }
 
+  instructions +=
+    '\n\nLANGUAGE: This call is in English. Always respond in English. You may use the occasional Spanish word or phrase naturally if it genuinely fits your character, but every full sentence must be in English.' +
+    '\n\nMARKER OVERRIDE: If your persona description tells you to end responses with [HANG_UP] or [APPOINTMENT_SET], ignore those instructions — they are outdated. Use ONLY the end_call function to end the call. Never append text markers.';
+
   if (contactInfo) {
     instructions +=
-      `\n\nYour personal details for this call (share these ONLY when the rep asks):` +
-      `\n• Your name: ${contactInfo.name} — say your first name when you introduce yourself, full name if they ask` +
-      `\n• Your callback number: ${contactInfo.phone} — give this if they ask how to reach you or request a callback number` +
-      `\n• Your email: ${contactInfo.email} — give this only if they specifically ask for an email address` +
-      `\n• You\'re calling about: ${contactInfo.car} — mention this when discussing what vehicle you\'re looking for` +
-      `\nDo NOT volunteer all this at once. Share each piece of info naturally, only when the rep asks or it comes up in conversation.`;
+      `\n\nContact details to share ONLY when the rep specifically asks for them:` +
+      `\n• Callback number: ${contactInfo.phone} — give this when asked how to reach you` +
+      `\n• Email: ${contactInfo.email} — give this only if they ask for an email address` +
+      `\n• Vehicle of interest: ${contactInfo.car} — mention this when discussing what you are looking for` +
+      `\nDo NOT volunteer all this at once. Share each piece naturally, only when the rep asks or it comes up organically.`;
   }
 
   return instructions;

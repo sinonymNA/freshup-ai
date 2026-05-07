@@ -562,15 +562,15 @@ function renderLanding() {
         <div class="hero-grid-overlay"></div>
         <div class="hero-inner">
           <div class="hero-content">
-            <div class="hero-badge reveal">KORA-Powered AI Training</div>
+            <div class="hero-badge reveal">AI-Powered Inbound Training</div>
             <h1 class="hero-headline">
               <span class="hero-line1 reveal" data-delay="60">Train Like It's Real.</span>
               <span class="hero-line2 gradient-text reveal" data-delay="160">Close Like It Counts.</span>
             </h1>
-            <p class="hero-sub reveal" data-delay="260">Your reps practice on AI buyers that push back, object, and hang up — powered by the KORA framework. Every call scored. Every rep improving.</p>
+            <p class="hero-sub reveal" data-delay="260">Your reps practice on AI buyers that push back, object, and hang up — on their actual phone. Every call scored instantly. Every rep improving.</p>
             <div class="hero-ctas reveal" data-delay="360">
-              <a href="#/register" class="btn-shimmer">Join Now</a>
-              <a href="#/register?role=manager" class="btn-ghost-hero" id="gm-cta">Join Now →</a>
+              <button class="btn-shimmer" id="hero-request-info">Request Info</button>
+              <button class="btn-ghost-hero" id="hero-try-call">Try a Call →</button>
             </div>
             <p class="hero-note reveal" data-delay="420">No credit card required · Setup in 2 minutes</p>
           </div>
@@ -735,9 +735,9 @@ function renderLanding() {
         <div class="section-inner">
           <div class="kora-grid">
             <div class="kora-content reveal-left">
-              <div class="section-eyebrow">The KORA Framework</div>
+              <div class="section-eyebrow">The FreshUp Method</div>
               <h2 class="section-headline">AI buyers that behave like real people.</h2>
-              <p class="kora-body">Most AI roleplay tools are easy to hack — say the right keywords and the bot folds. KORA trains each persona with behavioral anchors, internal emotional states, randomized call contexts, and authentic speech patterns. Your reps can't script their way through it.</p>
+              <p class="kora-body">Most AI roleplay tools are easy to hack — say the right keywords and the bot folds. FreshUp trains each buyer simulation with behavioral anchors, internal emotional states, randomized call contexts, and authentic speech patterns. Your reps can't script their way through it.</p>
               <ul class="kora-pillars">
                 <li><span class="kora-pill">Behavioral Anchors</span>Verbatim dialogue examples of how each buyer speaks</li>
                 <li><span class="kora-pill">Internal State</span>Hidden emotional context driving every response</li>
@@ -754,7 +754,7 @@ function renderLanding() {
                     <div class="kora-demo-name">Marcus Webb</div>
                     <div class="kora-demo-meta">Accountant · Atlanta · Difficulty: Hard</div>
                   </div>
-                  <div class="kora-demo-tag">KORA Active</div>
+                  <div class="kora-demo-tag">FreshUp Active</div>
                 </div>
                 <div class="kora-exchange">
                   <div class="kora-line kora-rep">Rep: "Thanks for calling — what brought you in today?"</div>
@@ -763,7 +763,7 @@ function renderLanding() {
                   <div class="kora-line kora-rep">Rep: "Great question — before I pull that number, what are you currently driving?"</div>
                   <div class="kora-line kora-buyer">"Look, I just need the price. Can you give me that or not?"</div>
                 </div>
-                <div class="kora-anchor-label">Behavioral Anchor Exchange</div>
+                <div class="kora-anchor-label">Example Exchange</div>
               </div>
             </div>
           </div>
@@ -837,10 +837,11 @@ function renderLanding() {
     </div>
   `;
 
-  document.getElementById('gm-cta')?.addEventListener('click', e => {
-    e.preventDefault();
-    sessionStorage.setItem('register_role', 'manager');
-    navigate('/register');
+  document.getElementById('hero-request-info')?.addEventListener('click', () => {
+    document.getElementById('contact-section')?.scrollIntoView({ behavior: 'smooth' });
+  });
+  document.getElementById('hero-try-call')?.addEventListener('click', () => {
+    document.getElementById('challenge-section')?.scrollIntoView({ behavior: 'smooth' });
   });
 
   bindChallengeBlock();
@@ -2927,12 +2928,12 @@ function renderGauntletIdle() {
   const filtered = getFilteredChallenges();
   const cats = [
     { id: 'all', label: 'All' },
-    { id: 'warmup', label: 'Warm-up' },
-    { id: 'price', label: 'Price' },
-    { id: 'availability', label: 'Availability' },
-    { id: 'commitment', label: 'Commitment' },
-    { id: 'info', label: 'Info' },
-    { id: 'competitor', label: 'Competitor' },
+    { id: 'warmup', label: 'Warm-up', desc: 'Early-call hesitation before the customer is fully engaged' },
+    { id: 'price', label: 'Price', desc: 'Payment questions, budget concerns, and "your price is too high"' },
+    { id: 'availability', label: 'Availability', desc: 'Questions about stock, timing, and whether the vehicle is there' },
+    { id: 'commitment', label: 'Commitment', desc: '"Just looking," "Not ready," "I need to think about it"' },
+    { id: 'info', label: 'Info', desc: 'Customers who want all details before agreeing to anything' },
+    { id: 'competitor', label: 'Competitor', desc: '"I\'m also looking at [other dealership]" situations' },
   ];
   const diffs = [
     { id: 'all', label: 'All' },
@@ -2950,12 +2951,42 @@ function renderGauntletIdle() {
       </div>
     </div>
     <div class="gauntlet-wrap">
+
+      <div class="gauntlet-guide glass" id="gauntlet-guide">
+        <button class="gg-header" id="gg-toggle" type="button">
+          <span>How Objection Handling Works</span>
+          <span class="gg-chevron" id="gg-chevron">▾</span>
+        </button>
+        <div class="gg-body" id="gg-body" style="display:none">
+          <p class="gg-intro">An objection is not a rejection — it's a signal. When a customer pushes back, they're telling you they're still interested. They just need more before they move forward. Strong objection handling is not about being slick. It's about being prepared.</p>
+          <div class="gg-framework-label">The Four-Part Response Framework</div>
+          <div class="gg-framework">
+            <div class="gg-step"><span class="gg-step-letter" style="background:#3b82f6">A</span><div><strong>Acknowledge</strong><span>Validate the concern without agreeing or folding</span></div></div>
+            <div class="gg-step"><span class="gg-step-letter" style="background:#8b5cf6">B</span><div><strong>Bridge</strong><span>Shift toward a solution without dismissing</span></div></div>
+            <div class="gg-step"><span class="gg-step-letter" style="background:#f59e0b">A</span><div><strong>Answer</strong><span>Address the REAL concern beneath the objection</span></div></div>
+            <div class="gg-step"><span class="gg-step-letter" style="background:#10b981">R</span><div><strong>Redirect</strong><span>Guide the conversation back to the appointment</span></div></div>
+          </div>
+          <div class="gg-avoid-label">What to Avoid</div>
+          <ul class="gg-avoid-list">
+            <li>Giving up when the customer pushes back the first time</li>
+            <li>Matching the customer's resistance with pressure</li>
+            <li>Answering the surface objection without the real concern underneath</li>
+            <li>Rushing to give price, payment, or info before building any rapport</li>
+            <li>Going silent or saying "I understand" and stopping there</li>
+          </ul>
+        </div>
+      </div>
+
       <div class="gauntlet-filters">
         <div class="gauntlet-filter-group">
           <span class="gauntlet-filter-label">Category</span>
           <div class="gauntlet-filter-btns" id="cat-filter">
             ${cats.map(c => `<button class="gf-btn${gauntletState.categoryFilter === c.id ? ' active' : ''}" data-val="${c.id}">${c.label}</button>`).join('')}
           </div>
+          ${gauntletState.categoryFilter !== 'all' ? (() => {
+            const found = cats.find(c => c.id === gauntletState.categoryFilter);
+            return found && found.desc ? `<div class="gauntlet-cat-desc">${escHtml(found.desc)}</div>` : '';
+          })() : ''}
         </div>
         <div class="gauntlet-filter-group">
           <span class="gauntlet-filter-label">Difficulty</span>
@@ -2970,6 +3001,14 @@ function renderGauntletIdle() {
       </button>
     </div>
   `;
+
+  document.getElementById('gg-toggle').addEventListener('click', () => {
+    const body = document.getElementById('gg-body');
+    const chevron = document.getElementById('gg-chevron');
+    const open = body.style.display !== 'none';
+    body.style.display = open ? 'none' : 'block';
+    chevron.textContent = open ? '▾' : '▴';
+  });
 
   document.getElementById('cat-filter').addEventListener('click', e => {
     const btn = e.target.closest('.gf-btn');
@@ -3011,6 +3050,15 @@ function renderGauntletChallenge() {
         <div class="challenge-bubble-text">"${escHtml(c.challenge)}"</div>
       </div>
       <div class="gauntlet-hint"><strong>Hint:</strong> ${escHtml(c.hint)}</div>
+      <div class="gauntlet-abar-strip">
+        <span class="abar-step" style="--abar-color:#3b82f6">Acknowledge</span>
+        <span class="abar-arrow">→</span>
+        <span class="abar-step" style="--abar-color:#8b5cf6">Bridge</span>
+        <span class="abar-arrow">→</span>
+        <span class="abar-step" style="--abar-color:#f59e0b">Answer</span>
+        <span class="abar-arrow">→</span>
+        <span class="abar-step" style="--abar-color:#10b981">Redirect</span>
+      </div>
       <div class="form-group">
         <label for="gauntlet-response">Your Response</label>
         <textarea id="gauntlet-response" rows="4" placeholder="Type exactly what you would say on the phone…" class="gauntlet-textarea"></textarea>
@@ -3045,10 +3093,24 @@ function renderGauntletChallenge() {
   });
 }
 
+function abarColor(v) {
+  if (v >= 20) return 'var(--success)';
+  if (v >= 12) return 'var(--warning)';
+  return 'var(--error)';
+}
+
 function renderGauntletResult(challenge, userResponse, result) {
   const score = result.score || 0;
   const color = scoreColor(score);
   const canSave = score >= 70;
+
+  const abarItems = [
+    { key: 'acknowledge', label: 'Acknowledge', color: '#3b82f6' },
+    { key: 'bridge',      label: 'Bridge',      color: '#8b5cf6' },
+    { key: 'answer',      label: 'Answer',       color: '#f59e0b' },
+    { key: 'redirect',    label: 'Redirect',     color: '#10b981' },
+  ];
+  const hasAbar = result.acknowledge != null || result.bridge != null || result.answer != null || result.redirect != null;
 
   app.innerHTML = `
     <a href="#/learn" class="back-link">← Learn</a>
@@ -3062,6 +3124,22 @@ function renderGauntletResult(challenge, userResponse, result) {
           <div class="rsc-lbl">/ 100</div>
         </div>
       </div>
+
+      ${hasAbar ? `
+      <div class="abar-breakdown card">
+        <div class="abar-breakdown-title">Framework Breakdown</div>
+        ${abarItems.map(item => {
+          const val = result[item.key] ?? 0;
+          const pct = Math.round(val / 25 * 100);
+          return `
+          <div class="abar-bar-row">
+            <span class="abar-label" style="color:${item.color}">${item.label}</span>
+            <div class="abar-track"><div class="abar-fill" style="width:${pct}%;background:${item.color}"></div></div>
+            <span class="abar-val">${val}/25</span>
+          </div>`;
+        }).join('')}
+      </div>
+      ` : ''}
 
       <div class="gauntlet-feedback card">
         <div class="gf-row gf-worked">

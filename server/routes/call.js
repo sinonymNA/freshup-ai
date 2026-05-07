@@ -29,17 +29,16 @@ const _CARS = [
 ];
 function _rand(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 function generateContactInfo(persona) {
-  const gender = (persona && _PERSONA_GENDER[persona.id]) || (Math.random() < 0.5 ? 'M' : 'F');
-  const pool   = gender === 'M' ? _FIRST_MALE : _FIRST_FEMALE;
-  const first  = _rand(pool);
-  const last   = _rand(_LAST);
-  const area  = String(200 + Math.floor(Math.random() * 800));
-  const mid   = String(200 + Math.floor(Math.random() * 800));
-  const end   = String(1000 + Math.floor(Math.random() * 9000));
+  const personaName = (persona && persona.name) || 'Customer';
+  const [first, ...rest] = personaName.split(' ');
+  const lastSlug = (rest.join('') || _rand(_LAST)).toLowerCase().replace(/[^a-z]/g, '');
+  const area = String(200 + Math.floor(Math.random() * 800));
+  const mid  = String(200 + Math.floor(Math.random() * 800));
+  const end  = String(1000 + Math.floor(Math.random() * 9000));
   return {
-    name:  `${first} ${last}`,
+    name:  personaName,
     phone: `(${area}) ${mid}-${end}`,
-    email: `${first.toLowerCase()}.${last.toLowerCase()}@${_rand(_DOMAINS)}`,
+    email: `${first.toLowerCase()}.${lastSlug}@${_rand(_DOMAINS)}`,
     car:   _rand(_CARS),
   };
 }

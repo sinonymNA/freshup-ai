@@ -4008,3 +4008,182 @@ body[data-page="landing"] #nav-links a:hover {
   flex: 1;
   text-align: center;
 }
+
+/* ── Gauntlet Guide (collapsible) ─────────────────────────────────────────── */
+.gauntlet-guide {
+  margin-bottom: 24px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.gg-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 14px 18px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  letter-spacing: 0.02em;
+}
+.gg-header:hover { color: var(--accent); }
+.gg-chevron { font-size: 14px; transition: transform 0.2s; }
+.gg-body {
+  padding: 0 18px 18px;
+  border-top: 1px solid var(--border);
+}
+.gg-intro {
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin: 14px 0 20px;
+}
+.gg-framework-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+.gg-framework {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.gg-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--surface-2, rgba(255,255,255,0.04));
+  border: 1px solid var(--border);
+}
+.gg-step-letter {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 900;
+  color: #fff;
+  flex-shrink: 0;
+}
+.gg-step > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.gg-step strong {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+.gg-step span {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+.gg-avoid-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--error);
+  margin-bottom: 8px;
+}
+.gg-avoid-list {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.gg-avoid-list li {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+.gauntlet-cat-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 8px;
+  font-style: italic;
+}
+
+/* ── Gauntlet ABAR Strip (challenge view) ─────────────────────────────────── */
+.gauntlet-abar-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--surface-2, rgba(255,255,255,0.04));
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.abar-step {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--abar-color, var(--accent));
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--abar-color, var(--accent)) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--abar-color, var(--accent)) 25%, transparent);
+}
+.abar-arrow {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+/* ── ABAR Breakdown (result view) ─────────────────────────────────────────── */
+.abar-breakdown {
+  margin-bottom: 16px;
+  padding: 16px 20px;
+}
+.abar-breakdown-title {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+}
+.abar-bar-row {
+  display: grid;
+  grid-template-columns: 90px 1fr 44px;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.abar-label {
+  font-size: 12px;
+  font-weight: 700;
+}
+.abar-track {
+  height: 8px;
+  background: var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.abar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+.abar-val {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-align: right;
+}
