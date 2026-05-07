@@ -2487,12 +2487,16 @@ a.link:hover { text-decoration: underline; }
 .hero-section-v3 {
   position: relative;
   width: 100%;
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
   flex-direction: column;
+}
+
+body[data-page="landing"] .hero-section-v3 {
+  padding-top: 60px;
 }
 
 .hero-bg-minimal {
@@ -2637,9 +2641,54 @@ a.link:hover { text-decoration: underline; }
   margin: 0;
 }
 
-/* Hide nav on landing page */
+/* Landing page nav styling */
 body[data-page="landing"] #nav {
-  display: none;
+  background: transparent;
+  border-bottom: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  padding: 16px 32px;
+  z-index: 200;
+  height: auto;
+}
+
+body[data-page="landing"] #nav-auth {
+  gap: 12px;
+}
+
+body[data-page="landing"] #nav-auth .btn {
+  font-size: 14px;
+  padding: 10px 22px;
+}
+
+body[data-page="landing"] #nav-auth .btn-ghost {
+  color: #cbd5e1;
+  border-color: rgba(255,255,255,0.2);
+  transition: all 0.2s ease;
+}
+
+body[data-page="landing"] #nav-auth .btn-ghost:hover {
+  color: #f1f5f9;
+  border-color: rgba(255,255,255,0.4);
+  background: rgba(255,255,255,0.05);
+}
+
+body[data-page="landing"] #nav-auth .btn-primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  box-shadow: 0 8px 20px rgba(59,130,246,0.25);
+}
+
+body[data-page="landing"] #nav-auth .btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(59,130,246,0.35);
+}
+
+body[data-page="landing"] .nav-logo {
+  height: 28px;
+  width: auto;
 }
 
 /* Full-screen hero on landing */
