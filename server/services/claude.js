@@ -9,21 +9,27 @@ async function analyzeCall(transcript, persona) {
     throw new Error('Persona is required to analyze call');
   }
   const prompt =
-    `You are a car dealership phone-up coach. The sales rep RECEIVED an inbound call from ${persona.name}.\n\n` +
-    `HARD SCORING CAPS — apply these strictly before assigning overallScore:\n` +
-    `• If the rep did NOT set an appointment → overallScore MUST be ≤ 69\n` +
-    `• If the rep got name + only one of (phone OR email) AND did set an appointment → overallScore MUST be ≤ 85\n` +
-    `• If the rep got name + phone + email + appointment → score freely 70–100 based on quality\n` +
+    `You are a car dealership phone-up coach grading a training call. The sales rep RECEIVED an inbound call from ${persona.name}.\n\n` +
+    `CALIBRATION — grade like a fair, experienced coach, not a harsh critic:\n` +
+    `• 15–20/20 = Excellent: Rep clearly excelled at this skill\n` +
+    `• 10–14/20 = Competent: Rep demonstrated this skill; some room to improve\n` +
+    `• 5–9/20   = Developing: Rep attempted this skill but fell noticeably short\n` +
+    `• 0–4/20   = Missed: Rep clearly failed to demonstrate this skill at all\n\n` +
+    `IMPORTANT BASELINE: A rep who gives a reasonably warm greeting, makes an effort to build rapport, and attempts to collect contact info — even if they don't set an appointment — should score 35–55 overall. Not every call is a 70. Not every call is a 15. Grade what actually happened.\n\n` +
+    `SCORE GUIDELINES (apply thoughtfully, not mechanically):\n` +
+    `• If the rep did NOT set an appointment → overallScore should generally be ≤ 72\n` +
+    `• If the rep got name + only one of (phone OR email) AND did set appointment → overallScore should generally be ≤ 85\n` +
+    `• If the rep got name + phone + email + appointment → score 70–100 based on overall quality\n` +
     `• Do NOT penalize for the ORDER information was collected — grade holistically\n\n` +
     `POSITIVE factors (raise score): strong positive greeting, compliment/validate the customer's reason for calling, reassure vehicle availability, ask if open to other options, verify wants and needs, offer personalized walk-around video, collect first+last name (with spelling), collect phone number, collect email, set specific appointment type (Test Drive/Trade Appraisal/Finance App/Purchase), confirm specific day+time, offer reminder text+email, handle/bypass objections.\n\n` +
     `NEGATIVE factors (reduce score): pushy language, weak confidence, negative tone, defensive phrases ("I understand, but..."), lazy one-word responses, lack of ownership, conversation killers, interrupting the customer.\n\n` +
-    `Score 0–20 on each dimension:\n` +
-    `opening: greeting warmth, gave name+dealership, complimented or validated caller's reason for calling\n` +
-    `rapport: discovered wants/needs, asked about vehicle, offered walk-around video, reassured availability, asked if open to options\n` +
-    `infoCapture: secured first+last name (with spelling), callback phone number, and email — order does not matter, grade holistically\n` +
-    `objectionHandling: bridged objections, avoided pushy/defensive/lazy language, owned the conversation, no interruptions\n` +
-    `appointment: asked for specific appointment type, specific day+time, offered reminder via text+email\n\n` +
-    `overallScore: 0–100, applying the hard caps above. feedback: 2–3 sentences of specific, actionable coaching.\n\n` +
+    `Score each dimension 0–20 using the calibration scale above:\n` +
+    `opening (0–20): Greeting warmth, gave name+dealership, complimented or validated caller's reason for calling. A decent greeting with name and dealership = at least 10.\n` +
+    `rapport (0–20): Discovered wants/needs, asked about vehicle, offered walk-around video, reassured availability, asked if open to options. Making genuine discovery effort = at least 10.\n` +
+    `infoCapture (0–20): Secured first+last name (with spelling), callback phone number, and email — order does not matter. Getting 2 of 3 info items = at least 10.\n` +
+    `objectionHandling (0–20): Bridged objections, avoided pushy/defensive/lazy language, owned the conversation, no interruptions. Handling even one objection reasonably = at least 10.\n` +
+    `appointment (0–20): Asked for specific appointment type, specific day+time, offered reminder via text+email. Asking for any appointment = at least 8.\n\n` +
+    `overallScore (0–100): Holistic score reflecting the rep's actual performance. Apply the guidelines, but trust your calibrated judgment — not every competent call ends in 0s. feedback: 2–3 sentences of specific, actionable coaching covering what they did well AND what to improve.\n\n` +
     `Respond ONLY in this exact JSON format with no other text: ` +
     `{ "opening": number, "rapport": number, "infoCapture": number, "objectionHandling": number, "appointment": number, "overallScore": number, "feedback": string }\n\n` +
     `Transcript:\n${transcript}`;

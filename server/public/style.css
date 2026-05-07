@@ -4595,3 +4595,19 @@ body[data-page="landing"] .nav-logo {
   }
   .gauntlet-phone-wrap { display: none; }
 }
+
+/* ── Manager Call View ────────────────────────────────────────────────────── */
+.mgr-call-wrap {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 24px;
+  align-items: start;
+  margin-top: 16px;
+}
+.mgr-call-left .phone-card { height: auto; }
+.mgr-call-right .live-transcript-card { height: calc(100vh - 180px); display: flex; flex-direction: column; }
+.mgr-call-right .lt-messages { flex: 1; overflow-y: auto; }
+@media (max-width: 860px) {
+  .mgr-call-wrap { grid-template-columns: 1fr; }
+  .mgr-call-right .live-transcript-card { height: 500px; }
+}

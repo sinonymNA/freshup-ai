@@ -131,6 +131,7 @@ function render() {
   if (path === '/learn/gauntlet') return renderGauntlet();
   if (path === '/learn/playbook') return renderPlaybook();
   if (path.startsWith('/call/')) return renderCallResult(path.slice('/call/'.length));
+  if (path.startsWith('/team/call/')) return renderManagerCallView(path.slice('/team/call/'.length));
   if (path.startsWith('/team/rep/')) return renderRepDetail(path.slice('/team/rep/'.length));
 
   // /learn/courses routes — same renderers as /courses
@@ -1973,6 +1974,18 @@ function showCallAnalysis(data, callSid) {
     pollTimer = setTimeout(() => pollResults(callSid), 3000);
   }
 
+  // Populate transcript from history if SSE didn't already fill the pane
+  if (data.history && data.history.length > 0) {
+    const container = document.getElementById('lt-messages');
+    if (container && container.querySelectorAll('.tb').length === 0) {
+      const empty = document.getElementById('lt-empty');
+      if (empty) empty.remove();
+      for (const msg of data.history) {
+        addTranscriptBubble(msg.role === 'user' ? 'user' : 'assistant', msg.content);
+      }
+    }
+  }
+
   checkPendingModule(data, callSid);
 }
 
@@ -2556,7 +2569,7 @@ async function renderRepDetail(userId) {
     ${calls.length === 0
       ? '<div class="empty-state">No calls yet.</div>'
       : `<div class="table-wrap"><table>
-          <thead><tr><th>Persona</th><th>Outcome</th><th>Score</th><th>Duration</th><th>Date</th></tr></thead>
+          <thead><tr><th>Persona</th><th>Outcome</th><th>Score</th><th>Duration</th><th>Date</th><th></th></tr></thead>
           <tbody>${calls.map(c => {
             const sv = c.score?.overallScore;
             return `<tr>
@@ -2565,10 +2578,96 @@ async function renderRepDetail(userId) {
               <td>${sv != null ? `<span class="score-num" style="color:${scoreColor(sv)}">${sv}</span>` : '—'}</td>
               <td class="text-muted">${formatDuration(c.duration)}</td>
               <td class="text-subtle text-sm">${formatDate(c.startTime)}</td>
+              <td><a href="#/team/call/${c.callSid}" class="btn btn-secondary btn-sm">Transcript</a></td>
             </tr>`;
           }).join('')}</tbody>
         </table></div>`
     }
+  `;
+}
+
+// ── MANAGER CALL VIEW ─────────────────────────────────────────────────────────
+
+async function renderManagerCallView(callSid) {
+  app.innerHTML = '<div class="page-skeleton"><div class="skel skel-title"></div><div class="skel skel-text"></div></div>';
+  let data;
+  try { data = await api(`/api/team/call/${callSid}`); } catch (e) {
+    app.innerHTML = `<div class="empty-state">${escHtml(e.message)}</div>`;
+    return;
+  }
+
+  const sc = data.score;
+  const ci = data.contactInfo;
+  const dimLabels = { opening: 'Opening', rapport: 'Rapport', infoCapture: 'Info Capture', objectionHandling: 'Objection Handling', appointment: 'Appointment' };
+  const dims = ['opening', 'rapport', 'infoCapture', 'objectionHandling', 'appointment'];
+
+  const dimsHtml = sc ? dims.map(d => {
+    const val = sc[d] ?? 0;
+    const pct = val * 5;
+    return `<div class="gauge-dim">
+      <div class="gauge-dim-header">
+        <span>${dimLabels[d]}</span>
+        <span class="gauge-dim-val" style="color:${scoreColor(pct)}">${val}/20</span>
+      </div>
+      <div class="gauge-dim-bar">
+        <div class="gauge-dim-fill" style="width:${pct}%;background:${scoreColor(pct)}"></div>
+      </div>
+    </div>`;
+  }).join('') : '';
+
+  const txHtml = (data.history || []).length > 0
+    ? (data.history).map(m => {
+        const role = m.role === 'user' ? 'user' : 'assistant';
+        const who = role === 'user' ? 'Rep' : 'Caller';
+        return `<div class="tb tb-${role}"><div class="tb-who">${who}</div><div class="tb-text">${escHtml(m.content)}</div></div>`;
+      }).join('')
+    : '<div class="lt-preview-empty"><div class="lt-preview-icon">📝</div><p>No transcript saved for this call.</p></div>';
+
+  const contactHtml = ci ? `
+    <div class="contact-reveal" style="margin-top:16px">
+      <div class="contact-reveal-header"><span class="contact-reveal-icon">📋</span><div><strong>Caller Info</strong><div class="contact-reveal-sub">What the rep should have captured</div></div></div>
+      <div class="contact-grid">
+        <div class="contact-field"><span class="cf-lbl">Name</span><span class="cf-val">${escHtml(ci.name)}</span></div>
+        <div class="contact-field"><span class="cf-lbl">Phone</span><span class="cf-val">${escHtml(ci.phone)}</span></div>
+        <div class="contact-field"><span class="cf-lbl">Email</span><span class="cf-val">${escHtml(ci.email)}</span></div>
+        <div class="contact-field"><span class="cf-lbl">Vehicle</span><span class="cf-val">${escHtml(ci.car)}</span></div>
+      </div>
+    </div>` : '';
+
+  const scoreVal = sc?.overallScore;
+
+  app.innerHTML = `
+    <a href="#/team/rep/${data.userId}" class="back-link">← Back to ${escHtml(data.repName || 'Rep')}</a>
+    <div class="mgr-call-wrap">
+      <div class="mgr-call-left">
+        <div class="phone-card">
+          <div class="phone-card-head">
+            <span class="live-status-dot done"></span>
+            <h2>Call Review</h2>
+            <p class="phone-card-sub">${escHtml(data.repName || '—')} → ${escHtml(data.personaName || '—')}</p>
+          </div>
+          <div style="margin-top:12px">${outcomePill(data.outcome)}</div>
+          ${scoreVal != null ? `
+            <div style="margin-top:24px;text-align:center">
+              <div style="font-size:48px;font-weight:900;color:${scoreColor(scoreVal)}">${scoreVal}</div>
+              <div style="font-size:12px;color:var(--text-muted);margin-top:2px">Overall Score</div>
+            </div>
+            <div class="gauge-dims" style="margin-top:16px">${dimsHtml}</div>
+          ` : '<div style="margin-top:24px;color:var(--text-muted);font-size:14px">Score not available yet.</div>'}
+          ${sc?.feedback ? `<div class="live-feedback" style="margin-top:16px">${escHtml(sc.feedback)}</div>` : ''}
+          ${contactHtml}
+        </div>
+      </div>
+      <div class="mgr-call-right">
+        <div class="live-transcript-card">
+          <div class="lt-header">
+            <span class="lt-title">Call Transcript</span>
+            <span class="lt-badge done">Completed ${formatDate(data.startTime)}</span>
+          </div>
+          <div class="lt-messages">${txHtml}</div>
+        </div>
+      </div>
+    </div>
   `;
 }
 

@@ -6,7 +6,7 @@ const router = express.Router();
 const { requireAuth, requireManager } = require('../middleware/requireAuth');
 const {
   getTeamByManagerId, getTeamMembers, getAllCalls, getProgress,
-  getTeamConfig, setTeamConfig, getTeamAnalytics,
+  getTeamConfig, setTeamConfig, getTeamAnalytics, getCall,
 } = require('../store');
 
 // GET /api/team — team overview + member list
@@ -64,6 +64,23 @@ router.get('/rep/:userId', requireAuth, requireManager, (req, res) => {
   const progress = getProgress(rep.id);
 
   res.json({ rep, calls, progress: progress.map(p => p.moduleId) });
+});
+
+// GET /api/team/call/:callSid — manager views a rep's call transcript + score
+router.get('/call/:callSid', requireAuth, requireManager, (req, res) => {
+  const managerTeam = getTeamByManagerId(req.user.id);
+  if (!managerTeam) { res.status(404).json({ error: 'Team not found' }); return; }
+
+  const callData = getCall(req.params.callSid);
+  if (!callData) { res.status(404).json({ error: 'Call not found' }); return; }
+
+  // Verify the call belongs to a rep on this team
+  const members = getTeamMembers(managerTeam.id);
+  const rep = members.find(m => m.id === callData.userId);
+  if (!rep) { res.status(403).json({ error: 'Call does not belong to your team' }); return; }
+
+  const { audioFiles, ...publicData } = callData; // eslint-disable-line no-unused-vars
+  res.json({ ...publicData, repName: rep.name });
 });
 
 module.exports = router;
