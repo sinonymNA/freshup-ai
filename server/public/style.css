@@ -4664,3 +4664,153 @@ body[data-page="landing"] .nav-logo {
   color: var(--text);
   line-height: 1.6;
 }
+
+/* ── GM Call Records Dashboard ────────────────────────────────────────────── */
+
+.gm-filters { margin-bottom: 20px; }
+
+.gm-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.gm-filter-group { margin-bottom: 0; }
+.gm-filter-group label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); display: block; margin-bottom: 4px; }
+.gm-date-input, .gm-score-input {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 8px 12px;
+  font-size: 14px;
+  height: 38px;
+}
+.gm-date-input { width: 150px; }
+.gm-score-input { width: 80px; }
+
+.gm-table-scroll { overflow-x: auto; }
+
+.gm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.gm-table th {
+  text-align: left;
+  padding: 10px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+}
+.gm-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.gm-table tr:last-child td { border-bottom: none; }
+.gm-table tr:hover td { background: color-mix(in srgb, var(--accent) 4%, transparent); }
+
+.gm-td-date { color: var(--text-muted); font-size: 13px; white-space: nowrap; }
+.gm-td-rep { font-weight: 600; }
+.gm-td-dur { color: var(--text-muted); font-size: 13px; }
+
+/* type badges */
+.type-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  border-radius: 6px;
+  padding: 3px 8px;
+  white-space: nowrap;
+}
+.type-badge-bot { background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent); }
+.type-badge-inbound { background: color-mix(in srgb, var(--success) 15%, transparent); color: var(--success); }
+
+/* score chips */
+.score-chip {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 6px;
+  padding: 4px 10px;
+  white-space: nowrap;
+}
+.score-chip-good   { background: color-mix(in srgb, var(--success) 15%, transparent); color: var(--success); }
+.score-chip-ok     { background: color-mix(in srgb, var(--warning) 15%, transparent); color: var(--warning); }
+.score-chip-low    { background: color-mix(in srgb, var(--error)   15%, transparent); color: var(--error);   }
+.score-chip-pending{ background: var(--surface-2); color: var(--text-muted); }
+
+/* ── GM Call Detail ─────────────────────────────────────────────────────────── */
+
+.gm-detail-grid {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 860px) {
+  .gm-detail-grid { grid-template-columns: 1fr; }
+}
+
+.gm-score-card { display: flex; flex-direction: column; gap: 20px; }
+
+.gm-score-meta {}
+.gm-score-rep  { font-size: 20px; font-weight: 800; color: var(--text); }
+.gm-score-date { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+.gm-score-type { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+.gm-score-circle {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  font-weight: 900;
+  border: 4px solid;
+  align-self: flex-start;
+}
+.circle-good    { border-color: var(--success); color: var(--success); }
+.circle-ok      { border-color: var(--warning); color: var(--warning); }
+.circle-low     { border-color: var(--error);   color: var(--error);   }
+.circle-pending { border-color: var(--border);  color: var(--text-muted); }
+
+.gm-rubric-list { display: flex; flex-direction: column; gap: 10px; }
+.gm-rubric-row  { display: grid; grid-template-columns: 140px 1fr 48px; align-items: center; gap: 10px; }
+.gm-rubric-label { font-size: 13px; color: var(--text-muted); }
+.gm-rubric-track { height: 8px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
+.gm-rubric-fill  { height: 100%; border-radius: 4px; transition: width .4s ease; }
+.bar-good { background: var(--success); }
+.bar-ok   { background: var(--warning); }
+.bar-low  { background: var(--error); }
+.gm-rubric-val  { font-size: 12px; font-weight: 600; color: var(--text-muted); text-align: right; }
+
+.gm-coaching-card h3 { margin: 0 0 16px; }
+.gm-coaching-block { border-radius: 8px; padding: 12px 14px; font-size: 14px; line-height: 1.6; margin-bottom: 12px; }
+.gm-coaching-block strong { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
+.gm-coaching-block p { margin: 0; }
+.gm-coaching-strengths   { background: color-mix(in srgb, var(--success) 10%, transparent); border: 1px solid color-mix(in srgb, var(--success) 25%, transparent); }
+.gm-coaching-improvements{ background: color-mix(in srgb, var(--warning) 10%, transparent); border: 1px solid color-mix(in srgb, var(--warning) 25%, transparent); }
+.gm-coaching-tips strong { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; display: block; margin-bottom: 8px; }
+.gm-coaching-tips ol { margin: 0; padding-left: 20px; }
+.gm-coaching-tips li { font-size: 14px; line-height: 1.6; margin-bottom: 6px; color: var(--text); }
+
+.gm-transcript {
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--text);
+  max-height: 600px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  font-family: inherit;
+}
+
+.subtle { color: var(--text-muted); font-size: 14px; }

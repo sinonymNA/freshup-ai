@@ -14,6 +14,10 @@ async function initiateCall(toPhoneNumber, personaId, userId) {
     to: toPhoneNumber,
     url: `${base}/webhook/voice?personaId=${personaId}&userId=${userId || ''}`,
     statusCallback: `${base}/webhook/status`,
+    record: true,
+    recordingStatusCallback: `${base}/webhook/recording?type=bot`,
+    recordingStatusCallbackEvent: ['completed'],
+    recordingChannels: 'dual',
   });
   return call;
 }

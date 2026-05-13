@@ -116,8 +116,8 @@ function render() {
   }
 
   const needsAuth = path === '/start' || path === '/history' || path === '/team'
-    || path === '/settings' || path === '/learn'
-    || path.startsWith('/call/') || path.startsWith('/team/') || path.startsWith('/learn/');
+    || path === '/settings' || path === '/learn' || path === '/gm'
+    || path.startsWith('/call/') || path.startsWith('/team/') || path.startsWith('/learn/') || path.startsWith('/gm/');
   if (needsAuth && !token) {
     navigate('/login');
     return;
@@ -143,6 +143,8 @@ function render() {
   if (path.startsWith('/call/')) return renderCallResult(path.slice('/call/'.length));
   if (path.startsWith('/team/call/')) return renderManagerCallView(path.slice('/team/call/'.length));
   if (path.startsWith('/team/rep/')) return renderRepDetail(path.slice('/team/rep/'.length));
+  if (path === '/gm') return renderGMDashboard();
+  if (path.startsWith('/gm/')) return renderGMCallDetail(path.slice('/gm/'.length));
 
   // /learn/courses routes — same renderers as /courses
   const learnCourseModuleMatch = path.match(/^\/learn\/courses\/([^/]+)\/([^/]+)$/);
@@ -172,6 +174,7 @@ function updateNav(path) {
       (key === 'history' && path === '/history') ||
       (key === 'leaderboard' && path === '/leaderboard') ||
       (key === 'team' && (path === '/team' || path.startsWith('/team/'))) ||
+      (key === 'gm' && (path === '/gm' || path.startsWith('/gm/'))) ||
       (key === 'settings' && path === '/settings')
     ) ? 'active' : '';
     return `<a href="#${href}" data-nav="${key}" class="nav-link ${active}">${label}</a>`;
@@ -186,6 +189,7 @@ function updateNav(path) {
       ${navLink('/start', 'start', 'Call Arena')}
       ${navLink('/learn', 'learn', 'Learn')}
       ${isManager ? navLink('/team', 'team', 'My Team') : navLink('/history', 'history', 'History')}
+      ${isManager ? navLink('/gm', 'gm', 'Call Records') : ''}
       ${navLink('/leaderboard', 'leaderboard', 'Leaderboard')}
       ${navLink('/settings', 'settings', 'Settings')}
     `;
@@ -3051,7 +3055,7 @@ async function renderSettings() {
       ${user && user.role === 'manager' ? `
       <div class="settings-section card">
         <h3 class="settings-section-title">Your Dealership</h3>
-        <p class="settings-section-desc">Used to calculate revenue impact estimates on your team dashboard.</p>
+        <p class="settings-section-desc">Used for revenue impact estimates, automated call reports, and inbound call tracking.</p>
         <div class="form-group">
           <label for="settings-deal-value">Average Deal Value ($)</label>
           <input type="number" id="settings-deal-value" placeholder="35000" min="0" step="500"
@@ -3063,6 +3067,24 @@ async function renderSettings() {
             <option value="">Select brand…</option>
             ${CAR_BRANDS.map(b => `<option value="${escHtml(b)}" ${teamConfig.brand === b ? 'selected' : ''}>${escHtml(b)}</option>`).join('')}
           </select>
+        </div>
+        <div class="form-group">
+          <label for="settings-gm-email">GM Email for Call Reports</label>
+          <input type="email" id="settings-gm-email" placeholder="gm@yourstore.com"
+            value="${escHtml(teamConfig.gmEmail || '')}" autocomplete="email" />
+          <p class="input-hint">After each recorded call is graded, a report is emailed here. Requires SendGrid to be configured.</p>
+        </div>
+        <div class="form-group">
+          <label for="settings-forward-number">Forward Number (Inbound Tracking)</label>
+          <input type="tel" id="settings-forward-number" placeholder="(555) 123-4567"
+            value="${escHtml(teamConfig.forwardNumber || '')}" autocomplete="tel" />
+          <p class="input-hint">Real inbound calls on your FreshUp tracking number will be forwarded here and recorded. Leave blank for recording-only mode.</p>
+        </div>
+        <div class="form-group">
+          <label for="settings-tracking-number">Your FreshUp Tracking Number</label>
+          <input type="tel" id="settings-tracking-number" placeholder="+15550001234"
+            value="${escHtml(teamConfig.trackingNumber || '')}" autocomplete="tel" />
+          <p class="input-hint">The Twilio number you've configured to point to <code>/webhook/inbound</code>. Used to match incoming calls to your team.</p>
         </div>
         <div id="settings-dealer-msg" class="settings-msg" style="display:none"></div>
         <button class="btn btn-primary" id="save-dealer-btn">Save Dealership Info</button>
@@ -3135,10 +3157,16 @@ async function renderSettings() {
   document.getElementById('save-dealer-btn')?.addEventListener('click', async () => {
     const dealValue = document.getElementById('settings-deal-value')?.value.trim();
     const brand = document.getElementById('settings-brand')?.value;
+    const gmEmail = document.getElementById('settings-gm-email')?.value.trim();
+    const forwardNumber = document.getElementById('settings-forward-number')?.value.trim();
+    const trackingNumber = document.getElementById('settings-tracking-number')?.value.trim();
     const msgEl = document.getElementById('settings-dealer-msg');
     const payload = {};
     if (dealValue) payload.avgDealValue = Number(dealValue);
     if (brand) payload.brand = brand;
+    if (gmEmail !== undefined) payload.gmEmail = gmEmail || null;
+    if (forwardNumber !== undefined) payload.forwardNumber = forwardNumber || null;
+    if (trackingNumber !== undefined) payload.trackingNumber = trackingNumber || null;
     try {
       await api('/api/team/config', {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
@@ -3176,6 +3204,219 @@ async function renderSettings() {
       showToast('Team code copied!', 'success');
     } catch { showToast('Could not copy code.', 'error'); }
   });
+}
+
+// ── GM CALL RECORDS DASHBOARD ─────────────────────────────────────────────────
+
+function fmtDuration(secs) {
+  if (!secs) return '—';
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+function scoreChip(score) {
+  if (score == null) return '<span class="score-chip score-chip-pending">Pending</span>';
+  const cls = score >= 70 ? 'score-chip-good' : score >= 50 ? 'score-chip-ok' : 'score-chip-low';
+  return `<span class="score-chip ${cls}">${score}/100</span>`;
+}
+
+async function renderGMDashboard() {
+  const user = getUser();
+  if (!user || user.role !== 'manager') {
+    app.innerHTML = '<div class="empty-state">Manager access required.</div>';
+    return;
+  }
+
+  app.innerHTML = `
+    <div class="page-header">
+      <div>
+        <h1>Call Records</h1>
+        <p class="subtitle">Every recorded call — AI training sessions and real inbound calls — graded and ready to review.</p>
+      </div>
+    </div>
+
+    <div class="gm-filters card">
+      <div class="gm-filter-row">
+        <div class="form-group gm-filter-group">
+          <label>From</label>
+          <input type="date" id="gm-start-date" class="gm-date-input" />
+        </div>
+        <div class="form-group gm-filter-group">
+          <label>To</label>
+          <input type="date" id="gm-end-date" class="gm-date-input" />
+        </div>
+        <div class="form-group gm-filter-group">
+          <label>Min Score</label>
+          <input type="number" id="gm-min-score" placeholder="0" min="0" max="100" class="gm-score-input" />
+        </div>
+        <div class="form-group gm-filter-group">
+          <label>Max Score</label>
+          <input type="number" id="gm-max-score" placeholder="100" min="0" max="100" class="gm-score-input" />
+        </div>
+        <button class="btn btn-primary" id="gm-apply-btn">Apply</button>
+      </div>
+    </div>
+
+    <div id="gm-table-wrap">
+      <div class="loading">Loading calls…</div>
+    </div>
+  `;
+
+  async function loadCalls() {
+    const wrap = document.getElementById('gm-table-wrap');
+    if (!wrap) return;
+
+    const params = new URLSearchParams();
+    const sd = document.getElementById('gm-start-date')?.value;
+    const ed = document.getElementById('gm-end-date')?.value;
+    const mn = document.getElementById('gm-min-score')?.value;
+    const mx = document.getElementById('gm-max-score')?.value;
+    if (sd) params.set('startDate', sd);
+    if (ed) params.set('endDate', ed);
+    if (mn) params.set('minScore', mn);
+    if (mx) params.set('maxScore', mx);
+
+    try {
+      const { calls } = await api(`/api/gm/calls?${params}`);
+      if (!calls.length) {
+        wrap.innerHTML = '<div class="empty-state">No recorded calls yet. Calls are recorded automatically when reps take training calls or when real inbound calls come in on your tracking number.</div>';
+        return;
+      }
+
+      wrap.innerHTML = `
+        <div class="gm-table-scroll">
+          <table class="gm-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Rep</th>
+                <th>Type</th>
+                <th>Duration</th>
+                <th>Score</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              ${calls.map(c => {
+                const date = c.startTime ? new Date(c.startTime).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+                const typeBadge = c.type === 'inbound'
+                  ? '<span class="type-badge type-badge-inbound">Real Inbound</span>'
+                  : '<span class="type-badge type-badge-bot">AI Training</span>';
+                const score = c.grade?.overallScore ?? null;
+                return `<tr>
+                  <td class="gm-td-date">${escHtml(date)}</td>
+                  <td class="gm-td-rep">${escHtml(c.repName || 'Unknown')}</td>
+                  <td>${typeBadge}</td>
+                  <td class="gm-td-dur">${fmtDuration(c.duration)}</td>
+                  <td>${scoreChip(score)}</td>
+                  <td><a href="#/gm/${c.id}" class="btn btn-secondary btn-sm">View Report</a></td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    } catch (err) {
+      wrap.innerHTML = `<div class="empty-state error-state">${escHtml(err.message)}</div>`;
+    }
+  }
+
+  document.getElementById('gm-apply-btn').addEventListener('click', loadCalls);
+  loadCalls();
+}
+
+async function renderGMCallDetail(id) {
+  const user = getUser();
+  if (!user || user.role !== 'manager') {
+    app.innerHTML = '<div class="empty-state">Manager access required.</div>';
+    return;
+  }
+
+  app.innerHTML = '<div class="loading">Loading call report…</div>';
+
+  let call;
+  try {
+    call = await api(`/api/gm/calls/${id}`);
+  } catch (err) {
+    app.innerHTML = `<div class="empty-state">${escHtml(err.message)}</div>`;
+    return;
+  }
+
+  const g = call.grade;
+  const score = g?.overallScore ?? null;
+  const date = call.startTime ? new Date(call.startTime).toLocaleString('en-US', {
+    weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  }) : '—';
+
+  function rubricBar(label, val, max) {
+    const pct = max > 0 ? Math.round((val / max) * 100) : 0;
+    const cls = pct >= 75 ? 'bar-good' : pct >= 50 ? 'bar-ok' : 'bar-low';
+    return `
+      <div class="gm-rubric-row">
+        <span class="gm-rubric-label">${escHtml(label)}</span>
+        <div class="gm-rubric-track">
+          <div class="gm-rubric-fill ${cls}" style="width:${pct}%"></div>
+        </div>
+        <span class="gm-rubric-val">${val}/${max}</span>
+      </div>`;
+  }
+
+  app.innerHTML = `
+    <a href="#/gm" class="back-link">← Back to Call Records</a>
+
+    <div class="gm-detail-grid">
+
+      <div class="gm-detail-left">
+        <div class="card gm-score-card">
+          <div class="gm-score-meta">
+            <div class="gm-score-rep">${escHtml(call.repName || 'Unknown Rep')}</div>
+            <div class="gm-score-date">${escHtml(date)}</div>
+            <div class="gm-score-type">${call.type === 'inbound' ? 'Real Inbound Call' : 'AI Training Call'} · ${fmtDuration(call.duration)}</div>
+          </div>
+          <div class="gm-score-circle ${score != null ? (score >= 70 ? 'circle-good' : score >= 50 ? 'circle-ok' : 'circle-low') : 'circle-pending'}">
+            ${score != null ? score : '—'}
+          </div>
+          ${g ? `
+          <div class="gm-rubric-list">
+            ${rubricBar('Greeting', g.greeting ?? 0, 10)}
+            ${rubricBar('Needs Discovery', g.needsDiscovery ?? 0, 25)}
+            ${rubricBar('Product Knowledge', g.productKnowledge ?? 0, 20)}
+            ${rubricBar('Objection Handling', g.objectionHandling ?? 0, 20)}
+            ${rubricBar('Appointment Push', g.appointmentPush ?? 0, 15)}
+            ${rubricBar('Professionalism', g.professionalism ?? 0, 10)}
+          </div>
+          ` : '<p class="subtle">Grading not yet available.</p>'}
+        </div>
+
+        ${g ? `
+        <div class="card gm-coaching-card">
+          <h3>Coaching Report</h3>
+          ${g.strengths ? `<div class="gm-coaching-block gm-coaching-strengths"><strong>Strengths</strong><p>${escHtml(g.strengths)}</p></div>` : ''}
+          ${g.improvements ? `<div class="gm-coaching-block gm-coaching-improvements"><strong>Needs Work</strong><p>${escHtml(g.improvements)}</p></div>` : ''}
+          ${g.coachingTips?.length ? `
+          <div class="gm-coaching-tips">
+            <strong>Coaching Tips</strong>
+            <ol>
+              ${g.coachingTips.map(t => `<li>${escHtml(t)}</li>`).join('')}
+            </ol>
+          </div>` : ''}
+        </div>
+        ` : ''}
+      </div>
+
+      <div class="gm-detail-right">
+        <div class="card">
+          <h3 style="margin:0 0 16px">Transcript</h3>
+          ${call.transcript
+            ? `<div class="gm-transcript">${escHtml(call.transcript).replace(/\n/g, '<br>')}</div>`
+            : '<p class="subtle">Transcript not yet available. Transcription runs after the recording is processed.</p>'}
+        </div>
+      </div>
+
+    </div>
+  `;
 }
 
 // ── LEARN HUB ─────────────────────────────────────────────────────────────────

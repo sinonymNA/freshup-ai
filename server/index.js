@@ -16,6 +16,7 @@ const teamRoutes = require('./routes/team');
 const gauntletRoutes = require('./routes/gauntlet');
 const analyticsRoutes = require('./routes/analytics');
 const contactRoutes = require('./routes/contact');
+const gmRoutes = require('./routes/gm');
 const { handleMediaStream } = require('./services/openai-realtime');
 
 const app = express();
@@ -62,6 +63,7 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/courses', coursesRoutes);
 app.use('/api/team', teamRoutes);
 app.use('/api/gauntlet', gauntletRoutes);
+app.use('/api/gm', gmRoutes);
 app.use('/api', callRoutes);
 app.use('/webhook', webhookRoutes);
 

@@ -120,6 +120,26 @@ db.exec(`
   );
 `);
 
+// Recorded calls — both outbound bot calls and inbound real calls
+db.exec(`
+  CREATE TABLE IF NOT EXISTS recorded_calls (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    callSid       TEXT UNIQUE NOT NULL,
+    type          TEXT NOT NULL DEFAULT 'bot',
+    teamId        INTEGER,
+    userId        INTEGER,
+    repName       TEXT,
+    recordingSid  TEXT,
+    recordingUrl  TEXT,
+    duration      INTEGER,
+    startTime     INTEGER,
+    transcript    TEXT,
+    grade         TEXT,
+    emailSent     INTEGER DEFAULT 0,
+    createdAt     INTEGER NOT NULL
+  );
+`);
+
 // ── Users ────────────────────────────────────────────────────────────────────
 
 function createUser({ email, name, password_hash, role = 'rep', team_id = null, security_question = null, security_answer_hash = null }) {
@@ -561,6 +581,67 @@ function getLeads(limit = 100) {
   return db.prepare('SELECT * FROM leads ORDER BY createdAt DESC LIMIT ?').all(limit);
 }
 
+// ── Recorded calls ────────────────────────────────────────────────────────────
+
+function parseRecordedCall(row) {
+  if (!row) return null;
+  return { ...row, grade: row.grade ? JSON.parse(row.grade) : null };
+}
+
+function createRecordedCall(data) {
+  const stmt = db.prepare(`
+    INSERT OR IGNORE INTO recorded_calls
+      (callSid, type, teamId, userId, repName, recordingSid, recordingUrl,
+       duration, startTime, transcript, grade, emailSent, createdAt)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
+  `);
+  const result = stmt.run(
+    data.callSid, data.type || 'bot', data.teamId || null, data.userId || null,
+    data.repName || null, data.recordingSid || null, data.recordingUrl || null,
+    data.duration || null, data.startTime || Date.now(),
+    data.transcript || null, data.grade ? JSON.stringify(data.grade) : null,
+    Date.now()
+  );
+  return parseRecordedCall(db.prepare('SELECT * FROM recorded_calls WHERE id = ?').get(result.lastInsertRowid));
+}
+
+function updateRecordedCall(id, updates) {
+  const fields = Object.keys(updates).map(k => `${k} = ?`).join(', ');
+  db.prepare(`UPDATE recorded_calls SET ${fields} WHERE id = ?`).run(...Object.values(updates), id);
+  return parseRecordedCall(db.prepare('SELECT * FROM recorded_calls WHERE id = ?').get(id));
+}
+
+function getRecordedCallById(id) {
+  return parseRecordedCall(db.prepare('SELECT * FROM recorded_calls WHERE id = ?').get(id));
+}
+
+function getRecordedCallBySid(callSid) {
+  return parseRecordedCall(db.prepare('SELECT * FROM recorded_calls WHERE callSid = ?').get(callSid));
+}
+
+function getRecordedCallsByTeam(teamId, opts = {}) {
+  const { startDate, endDate, minScore, maxScore, limit = 100 } = opts;
+  let query = 'SELECT * FROM recorded_calls WHERE teamId = ?';
+  const params = [teamId];
+  if (startDate) { query += ' AND startTime >= ?'; params.push(new Date(startDate).getTime()); }
+  if (endDate) { query += ' AND startTime <= ?'; params.push(new Date(endDate).getTime() + 86399999); }
+  if (minScore !== undefined && minScore !== '') {
+    query += " AND CAST(json_extract(grade, '$.overallScore') AS INTEGER) >= ?";
+    params.push(parseInt(minScore, 10));
+  }
+  if (maxScore !== undefined && maxScore !== '') {
+    query += " AND CAST(json_extract(grade, '$.overallScore') AS INTEGER) <= ?";
+    params.push(parseInt(maxScore, 10));
+  }
+  query += ' ORDER BY startTime DESC LIMIT ?';
+  params.push(limit);
+  return db.prepare(query).all(...params).map(parseRecordedCall);
+}
+
+function getTeamByTrackingNumber(number) {
+  return db.prepare("SELECT * FROM teams WHERE json_extract(config, '$.trackingNumber') = ?").get(number) || null;
+}
+
 // ── Gauntlet scores ───────────────────────────────────────────────────────────
 
 function saveGauntletScore(userId, challengeId, score) {
@@ -633,5 +714,7 @@ module.exports = {
   saveGauntletScore, getLeaderboard,
   getAnalytics,
   createLead, getLeads,
+  createRecordedCall, updateRecordedCall, getRecordedCallById, getRecordedCallBySid, getRecordedCallsByTeam,
+  getTeamByTrackingNumber,
   createResetToken, validateResetToken, consumeResetToken,
 };
