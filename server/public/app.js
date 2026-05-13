@@ -2674,8 +2674,7 @@ async function renderTeam() {
   const avgDealValue = config.avgDealValue ? Number(config.avgDealValue) : null;
   const weekDelta = typeof callsThisWeek === 'number' && typeof callsLastWeek === 'number'
     ? callsThisWeek - callsLastWeek : 0;
-  const monthlyCallsEst = typeof callsThisWeek === 'number' ? callsThisWeek * 4 : 0;
-  const monthlyApptsEst = Math.round((analytics?.appointmentRate || 0) * monthlyCallsEst);
+  const monthlyApptsEst = analytics?.appointmentsThisMonth ?? 0;
 
   // Deduplicate reps and recent calls defensively
   const seenRepIds = new Set();
@@ -2729,12 +2728,12 @@ async function renderTeam() {
       <div class="ric-body">
         <div class="ric-title">Estimated Revenue Impact — This Month</div>
         <div class="ric-calc">
-          <span class="ric-num">${monthlyApptsEst}</span> appointments ×
+          <span class="ric-num">${monthlyApptsEst}</span> appointment${monthlyApptsEst !== 1 ? 's' : ''} set ×
           <span class="ric-num">25%</span> close rate ×
           <span class="ric-num">$${avgDealValue.toLocaleString()}</span> avg deal =
           <strong class="ric-total">$${Math.round(monthlyApptsEst * 0.25 * avgDealValue).toLocaleString()} pipeline</strong>
         </div>
-        <div class="ric-note">Your team's ${apptRate !== null ? apptRate + '%' : '—'} appt rate vs. 22% industry baseline${apptRate !== null && apptRate > 22 ? ' — above average' : ''}</div>
+        <div class="ric-note">Your team's ${apptRate !== null ? apptRate + '%' : '—'} appt rate vs. 22% industry baseline${apptRate !== null && apptRate > 22 ? ' — above average' : apptRate !== null ? ' — below average' : ''}</div>
       </div>
     </div>
     ` : `

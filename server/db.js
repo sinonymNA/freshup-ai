@@ -223,7 +223,7 @@ function getTeamAnalytics(teamId) {
     return {
       appointmentRate: 0, callsThisWeek: 0, callsLastWeek: 0,
       teamAvgScore: 0, activeRepsThisWeek: 0, totalReps: 0,
-      dimensionAverages: { opening: 0, infoCapture: 0, discovery: 0, objectionHandling: 0, appointment: 0 },
+      dimensionAverages: { opening: 0, rapport: 0, infoCapture: 0, objectionHandling: 0, appointment: 0 },
       repStats: [], recentCalls: [],
     };
   }
@@ -260,7 +260,7 @@ function getTeamAnalytics(teamId) {
   ).get(...memberIds, weekAgo).n;
 
   // Dimension averages (this month)
-  const dims = { opening: 0, infoCapture: 0, discovery: 0, objectionHandling: 0, appointment: 0 };
+  const dims = { opening: 0, rapport: 0, infoCapture: 0, objectionHandling: 0, appointment: 0 };
   if (scores.length) {
     for (const d of Object.keys(dims)) {
       const vals = scores.map(s => s[d] ?? 0);
@@ -278,7 +278,7 @@ function getTeamAnalytics(teamId) {
     const repAppt = repCalls.filter(c => c.outcome === 'Appointment');
     const repApptRate = repCompleted.length ? repAppt.length / repCompleted.length : 0;
 
-    const repDims = { opening: 0, infoCapture: 0, discovery: 0, objectionHandling: 0, appointment: 0 };
+    const repDims = { opening: 0, rapport: 0, infoCapture: 0, objectionHandling: 0, appointment: 0 };
     if (repScores.length) {
       for (const d of Object.keys(repDims)) {
         const vals = repScores.map(s => s[d] ?? 0);
@@ -328,8 +328,12 @@ function getTeamAnalytics(teamId) {
     score: r.score ? JSON.parse(r.score) : null,
   }));
 
+  const appointmentsThisMonth = appointmentCalls.length;
+  const callsThisMonth = completedCalls.length;
+
   return {
     appointmentRate, callsThisWeek, callsLastWeek,
+    appointmentsThisMonth, callsThisMonth,
     teamAvgScore, activeRepsThisWeek, totalReps: memberIds.length,
     dimensionAverages: dims, repStats, recentCalls,
   };
@@ -453,17 +457,17 @@ function getAnalytics() {
   const dimRow = db.prepare(`
     SELECT
       ROUND(AVG(CAST(json_extract(score,'$.opening')            AS REAL)),1) AS opening,
-      ROUND(AVG(CAST(json_extract(score,'$.infoCapture')        AS REAL)),1) AS infoCapture,
-      ROUND(AVG(CAST(json_extract(score,'$.discovery')          AS REAL)),1) AS discovery,
-      ROUND(AVG(CAST(json_extract(score,'$.objectionHandling')  AS REAL)),1) AS objectionHandling,
-      ROUND(AVG(CAST(json_extract(score,'$.appointment')        AS REAL)),1) AS appointment
+      ROUND(AVG(CAST(json_extract(score,'$.rapport')           AS REAL)),1) AS rapport,
+      ROUND(AVG(CAST(json_extract(score,'$.infoCapture')       AS REAL)),1) AS infoCapture,
+      ROUND(AVG(CAST(json_extract(score,'$.objectionHandling') AS REAL)),1) AS objectionHandling,
+      ROUND(AVG(CAST(json_extract(score,'$.appointment')       AS REAL)),1) AS appointment
     FROM calls WHERE score IS NOT NULL
   `).get();
 
   const dims = {
     opening:            dimRow?.opening            || 0,
+    rapport:            dimRow?.rapport            || 0,
     infoCapture:        dimRow?.infoCapture        || 0,
-    discovery:          dimRow?.discovery          || 0,
     objectionHandling:  dimRow?.objectionHandling  || 0,
     appointment:        dimRow?.appointment        || 0,
   };
