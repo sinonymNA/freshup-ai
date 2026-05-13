@@ -122,6 +122,8 @@ function handleMediaStream(twilioWs, rawUrl) {
   let currentAiTranscript = '';
   let aiTurnCount = 0;
   let partialScoringInProgress = false;
+  let sessionSeeded = false;   // prevent double-seeding on session.updated
+  let aiResponseActive = false; // track whether AI audio is currently streaming
 
   function emit(event) {
     if (callSid) callEmitter.emit(`call:${callSid}`, event);
@@ -178,18 +180,9 @@ function handleMediaStream(twilioWs, rawUrl) {
           tool_choice: 'auto',
         },
       }));
-
-      // Seed conversation so the AI speaks first
-      openAiWs.send(JSON.stringify({
-        type: 'conversation.item.create',
-        item: {
-          type: 'message',
-          role: 'user',
-          content: [{ type: 'input_text', text: 'Hello?' }],
-        },
-      }));
-      openAiWs.send(JSON.stringify({ type: 'response.create' }));
-      console.log(`[media-stream] Session seeded — AI should speak shortly callSid=${callSid}`);
+      // Do NOT seed yet — wait for session.updated to confirm the audio format
+      // is applied before generating the first response (prevents first-word screech)
+      console.log(`[media-stream] session.update sent, waiting for session.updated callSid=${callSid}`);
     });
 
     openAiWs.on('message', async (data) => {
@@ -197,14 +190,42 @@ function handleMediaStream(twilioWs, rawUrl) {
         const msg = JSON.parse(data.toString());
 
         switch (msg.type) {
+          case 'session.updated':
+            // Session is fully configured — safe to seed the conversation now
+            if (!sessionSeeded) {
+              sessionSeeded = true;
+              openAiWs.send(JSON.stringify({
+                type: 'conversation.item.create',
+                item: {
+                  type: 'message',
+                  role: 'user',
+                  content: [{ type: 'input_text', text: 'Hello?' }],
+                },
+              }));
+              openAiWs.send(JSON.stringify({ type: 'response.create' }));
+              console.log(`[media-stream] Session confirmed — conversation seeded callSid=${callSid}`);
+            }
+            break;
+
+          case 'response.created':
+            aiResponseActive = true;
+            break;
+
           case 'response.audio.delta':
-            if (streamSid && msg.delta) {
+            // Only forward audio that belongs to an active response.
+            // Stale deltas after speech_started are dropped to prevent screech.
+            if (streamSid && msg.delta && aiResponseActive) {
               twilioWs.send(JSON.stringify({
                 event: 'media',
                 streamSid,
                 media: { payload: msg.delta },
               }));
             }
+            break;
+
+          case 'response.done':
+          case 'response.cancelled':
+            aiResponseActive = false;
             break;
 
           case 'response.audio_transcript.delta':
@@ -242,6 +263,8 @@ function handleMediaStream(twilioWs, rawUrl) {
             break;
 
           case 'input_audio_buffer.speech_started':
+            // Drop the gate immediately so no further stale audio delta is forwarded
+            aiResponseActive = false;
             if (streamSid) {
               twilioWs.send(JSON.stringify({ event: 'clear', streamSid }));
             }

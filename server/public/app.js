@@ -2641,15 +2641,22 @@ function leaderboardRow(r, user) {
 
 // ── TEAM DASHBOARD (Manager only) ─────────────────────────────────────────────
 
+renderTeam._gen = 0;
 async function renderTeam() {
+  const gen = ++renderTeam._gen;
+  function stale() { return renderTeam._gen !== gen; }
+
   app.innerHTML = '<div class="page-skeleton"><div class="skel skel-title"></div><div class="skel skel-text"></div><div class="skel skel-text skel-short"></div></div>';
 
   let teamData, analytics;
   try { teamData = await api('/api/team'); } catch (e) {
+    if (stale()) return;
     app.innerHTML = `<div class="empty-state">${escHtml(e.message)}</div>`;
     return;
   }
+  if (stale()) return;
   try { analytics = await api('/api/team/analytics'); } catch (e) { analytics = null; }
+  if (stale()) return;
 
   const { team, members } = teamData;
   const now = Date.now();
@@ -2669,6 +2676,12 @@ async function renderTeam() {
     ? callsThisWeek - callsLastWeek : 0;
   const monthlyCallsEst = typeof callsThisWeek === 'number' ? callsThisWeek * 4 : 0;
   const monthlyApptsEst = Math.round((analytics?.appointmentRate || 0) * monthlyCallsEst);
+
+  // Deduplicate reps and recent calls defensively
+  const seenRepIds = new Set();
+  const dedupedRepStats = repStats.filter(r => { if (seenRepIds.has(r.id)) return false; seenRepIds.add(r.id); return true; });
+  const seenCallSids = new Set();
+  const dedupedRecentCalls = recentCalls.filter(c => { if (seenCallSids.has(c.callSid)) return false; seenCallSids.add(c.callSid); return true; });
 
   const dimLabels = { opening: 'Opening', rapport: 'Rapport', infoCapture: 'Lead Capture', objectionHandling: 'Objection Handling', appointment: 'Close' };
   let weakestDimKey = null, weakestDimVal = Infinity;
@@ -2759,7 +2772,7 @@ async function renderTeam() {
     <div class="section-header" style="margin-top:28px"><h2>Rep Performance</h2></div>
     ${members.length === 0
       ? '<div class="empty-state">No reps on your team yet. Share your invite link so reps can join when they sign up.</div>'
-      : `<div class="rep-grid">${(repStats.length ? repStats : members.map(m => ({
+      : `<div class="rep-grid">${(dedupedRepStats.length ? dedupedRepStats : members.map(m => ({
           id: m.id, name: m.name, email: m.email, lastActive: m.lastActive,
           totalCalls: m.totalCalls, avgScore: m.avgScore,
           appointmentRate: 0, weakestDim: null, trend: 'flat',
@@ -2769,7 +2782,7 @@ async function renderTeam() {
     ${recentCalls.length ? `
     <div class="section-header" style="margin-top:28px"><h2>Recent Activity</h2></div>
     <div class="activity-feed">
-      ${recentCalls.map(c => `
+      ${dedupedRecentCalls.map(c => `
         <div class="activity-row">
           <div class="activity-rep">${avatar(c.repName)}</div>
           <div class="activity-info">
