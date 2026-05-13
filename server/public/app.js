@@ -3086,17 +3086,66 @@ async function renderSettings() {
             value="${escHtml(teamConfig.gmEmail || '')}" autocomplete="email" />
           <p class="input-hint">After each recorded call is graded, a report is emailed here. Requires SendGrid to be configured.</p>
         </div>
-        <div class="form-group">
-          <label for="settings-forward-number">Forward Number (Inbound Tracking)</label>
-          <input type="tel" id="settings-forward-number" placeholder="(555) 123-4567"
-            value="${escHtml(teamConfig.forwardNumber || '')}" autocomplete="tel" />
-          <p class="input-hint">Real inbound calls on your FreshUp tracking number will be forwarded here and recorded. Leave blank for recording-only mode.</p>
+        <hr class="guide-divider" />
+        <div class="setup-guide ${teamConfig.trackingNumber ? '' : 'open'}" id="inbound-guide">
+          <div class="setup-guide-header" id="inbound-guide-toggle">
+            <div class="setup-guide-title">
+              📞 Inbound Call Tracking Setup
+              <span class="setup-guide-badge ${teamConfig.trackingNumber ? 'guide-done' : ''}">${teamConfig.trackingNumber ? 'Configured' : 'Not set up'}</span>
+            </div>
+            <span class="setup-guide-chevron">▼</span>
+          </div>
+          <div class="setup-guide-body">
+            <p class="guide-intro">FreshUp gives your dealership a <strong>tracking number</strong>. Every real inbound call on that number is automatically recorded, transcribed, and graded — then forwarded to your actual sales line so nothing changes for your team or customers.</p>
+            <div class="guide-options">
+              <div class="guide-option guide-option-recommended">
+                <div class="guide-option-label">✓ Recommended</div>
+                <div class="guide-option-title">Keep your existing number</div>
+                <div class="guide-option-desc">Port your current number into Twilio. Your number stays the same — nothing on your website, signs, or Google listing changes.</div>
+                <ol class="guide-steps">
+                  <li>Log in to <a href="https://console.twilio.com" target="_blank" rel="noopener">console.twilio.com</a></li>
+                  <li>Go to <strong>Phone Numbers → Manage → Port &amp; Host</strong></li>
+                  <li>Submit your number + carrier info — takes 3–10 business days</li>
+                  <li>Once ported, click the number and set the <strong>webhook URL</strong> below for "A call comes in"</li>
+                  <li>Enter the ported number in the field below and save</li>
+                </ol>
+              </div>
+              <div class="guide-option">
+                <div class="guide-option-label">Option B</div>
+                <div class="guide-option-title">Get a new tracking number</div>
+                <div class="guide-option-desc">Use a fresh Twilio number on ads, your website, or any new marketing. Keep your old number for existing customers.</div>
+                <ol class="guide-steps">
+                  <li>Log in to <a href="https://console.twilio.com" target="_blank" rel="noopener">console.twilio.com</a></li>
+                  <li>Go to <strong>Phone Numbers → Buy a Number</strong></li>
+                  <li>Pick a local area code and purchase</li>
+                  <li>Click the number and set the <strong>webhook URL</strong> below for "A call comes in"</li>
+                  <li>Enter the new number in the field below and save</li>
+                </ol>
+              </div>
+            </div>
+            <div style="margin-bottom:14px">
+              <div style="font-size:0.82rem;font-weight:700;margin-bottom:6px">Your webhook URL (paste this into Twilio)</div>
+              <div class="guide-webhook-row">
+                <span id="guide-webhook-url">${escHtml((typeof BASE_URL !== 'undefined' ? BASE_URL : window.location.origin) + '/webhook/inbound')}</span>
+                <button class="guide-webhook-copy" id="copy-webhook-url">Copy</button>
+              </div>
+            </div>
+            <div class="guide-note">
+              <strong>Forward Number</strong> — Set this to your real sales desk line (the number your reps already answer). Twilio will connect callers there after FreshUp starts recording. Your reps answer their normal phone — nothing changes for them.
+            </div>
+          </div>
         </div>
         <div class="form-group">
-          <label for="settings-tracking-number">Your FreshUp Tracking Number</label>
+          <label for="settings-tracking-number">FreshUp Tracking Number</label>
           <input type="tel" id="settings-tracking-number" placeholder="+15550001234"
             value="${escHtml(teamConfig.trackingNumber || '')}" autocomplete="tel" />
-          <p class="input-hint">The Twilio number you've configured to point to <code>/webhook/inbound</code>. Used to match incoming calls to your team.</p>
+          <p class="input-hint">The Twilio number pointed at your webhook. Inbound calls on this number are recorded and graded automatically.</p>
+        </div>
+        <div class="form-group">
+          <label for="settings-forward-number">Real Sales Line (Forward Number)</label>
+          <input type="tel" id="settings-forward-number" placeholder="(555) 123-4567"
+            value="${escHtml(teamConfig.forwardNumber || '')}" autocomplete="tel" />
+          <p class="input-hint">Calls are forwarded here after recording starts. Leave blank for recording-only mode (no forwarding).</p>
         </div>
         <div id="settings-dealer-msg" class="settings-msg" style="display:none"></div>
         <button class="btn btn-primary" id="save-dealer-btn">Save Dealership Info</button>
@@ -3165,7 +3214,21 @@ async function renderSettings() {
     document.querySelectorAll('.theme-btn').forEach(b => b.classList.toggle('theme-btn-active', b.dataset.theme === t));
   });
 
-  // Dealership save
+  // Inbound guide toggle
+  document.getElementById('inbound-guide-toggle')?.addEventListener('click', () => {
+    document.getElementById('inbound-guide')?.classList.toggle('open');
+  });
+
+  // Copy webhook URL
+  document.getElementById('copy-webhook-url')?.addEventListener('click', function () {
+    const url = document.getElementById('guide-webhook-url')?.textContent || '';
+    navigator.clipboard.writeText(url).then(() => {
+      this.textContent = 'Copied!';
+      setTimeout(() => { this.textContent = 'Copy'; }, 2000);
+    });
+  });
+
+  // Dealership save — update badge after successful save
   document.getElementById('save-dealer-btn')?.addEventListener('click', async () => {
     const dealValue = document.getElementById('settings-deal-value')?.value.trim();
     const brand = document.getElementById('settings-brand')?.value;
@@ -3187,6 +3250,11 @@ async function renderSettings() {
       msgEl.textContent = 'Dealership info saved!';
       msgEl.className = 'settings-msg success'; msgEl.style.display = 'block';
       setTimeout(() => { msgEl.style.display = 'none'; }, 3000);
+      // Update guide badge to reflect configured state
+      if (trackingNumber) {
+        const badge = document.querySelector('#inbound-guide .setup-guide-badge');
+        if (badge) { badge.textContent = 'Configured'; badge.classList.add('guide-done'); }
+      }
     } catch (err) {
       msgEl.textContent = err.message;
       msgEl.className = 'settings-msg error'; msgEl.style.display = 'block';
