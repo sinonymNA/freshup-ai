@@ -16,93 +16,78 @@ function formatTranscript(history) {
 
 // Build the OpenAI session instructions from a persona + stored contact info
 function buildInstructions(persona, contactInfo) {
-  let instructions = persona.systemPrompt;
+  // Start with the core persona system prompt
+  let instructions = persona.systemPrompt.trim();
 
-  // ── KORA Framework injection ─────────────────────────────────────────────────
-  // Add behavioral anchors if present
-  if (persona.anchorExchanges && persona.anchorExchanges.length > 0) {
-    instructions += '\n\n━━━ KORA BEHAVIORAL ANCHORS ━━━';
-    instructions += `\nYou have been trained on how ${persona.name} specifically speaks and thinks. These are authentic examples of your voice — not a description of how you speak, but actual examples of you speaking:\n`;
+  // Behavioral anchors — real examples of how this persona speaks
+  if (persona.anchorExchanges?.length > 0) {
+    instructions += `\n\nExamples of exactly how ${persona.name} speaks (model these):`;
     for (const anchor of persona.anchorExchanges) {
-      instructions += `\n${anchor.setup}\nYou: "${anchor.response}"\n`;
+      instructions += `\n${anchor.setup}\n${persona.name}: "${anchor.response}"`;
     }
-    instructions += `\nWhen in doubt about how you'd respond, model your answer on these anchors.`;
   }
 
-  // Add internal emotional state
+  // Internal state
   if (persona.internalState) {
-    instructions += '\n\n━━━ YOUR INTERNAL STATE TODAY ━━━';
-    instructions += `\n${persona.internalState}`;
+    instructions += `\n\nYour mood/state right now: ${persona.internalState}`;
   }
 
-  // Add randomly selected scenario variant
-  if (persona.scenarioVariants && persona.scenarioVariants.length > 0) {
+  // Scenario variant — pick one randomly
+  if (persona.scenarioVariants?.length > 0) {
     const variant = persona.scenarioVariants[Math.floor(Math.random() * persona.scenarioVariants.length)];
-    instructions += '\n\n━━━ TODAY\'S CALL CONTEXT ━━━';
-    instructions += `\n${variant}`;
+    instructions += `\n\nContext for this call: ${variant}`;
   }
 
-  // Add speech pattern guidance
+  // Speech patterns
   if (persona.speechPatterns) {
     const sp = persona.speechPatterns;
-    instructions += '\n\n━━━ YOUR AUTHENTIC VOICE ━━━';
-    if (sp.fillers && sp.fillers.length > 0) {
-      instructions += `\nFillers you use naturally: ${sp.fillers.join(', ')}`;
-    }
-    if (sp.vocabulary) instructions += `\nVocabulary & word choice: ${sp.vocabulary}`;
-    if (sp.pacing) instructions += `\nPacing: ${sp.pacing}`;
-    if (sp.energy) instructions += `\nEnergy: ${sp.energy}`;
+    const parts = [];
+    if (sp.fillers?.length > 0) parts.push(`Fillers: ${sp.fillers.join(', ')}`);
+    if (sp.vocabulary) parts.push(`Vocabulary: ${sp.vocabulary}`);
+    if (sp.pacing) parts.push(`Pacing: ${sp.pacing}`);
+    if (sp.energy) parts.push(`Energy: ${sp.energy}`);
+    if (parts.length > 0) instructions += `\n\nVoice: ${parts.join(' | ')}`;
   }
 
-  // Add knowledge profile
+  // Knowledge limits
   if (persona.knowledgeProfile) {
     const kp = persona.knowledgeProfile;
-    instructions += '\n\n━━━ YOUR KNOWLEDGE LIMITS ━━━';
-    if (kp.carKnowledge) instructions += `\nCar knowledge: ${kp.carKnowledge}`;
-    if (kp.financingKnowledge) instructions += `\nFinancing knowledge: ${kp.financingKnowledge}`;
-    if (kp.techFeatures) instructions += `\nTech features knowledge: ${kp.techFeatures}`;
-    if (kp.dealershipExperience) instructions += `\nDealership experience: ${kp.dealershipExperience}`;
-    instructions += `\nIf a rep asks about something you wouldn't know, respond authentically: admit confusion, ask for a simple explanation. Don't fake knowledge you wouldn't have.`;
+    const parts = [];
+    if (kp.carKnowledge) parts.push(`Cars: ${kp.carKnowledge}`);
+    if (kp.financingKnowledge) parts.push(`Financing: ${kp.financingKnowledge}`);
+    if (kp.techFeatures) parts.push(`Tech: ${kp.techFeatures}`);
+    if (kp.dealershipExperience) parts.push(`Dealership experience: ${kp.dealershipExperience}`);
+    if (parts.length > 0) {
+      instructions += `\n\nKnowledge limits — ${parts.join(' | ')}. If asked something you wouldn't know, admit it and ask for a simple explanation.`;
+    }
   }
 
-  // Realism self-check
-  instructions += `\n\n━━━ REALISM SELF-CHECK ━━━`;
-  instructions += `\nBefore every response, ask yourself:`;
-  instructions += `\n• Does this sound like ${persona.name} specifically — not just a generic buyer archetype?`;
-  instructions += `\n• Am I using ${persona.name}'s vocabulary and speech rhythms, not generic buyer language?`;
-  instructions += `\n• Am I reacting to what the rep just said, not giving a rehearsed answer?`;
-  instructions += `\n• Would ${persona.name} actually know this, or would they be confused and ask?`;
-  instructions += `\n• Is this response the length ${persona.name} would actually give — not too long, not too short?`;
-
-  // ── Live call realism ────────────────────────────────────────────────────────
+  // Core realism rules — concise and direct for the model
   instructions +=
-    '\n\nYou are on a real phone call right now. This is a live, unscripted conversation — speak exactly as a real buyer would on the phone:' +
-    '\n• Use natural back-channeling and filler words ("mm-hm", "right", "yeah", "uh-huh", "okay", "I see", "hm")' +
-    '\n• Jump back in naturally if the rep pauses mid-thought or trails off — real buyers don\'t wait politely' +
-    '\n• Keep most responses SHORT — 1 to 2 punchy sentences, like a real phone call' +
-    '\n• React in real time — surprise, mild impatience, skepticism — whatever fits your character' +
-    '\n• Vary your pace and energy. Some moments quick and clipped, others slower and more measured' +
-    '\n• NEVER use bracketed markers like [HANG_UP] or [APPOINTMENT_SET]. Use the end_call function instead.';
+    `\n\nYou are ${persona.name} on a live phone call right now. Rules:` +
+    `\n• Every response must sound like ${persona.name} specifically — their words, their rhythm, their personality.` +
+    `\n• Keep answers SHORT: 1–2 sentences. Real people on the phone don't monologue.` +
+    `\n• Use natural fillers and back-channeling ("mm-hm", "yeah", "right", "hm", "okay").` +
+    `\n• React authentically — interrupt, push back, get impatient when it fits.` +
+    `\n• NEVER use [HANG_UP] or [APPOINTMENT_SET] markers. Use the end_call function only.`;
 
+  // Hang-up rules by difficulty
   if (persona.difficulty === 'Medium') {
-    instructions +=
-      '\n\nHANG-UP RULE: Only end this call if the rep is repeatedly rude or dismissive (at least twice) with zero attempt to recover. Give them chances to correct mistakes. You are reluctant to hang up.';
+    instructions += `\n• Hang up only if the rep is rude at least twice with no recovery attempt.`;
   } else if (persona.difficulty === 'Hard') {
-    instructions +=
-      '\n\nHANG-UP RULE: Do NOT hang up unless the rep is aggressively rude or completely ignores you after you have asked the same question twice with no response. You are extremely reluctant to end this call — make them earn that hang-up.';
+    instructions += `\n• Almost never hang up. Only if rep is aggressively rude or ignores the same question twice. Make them earn it.`;
   }
 
-  instructions +=
-    '\n\nLANGUAGE: This call is in English. Always respond in English. You may use the occasional Spanish word or phrase naturally if it genuinely fits your character, but every full sentence must be in English.' +
-    '\n\nMARKER OVERRIDE: If your persona description tells you to end responses with [HANG_UP] or [APPOINTMENT_SET], ignore those instructions — they are outdated. Use ONLY the end_call function to end the call. Never append text markers.';
+  instructions += `\n• Speak English. Occasional Spanish word is fine if it fits your character naturally.`;
 
+  // Contact info — only revealed on request
   if (contactInfo) {
     instructions +=
-      `\n\nContact details to share ONLY when the rep specifically asks for them:` +
-      `\n• Callback number: ${contactInfo.phone} — give this when asked how to reach you` +
-      `\n• Email: ${contactInfo.email} — give this only if they ask for an email address` +
-      `\n• Vehicle of interest: ${contactInfo.car} — mention this when discussing what you are looking for` +
-      `\nDo NOT volunteer all this at once. Share each piece naturally, only when the rep asks or it comes up organically.`;
+      `\n\nYour contact info — share each piece ONLY when the rep specifically asks:` +
+      `\n• Phone: ${contactInfo.phone}` +
+      `\n• Email: ${contactInfo.email}` +
+      `\n• Vehicle: ${contactInfo.car}` +
+      `\nNever volunteer all three at once.`;
   }
 
   return instructions;
@@ -133,7 +118,7 @@ function handleMediaStream(twilioWs, rawUrl) {
   function startOpenAiSession(storedCall) {
     console.log(`[media-stream] Opening OpenAI Realtime WS callSid=${callSid} persona=${persona.id}`);
     openAiWs = new WebSocket(
-      'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview',
+      'wss://api.openai.com/v1/realtime?model=gpt-4o-mini-realtime-preview',
       {
         headers: {
           Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,

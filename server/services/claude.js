@@ -35,7 +35,7 @@ async function analyzeCall(transcript, persona) {
     `Transcript:\n${transcript}`;
 
   const message = await client.messages.create({
-    model: 'claude-sonnet-4-5',
+    model: 'claude-sonnet-4-6',
     max_tokens: 500,
     messages: [{ role: 'user', content: prompt }],
   });
@@ -84,7 +84,7 @@ async function gradeGauntlet(challenge, response) {
     `Respond ONLY in JSON: { "score": number, "acknowledge": number, "bridge": number, "answer": number, "redirect": number, "whatWorked": string, "whatMissed": string, "strongerLine": string }`;
 
   const msg = await client.messages.create({
-    model: 'claude-sonnet-4-5',
+    model: 'claude-sonnet-4-6',
     max_tokens: 400,
     messages: [{ role: 'user', content: prompt }],
   });
