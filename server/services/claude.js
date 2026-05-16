@@ -8,29 +8,50 @@ async function analyzeCall(transcript, persona) {
   if (!persona || !persona.name) {
     throw new Error('Persona is required to analyze call');
   }
+
+  const difficulty = persona.difficulty || 'Easy';
+  const isHard = difficulty === 'Hard';
+  const isMedium = difficulty === 'Medium';
+
+  // Difficulty-aware baseline and score ceiling guidance
+  const difficultyContext = isHard
+    ? `PERSONA DIFFICULTY: Hard. ${persona.name} is a genuinely difficult customer — guarded, skeptical, and designed to resist. A rep who keeps them engaged, handles their objections with grace, and makes any real progress at all is performing well. Do not penalize the rep for the customer's deliberate resistance.\n` +
+      `Hard-persona score benchmarks:\n` +
+      `• 25–45 = Rep handled a difficult customer competently — solid for Hard\n` +
+      `• 45–65 = Rep earned genuine trust despite real resistance — strong performance\n` +
+      `• 65–80 = Rep was exceptional — broke through significant barriers\n` +
+      `• 80+ = Near-perfect call against a hard persona — rare, award only for truly outstanding execution\n\n`
+    : isMedium
+    ? `PERSONA DIFFICULTY: Medium. ${persona.name} has real objections and a specific sticking point but is reachable. A rep who handles their main concern and moves toward an appointment is doing well.\n` +
+      `Medium-persona score benchmarks:\n` +
+      `• 35–55 = Rep handled a medium-difficulty customer adequately\n` +
+      `• 55–75 = Rep navigated the objections well and made strong progress\n` +
+      `• 75+ = Strong execution — set clear appointment or near-close\n\n`
+    : `PERSONA DIFFICULTY: Easy. ${persona.name} is a high-intent buyer who responds well to warmth and knowledge. A rep who misses basics here should score lower.\n\n`;
+
   const prompt =
-    `You are a car dealership phone-up coach grading a training call. The sales rep RECEIVED an inbound call from ${persona.name}.\n\n` +
-    `CALIBRATION — grade like a fair, experienced coach, not a harsh critic:\n` +
-    `• 15–20/20 = Excellent: Rep clearly excelled at this skill\n` +
-    `• 10–14/20 = Competent: Rep demonstrated this skill; some room to improve\n` +
-    `• 5–9/20   = Developing: Rep attempted this skill but fell noticeably short\n` +
-    `• 0–4/20   = Missed: Rep clearly failed to demonstrate this skill at all\n\n` +
-    `IMPORTANT BASELINE: A rep who gives a reasonably warm greeting, makes an effort to build rapport, and attempts to collect contact info — even if they don't set an appointment — should score 35–55 overall. Not every call is a 70. Not every call is a 15. Grade what actually happened.\n\n` +
-    `SCORE GUIDELINES (apply thoughtfully, not mechanically):\n` +
-    `• If the rep did NOT set an appointment → overallScore should generally be ≤ 72\n` +
-    `• If the rep got name + only one of (phone OR email) AND did set appointment → overallScore should generally be ≤ 85\n` +
-    `• If the rep got name + phone + email + appointment → score 70–100 based on overall quality\n` +
-    `• Do NOT penalize for the ORDER information was collected — grade holistically\n\n` +
-    `POSITIVE factors (raise score): strong positive greeting, compliment/validate the customer's reason for calling, reassure vehicle availability, ask if open to other options, verify wants and needs, offer personalized walk-around video, collect first+last name (with spelling), collect phone number, collect email, set specific appointment type (Test Drive/Trade Appraisal/Finance App/Purchase), confirm specific day+time, offer reminder text+email, handle/bypass objections.\n\n` +
-    `NEGATIVE factors (reduce score): pushy language, weak confidence, negative tone, defensive phrases ("I understand, but..."), lazy one-word responses, lack of ownership, conversation killers, interrupting the customer.\n\n` +
-    `Score each dimension 0–20 using the calibration scale above:\n` +
-    `opening (0–20): Greeting warmth, gave name+dealership, complimented or validated caller's reason for calling. A decent greeting with name and dealership = at least 10.\n` +
-    `rapport (0–20): Discovered wants/needs, asked about vehicle, offered walk-around video, reassured availability, asked if open to options. Making genuine discovery effort = at least 10.\n` +
-    `infoCapture (0–20): Secured first+last name (with spelling), callback phone number, and email — order does not matter. Getting 2 of 3 info items = at least 10.\n` +
-    `objectionHandling (0–20): Bridged objections, avoided pushy/defensive/lazy language, owned the conversation, no interruptions. Handling even one objection reasonably = at least 10.\n` +
-    `appointment (0–20): Asked for specific appointment type, specific day+time, offered reminder via text+email. Asking for any appointment = at least 8.\n\n` +
-    `overallScore (0–100): Holistic score reflecting the rep's actual performance. Apply the guidelines, but trust your calibrated judgment — not every competent call ends in 0s. feedback: 2–3 sentences of specific, actionable coaching covering what they did well AND what to improve.\n\n` +
-    `Respond ONLY in this exact JSON format with no other text: ` +
+    `You are a car dealership phone-up coach grading a training call. The sales rep RECEIVED an inbound call from ${persona.name} (${difficulty} difficulty).\n\n` +
+    difficultyContext +
+    `CALIBRATION — grade like a fair, experienced coach:\n` +
+    `• 15–20/20 = Excellent at this skill\n` +
+    `• 10–14/20 = Competent; some room to grow\n` +
+    `• 5–9/20   = Attempting but falling short\n` +
+    `• 0–4/20   = Missed this skill entirely\n\n` +
+    `IMPORTANT: Grade what actually happened on this specific call with this specific customer. The persona's designed resistance counts — don't penalize the rep for behaviors the customer was designed to exhibit.\n\n` +
+    `SCORE GUIDELINES:\n` +
+    `• Rep got name + phone + email + appointment → score toward the higher end of the difficulty range\n` +
+    `• Rep did NOT get an appointment → stay within the lower half of the difficulty range\n` +
+    `• Do NOT penalize for order of information collected — grade holistically\n\n` +
+    `POSITIVE factors: strong greeting, validates caller's reason, asks needs/wants questions, handles objections with value (not pressure), captures contact info, attempts a specific appointment with day+time.\n` +
+    `NEGATIVE factors: pushy language, defensive phrases, lazy one-word responses, interrupting, ignoring what the customer said.\n\n` +
+    `Score each dimension 0–20:\n` +
+    `opening (0–20): Greeting warmth, name+dealership, validated caller's reason. Decent greeting = at least 10.\n` +
+    `rapport (0–20): Discovered needs, asked about vehicle, made customer feel heard. Genuine effort = at least 10.\n` +
+    `infoCapture (0–20): Got name, phone, email — order doesn't matter. Two of three = at least 10.\n` +
+    `objectionHandling (0–20): Bridged objections, avoided pressure, owned the conversation. Handling even one objection = at least 10.\n` +
+    `appointment (0–20): Asked for specific appointment, day+time, offered reminder. Any real attempt = at least 8.\n\n` +
+    `overallScore (0–100): Holistic score calibrated to difficulty level above. feedback: 2–3 sentences of specific, actionable coaching — what they did well AND what to work on next.\n\n` +
+    `Respond ONLY in this exact JSON format with no other text:\n` +
     `{ "opening": number, "rapport": number, "infoCapture": number, "objectionHandling": number, "appointment": number, "overallScore": number, "feedback": string }\n\n` +
     `Transcript:\n${transcript}`;
 
