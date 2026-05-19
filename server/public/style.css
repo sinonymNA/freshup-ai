@@ -5026,17 +5026,23 @@ body[data-page="landing"] .nav-logo {
 }
 .btn-book-demo:hover { background: var(--accent-dark); }
 .btn-book-demo-hero {
+  padding: 14px 28px;
+  font-size: 16px;
+  font-weight: 700;
+  border-radius: 10px;
+  border: 1.5px solid #cbd5e1;
   background: transparent;
-  border: 2px solid rgba(255,255,255,0.5);
-  color: #fff;
-  border-radius: var(--radius-sm);
-  padding: 12px 22px;
-  font-size: 0.9rem;
-  font-weight: 600;
+  color: #0f172a;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  transition: background 0.15s, border-color 0.15s;
+  transition: all 0.3s ease;
+  position: relative;
 }
-.btn-book-demo-hero:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.75); }
+.btn-book-demo-hero:hover {
+  border-color: #94a3b8;
+  background: #f8fafc;
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+}
