@@ -804,23 +804,7 @@ function renderLanding() {
           <div class="section-eyebrow">GET CUSTOM PRICING</div>
           <h2 class="section-headline">Built for your dealership.</h2>
           <p class="lc-sub">Tell us about your store and we'll reach out with a custom demo and pricing for your team size.</p>
-          <form class="lead-form" id="lead-form">
-            <div class="lf-row">
-              <input type="text"   name="contactName"    placeholder="Your name"           class="lf-input" required />
-              <input type="text"   name="dealershipName" placeholder="Dealership name"      class="lf-input" required />
-            </div>
-            <div class="lf-row">
-              <input type="tel"    name="phone"          placeholder="(555) 123-4567"       class="lf-input" required />
-              <input type="email"  name="email"          placeholder="Email address"         class="lf-input" required />
-            </div>
-            <div class="lf-row">
-              <input type="text"   name="zip"            placeholder="Zip code"             class="lf-input" />
-              <input type="number" name="repCount"       placeholder="Estimated # of reps"  class="lf-input" min="1" />
-            </div>
-            <textarea name="message" placeholder="Anything else you'd like us to know?" class="lf-input lf-textarea"></textarea>
-            <div id="lead-form-msg" class="lead-form-msg" style="display:none"></div>
-            <button type="submit" class="btn-shimmer lf-submit">Request a Demo →</button>
-          </form>
+          <div class="hs-form-frame" data-region="na2" data-form-id="5c603a3b-8f8d-4beb-b513-5305b98d2c6f" data-portal-id="246242025"></div>
         </div>
       </section>
 
@@ -838,45 +822,6 @@ function renderLanding() {
   initScrollReveal();
   startHeroNotifications();
 
-  const leadForm = document.getElementById('lead-form');
-  if (leadForm) {
-    leadForm.addEventListener('submit', async e => {
-      e.preventDefault();
-      const btn = leadForm.querySelector('.lf-submit');
-      const msgEl = document.getElementById('lead-form-msg');
-      btn.disabled = true;
-      btn.textContent = 'Sending…';
-      msgEl.style.display = 'none';
-      const body = Object.fromEntries(new FormData(leadForm));
-      try {
-        const res = await fetch('/api/contact', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        });
-        if (res.ok) {
-          leadForm.reset();
-          msgEl.textContent = "Thanks! We'll be in touch within 1 business day.";
-          msgEl.className = 'lead-form-msg lf-success';
-          msgEl.style.display = 'block';
-          btn.textContent = 'Sent ✓';
-        } else {
-          const d = await res.json().catch(() => ({}));
-          msgEl.textContent = d.error || 'Something went wrong. Please try again.';
-          msgEl.className = 'lead-form-msg lf-error';
-          msgEl.style.display = 'block';
-          btn.disabled = false;
-          btn.textContent = 'Request a Demo →';
-        }
-      } catch {
-        msgEl.textContent = 'Network error. Please try again.';
-        msgEl.className = 'lead-form-msg lf-error';
-        msgEl.style.display = 'block';
-        btn.disabled = false;
-        btn.textContent = 'Request a Demo →';
-      }
-    });
-  }
 }
 
 // ── HERO LIVE NOTIFICATIONS ───────────────────────────────────────────────────
