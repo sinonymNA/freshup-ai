@@ -102,6 +102,20 @@ document.addEventListener('DOMContentLoaded', () => {
       drawer.classList.remove('open');
     }
   });
+
+  // Demo modal — open on any .open-demo-modal click (event delegation)
+  const demoModal = document.getElementById('demo-modal');
+  document.addEventListener('click', e => {
+    if (e.target.closest('.open-demo-modal')) {
+      demoModal.style.display = 'flex';
+    }
+  });
+  document.getElementById('demo-modal-close')?.addEventListener('click', () => {
+    demoModal.style.display = 'none';
+  });
+  demoModal?.addEventListener('click', e => {
+    if (e.target === demoModal) demoModal.style.display = 'none';
+  });
 });
 
 function render() {
@@ -217,12 +231,14 @@ function updateNav(path) {
     linksEl.innerHTML = '';
     authEl.innerHTML = `
       <a href="#/login" class="btn btn-ghost btn-sm">Log In</a>
+      <button class="btn-book-demo open-demo-modal">📅 Book a Demo</button>
       <a href="#/register" class="btn btn-primary btn-sm">Join Now</a>
     `;
     if (drawer) {
       drawer.innerHTML = `
         <a href="#/login" class="nav-link">Log In</a>
         <a href="#/register" class="nav-link">Join Now</a>
+        <button class="btn-book-demo open-demo-modal" style="margin-top:8px">📅 Book a Demo</button>
       `;
     }
   }
@@ -585,6 +601,7 @@ function renderLanding() {
           <div class="hero-buttons reveal" data-delay="240">
             <button class="btn-cta-primary" id="hero-request-info">Request Info</button>
             <button class="btn-cta-secondary" id="hero-try-call">Try a Call</button>
+            <button class="btn-book-demo-hero open-demo-modal">📅 Book a Live Demo</button>
           </div>
           <p class="hero-footer reveal" data-delay="300">No credit card · No commitment · Setup in 2 minutes</p>
         </div>

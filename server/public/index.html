@@ -17,6 +17,7 @@
   <!-- Start of HubSpot Embed Code -->
   <script type="text/javascript" id="hs-script-loader" async defer src="//js-na2.hs-scripts.com/246242025.js"></script>
   <script src="https://js-na2.hsforms.net/forms/embed/246242025.js" defer></script>
+  <script type="text/javascript" src="https://static.hsappstatic.net/MeetingsEmbed/ex/MeetingsEmbedCode.js" defer></script>
   <!-- End of HubSpot Embed Code -->
 </head>
 <body>
@@ -30,6 +31,14 @@
   </button>
 </nav>
 <div id="nav-drawer" class="nav-drawer"></div>
+
+<!-- HubSpot Meetings Modal -->
+<div id="demo-modal" class="demo-modal-overlay" style="display:none" role="dialog" aria-modal="true" aria-label="Book a live demo">
+  <div class="demo-modal-box">
+    <button class="demo-modal-close" id="demo-modal-close" aria-label="Close">✕</button>
+    <div class="meetings-iframe-container" data-src="https://meetings-na2.hubspot.com/jt-philpott?embed=true"></div>
+  </div>
+</div>
 
 <main id="app">
   <div class="loading">Loading…</div>
