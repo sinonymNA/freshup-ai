@@ -5,6 +5,27 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const router = express.Router();
 
+// Simple in-memory rate limiter for unauthenticated sensitive routes.
+// Keyed by IP; resets after windowMs.
+const _resetAttempts = new Map();
+function resetRateLimit(req, res, next) {
+  const ip = req.ip || req.connection.remoteAddress || 'unknown';
+  const now = Date.now();
+  const windowMs = 15 * 60 * 1000; // 15 minutes
+  const maxAttempts = 10;
+  const entry = _resetAttempts.get(ip);
+  if (entry && now - entry.start < windowMs) {
+    if (entry.count >= maxAttempts) {
+      res.status(429).json({ error: 'Too many attempts. Please wait 15 minutes before trying again.' });
+      return;
+    }
+    entry.count++;
+  } else {
+    _resetAttempts.set(ip, { start: now, count: 1 });
+  }
+  next();
+}
+
 const { createUser, updateUser, getUserByEmail, getUserById, createTeam, getTeamByCode, getTeamByManagerId, updateCall, createResetToken, validateResetToken, consumeResetToken, getSecurityQuestionByEmail } = require('../store');
 const { requireAuth, JWT_SECRET } = require('../middleware/requireAuth');
 
@@ -234,7 +255,7 @@ router.post('/forgot-password', async (req, res) => {
 });
 
 // POST /api/auth/security-question — returns the security question for an email (step 1 of reset)
-router.post('/security-question', async (req, res) => {
+router.post('/security-question', resetRateLimit, async (req, res) => {
   try {
     const { email } = req.body;
     if (!email) { res.status(400).json({ error: 'Email is required' }); return; }
@@ -248,7 +269,7 @@ router.post('/security-question', async (req, res) => {
 });
 
 // POST /api/auth/reset-password — supports both token-based and security-question-based reset
-router.post('/reset-password', async (req, res) => {
+router.post('/reset-password', resetRateLimit, async (req, res) => {
   try {
     const { token, password, email, answer } = req.body;
 

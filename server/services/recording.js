@@ -76,8 +76,8 @@ async function gradeRecordedCall(transcript) {
 
   const grade = JSON.parse(match[0]);
 
-  // Fallback: compute overallScore from components if missing or 0
-  if (!grade.overallScore) {
+  // Fallback: compute overallScore from components if missing or explicitly null/undefined
+  if (grade.overallScore == null) {
     grade.overallScore = (grade.greeting || 0) + (grade.needsDiscovery || 0) +
       (grade.productKnowledge || 0) + (grade.objectionHandling || 0) +
       (grade.appointmentPush || 0) + (grade.professionalism || 0);

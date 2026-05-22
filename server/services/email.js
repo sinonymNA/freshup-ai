@@ -15,6 +15,14 @@ function getSg() {
   }
 }
 
+function esc(str) {
+  return String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 function scoreColor(score) {
   if (score >= 70) return '#16a34a';
   if (score >= 50) return '#d97706';
@@ -47,14 +55,14 @@ async function sendGradeReport({ repName, score, callDate, summary, dashboardUrl
     <table style="width:100%;border-collapse:collapse;margin-bottom:24px">
       <tr>
         <td style="padding:10px 0;color:#64748b;width:130px;font-size:14px">Rep</td>
-        <td style="font-weight:600;font-size:15px">${repName}</td>
+        <td style="font-weight:600;font-size:15px">${esc(repName)}</td>
       </tr>
       <tr>
         <td style="padding:10px 0;color:#64748b;font-size:14px">Score</td>
         <td style="font-size:28px;font-weight:800;color:${color}">${score}<span style="font-size:14px;color:#64748b;font-weight:400">/100</span></td>
       </tr>
     </table>
-    <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;margin:0 0 24px;font-size:14px;line-height:1.6;color:#334155">${summary}</div>
+    <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;margin:0 0 24px;font-size:14px;line-height:1.6;color:#334155">${esc(summary)}</div>
     <a href="${dashboardUrl}" style="display:inline-block;background:#3b82f6;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px">View Full Report →</a>
     <p style="margin-top:24px;font-size:12px;color:#94a3b8">This report was generated automatically by FreshUp AI after a recorded sales call.</p>
   </div>

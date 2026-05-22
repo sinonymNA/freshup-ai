@@ -230,12 +230,13 @@ function getTeamAnalytics(teamId) {
 
   const placeholders = memberIds.map(() => '?').join(',');
 
-  // Calls this month (for appointment rate)
-  const monthCalls = db.prepare(
-    `SELECT userId, outcome, score FROM calls WHERE userId IN (${placeholders}) AND startTime >= ? AND score IS NOT NULL`
+  // Calls this month — all completed calls for rate, scored calls for dimension averages
+  const monthCallsAll = db.prepare(
+    `SELECT userId, outcome, score FROM calls WHERE userId IN (${placeholders}) AND startTime >= ?`
   ).all(...memberIds, monthAgo);
 
-  const completedCalls = monthCalls.filter(c => c.outcome === 'Appointment' || c.outcome === 'HangUp');
+  const monthCalls = monthCallsAll.filter(c => c.score);
+  const completedCalls = monthCallsAll.filter(c => c.outcome === 'Appointment' || c.outcome === 'HangUp');
   const appointmentCalls = completedCalls.filter(c => c.outcome === 'Appointment');
   const appointmentRate = completedCalls.length ? appointmentCalls.length / completedCalls.length : 0;
 

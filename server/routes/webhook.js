@@ -4,6 +4,27 @@ const express = require('express');
 const twilio = require('twilio');
 const router = express.Router();
 
+// Validate that incoming webhook requests are genuinely from Twilio.
+// Only enforced when TWILIO_AUTH_TOKEN is set; skipped in dev/test.
+function validateTwilioRequest(req, res, next) {
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  if (!authToken) { next(); return; }
+  const baseUrl = (process.env.BASE_URL || '').replace(/\/$/, '');
+  const fullUrl = `${baseUrl}${req.originalUrl}`;
+  const isValid = twilio.validateRequest(
+    authToken,
+    req.headers['x-twilio-signature'] || '',
+    fullUrl,
+    req.body || {}
+  );
+  if (!isValid) {
+    console.warn(`[webhook] Rejected invalid Twilio signature for ${req.originalUrl}`);
+    res.status(403).send('Forbidden');
+    return;
+  }
+  next();
+}
+
 const { getPersonaById } = require('../personas');
 const { analyzeCall } = require('../services/claude');
 const { downloadAndTranscribe, gradeRecordedCall } = require('../services/recording');
@@ -120,7 +141,7 @@ async function processRecording({ callSid, recordingSid, recordingUrl, duration,
 }
 
 // ── POST /webhook/voice ───────────────────────────────────────────────────────
-router.post('/voice', (req, res) => {
+router.post('/voice', validateTwilioRequest, (req, res) => {
   try {
     const callSid = req.body.CallSid;
 
@@ -170,7 +191,7 @@ router.post('/voice', (req, res) => {
 });
 
 // ── POST /webhook/status ──────────────────────────────────────────────────────
-router.post('/status', async (req, res) => {
+router.post('/status', validateTwilioRequest, async (req, res) => {
   const { CallSid, CallStatus } = req.body;
   console.log(`[webhook/status] CallSid=${CallSid} status=${CallStatus}`);
 
@@ -202,7 +223,7 @@ router.post('/status', async (req, res) => {
 // ── POST /webhook/recording ───────────────────────────────────────────────────
 // Twilio fires this when a call recording is ready. Respond immediately to
 // avoid timeouts, then run the transcription + grading pipeline async.
-router.post('/recording', (req, res) => {
+router.post('/recording', validateTwilioRequest, (req, res) => {
   res.sendStatus(204);
 
   const { CallSid, RecordingSid, RecordingUrl, RecordingDuration, RecordingStatus } = req.body;
@@ -224,7 +245,7 @@ router.post('/recording', (req, res) => {
 // ── POST /webhook/inbound ─────────────────────────────────────────────────────
 // Handles a real inbound call on a FreshUp tracked Twilio number.
 // Records the call and (if configured) forwards to the dealership's actual line.
-router.post('/inbound', (req, res) => {
+router.post('/inbound', validateTwilioRequest, (req, res) => {
   try {
     const { CallSid, From, To } = req.body;
     const base = (process.env.BASE_URL || '').replace(/\/$/, '');
@@ -277,7 +298,7 @@ router.post('/inbound', (req, res) => {
 
 // ── POST /webhook/inbound-complete ───────────────────────────────────────────
 // Twilio action callback when the inbound call/recording finishes.
-router.post('/inbound-complete', (req, res) => {
+router.post('/inbound-complete', validateTwilioRequest, (req, res) => {
   res.set('Content-Type', 'text/xml');
   res.send('<Response><Hangup/></Response>');
 });

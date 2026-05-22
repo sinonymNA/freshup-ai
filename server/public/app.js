@@ -978,6 +978,14 @@ function renderForgotPassword() {
       });
       const data = await res.json();
 
+      if (!res.ok) {
+        msgEl.textContent = data.error || 'Something went wrong. Please try again.';
+        msgEl.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Continue →';
+        return;
+      }
+
       if (!data.question) {
         msgEl.textContent = 'No security question found for this account. Contact support for help.';
         msgEl.style.display = 'block';
