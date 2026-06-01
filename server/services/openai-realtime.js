@@ -274,8 +274,28 @@ function handleMediaStream(twilioWs, rawUrl) {
                       .catch((err) => console.error('[openai-realtime] analyzeCall error:', err));
                   }
 
-                  const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-                  await client.calls(callSid).update({ status: 'completed' });
+                  // Acknowledge the function call so the model doesn't stall waiting for a result
+                  if (openAiWs && openAiWs.readyState === WebSocket.OPEN) {
+                    openAiWs.send(JSON.stringify({
+                      type: 'conversation.item.create',
+                      item: {
+                        type: 'function_call_output',
+                        call_id: msg.call_id,
+                        output: JSON.stringify({ ok: true }),
+                      },
+                    }));
+                  }
+
+                  // Delay hangup so any farewell audio in Twilio's buffer has time to drain
+                  // before we terminate the call on the platform level.
+                  setTimeout(async () => {
+                    try {
+                      const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+                      await client.calls(callSid).update({ status: 'completed' });
+                    } catch (err) {
+                      console.error('[openai-realtime] end_call Twilio hangup error:', err);
+                    }
+                  }, 2500);
                 }
               } catch (err) {
                 console.error('[openai-realtime] end_call handler error:', err);

@@ -171,8 +171,10 @@ router.get('/call/:callSid/stream', requireAuth, (req, res) => {
   const listener = (event) => {
     res.write(`data: ${JSON.stringify(event)}\n\n`);
     if (event.type === 'score') {
-      // Final score received — stream can close after a short delay
-      setTimeout(() => res.end(), 2000);
+      // Immediately follow with done so the client can render analysis without waiting
+      // for the EventSource reconnect/onerror cycle.
+      res.write('data: {"type":"done"}\n\n');
+      setTimeout(() => res.end(), 500);
     }
   };
 

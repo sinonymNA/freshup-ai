@@ -34,6 +34,7 @@ const {
   createRecordedCall, updateRecordedCall,
   getTeamByTrackingNumber, getUserById, getTeamById,
 } = require('../store');
+const callEmitter = require('../services/callEvents');
 const { requireAuth } = require('../middleware/requireAuth');
 
 function formatTranscript(history) {
@@ -200,9 +201,11 @@ router.post('/status', validateTwilioRequest, async (req, res) => {
     if (callData) {
       const updates = {};
       if (!callData.endTime) updates.endTime = Date.now();
+      // 'Completed' = user hung up manually; don't overwrite an outcome already set by end_call
       if (!callData.outcome) updates.outcome = 'Completed';
 
-      if (!callData.score && callData.history && callData.history.length > 0) {
+      // Only score if end_call handler hasn't already started (outcome set = end_call ran)
+      if (!callData.score && !callData.outcome && callData.history && callData.history.length > 0) {
         try {
           const persona = getPersonaById(callData.personaId);
           if (persona) {
@@ -213,7 +216,13 @@ router.post('/status', validateTwilioRequest, async (req, res) => {
         }
       }
 
-      if (Object.keys(updates).length > 0) updateCall(CallSid, updates);
+      if (Object.keys(updates).length > 0) {
+        updateCall(CallSid, updates);
+        // Notify the SSE stream so the browser gets outcome/score immediately
+        // instead of waiting for the EventSource reconnect/poll cycle.
+        if (updates.outcome) callEmitter.emit(`call:${CallSid}`, { type: 'outcome', outcome: updates.outcome });
+        if (updates.score) callEmitter.emit(`call:${CallSid}`, { type: 'score', score: updates.score });
+      }
     }
   }
 
