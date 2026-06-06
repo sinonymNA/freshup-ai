@@ -3950,16 +3950,16 @@ function renderGauntletChallenge() {
         const textarea = document.getElementById('gauntlet-response');
         const base = textarea.value;
         recognition.onresult = (e) => {
+          let full = base;
           let interim = '';
-          let final = base;
-          for (let i = e.resultIndex; i < e.results.length; i++) {
+          for (let i = 0; i < e.results.length; i++) {
             if (e.results[i].isFinal) {
-              final += e.results[i][0].transcript;
+              full += e.results[i][0].transcript;
             } else {
               interim += e.results[i][0].transcript;
             }
           }
-          textarea.value = final + interim;
+          textarea.value = full + interim;
         };
         recognition.onend = () => {
           isRecording = false;
