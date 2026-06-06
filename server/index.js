@@ -44,14 +44,14 @@ app.get('/health/openai', async (req, res) => {
   try {
     await new Promise((resolve, reject) => {
       const ws = new WebSocket(
-        'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview',
+        'wss://api.openai.com/v1/realtime?model=gpt-realtime',
         { headers: { Authorization: `Bearer ${key}`, 'OpenAI-Beta': 'realtime=v1' } }
       );
       const timeout = setTimeout(() => { ws.terminate(); reject(new Error('Connection timed out after 8s')); }, 8000);
       ws.on('open', () => { clearTimeout(timeout); ws.close(); resolve(); });
       ws.on('error', (err) => { clearTimeout(timeout); reject(err); });
     });
-    res.json({ ok: true, model: 'gpt-4o-realtime-preview' });
+    res.json({ ok: true, model: 'gpt-realtime' });
   } catch (err) {
     res.status(502).json({ ok: false, error: err.message });
   }
