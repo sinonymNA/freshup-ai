@@ -109,6 +109,7 @@ function handleMediaStream(twilioWs, rawUrl) {
   let partialScoringInProgress = false;
   let sessionSeeded = false;   // prevent double-seeding on session.updated
   let aiResponseActive = false; // track whether AI audio is currently streaming
+  let greetingDone = false;     // protect the first bot turn from VAD interruption
 
   function emit(event) {
     if (callSid) callEmitter.emit(`call:${callSid}`, event);
@@ -118,7 +119,7 @@ function handleMediaStream(twilioWs, rawUrl) {
   function startOpenAiSession(storedCall) {
     console.log(`[media-stream] Opening OpenAI Realtime WS callSid=${callSid} persona=${persona.id}`);
     openAiWs = new WebSocket(
-      'wss://api.openai.com/v1/realtime?model=gpt-realtime',
+      'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2025-06-03',
       {
         headers: {
           Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
@@ -211,6 +212,7 @@ function handleMediaStream(twilioWs, rawUrl) {
           case 'response.done':
           case 'response.cancelled':
             aiResponseActive = false;
+            greetingDone = true;
             break;
 
           case 'response.audio_transcript.delta':
@@ -248,10 +250,13 @@ function handleMediaStream(twilioWs, rawUrl) {
             break;
 
           case 'input_audio_buffer.speech_started':
-            // Drop the gate immediately so no further stale audio delta is forwarded
-            aiResponseActive = false;
-            if (streamSid) {
-              twilioWs.send(JSON.stringify({ event: 'clear', streamSid }));
+            // Only interrupt once the greeting is done — phone-line noise on connect
+            // would otherwise kill the first response before any audio reaches Twilio.
+            if (greetingDone) {
+              aiResponseActive = false;
+              if (streamSid) {
+                twilioWs.send(JSON.stringify({ event: 'clear', streamSid }));
+              }
             }
             break;
 
