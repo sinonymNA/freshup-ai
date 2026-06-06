@@ -56,10 +56,21 @@ const CHALLENGE_PERSONAS = {
   'competitor':'david-chen',
 };
 
+// Call type → persona mappings by difficulty
+const CALL_TYPE_PERSONA_MAP = {
+  'hot-lead':   { easy: 'ashley-thompson',        medium: 'james-okafor',         hard: 'margaret-kim' },
+  'price':      { easy: 'margaret-kim',            medium: 'carlos-mendoza',       hard: 'marcus-webb' },
+  'trade-in':   { easy: 'james-okafor',            medium: 'carlos-mendoza',       hard: 'robert-hayes' },
+  'credit':     { easy: 'tyler-kowalski',          medium: 'rosa-delgado',         hard: 'priya-chandrasekaran' },
+  'approval':   { easy: 'tyler-kowalski',          medium: 'brittany-walsh',       hard: 'david-chen' },
+  'skeptical':  { easy: 'james-okafor',            medium: 'nina-patel',           hard: 'priya-chandrasekaran' },
+  'competitor': { easy: 'margaret-kim',            medium: 'nina-patel',           hard: 'david-chen' },
+};
+
 // POST /api/call/start
 router.post('/call/start', requireAuth, startCallRateLimit, async (req, res) => {
   try {
-    const { phoneNumber, personaId, difficulty } = req.body;
+    const { phoneNumber, personaId, difficulty, callType } = req.body;
 
     const parsedPhone = parseAndValidatePhone(phoneNumber);
     if (!parsedPhone.ok) {
@@ -71,6 +82,15 @@ router.post('/call/start', requireAuth, startCallRateLimit, async (req, res) => 
     if (personaId) {
       persona = getPersonaById(personaId);
       if (!persona) { res.status(404).json({ error: 'Persona not found' }); return; }
+    } else if (callType && CALL_TYPE_PERSONA_MAP[callType]) {
+      const diff = (difficulty || 'Easy').toLowerCase();
+      const typeMap = CALL_TYPE_PERSONA_MAP[callType];
+      const mappedId = typeMap[diff] || typeMap.easy;
+      persona = getPersonaById(mappedId);
+      if (!persona) {
+        const pool = getPersonasByDifficulty(difficulty || 'Easy');
+        persona = pool.length ? pool[Math.floor(Math.random() * pool.length)] : getRandomPersona();
+      }
     } else if (difficulty) {
       const pool = getPersonasByDifficulty(difficulty);
       if (!pool.length) { res.status(400).json({ error: `No personas for difficulty: ${difficulty}` }); return; }

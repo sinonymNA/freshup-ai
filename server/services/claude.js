@@ -45,14 +45,17 @@ async function analyzeCall(transcript, persona) {
     `POSITIVE factors: strong greeting, validates caller's reason, asks needs/wants questions, handles objections with value (not pressure), captures contact info, attempts a specific appointment with day+time.\n` +
     `NEGATIVE factors: pushy language, defensive phrases, lazy one-word responses, interrupting, ignoring what the customer said.\n\n` +
     `Score each dimension 0–20:\n` +
-    `opening (0–20): Greeting warmth, name+dealership, validated caller's reason. Decent greeting = at least 10.\n` +
-    `rapport (0–20): Discovered needs, asked about vehicle, made customer feel heard. Genuine effort = at least 10.\n` +
+    `opening (0–20): Greeting warmth, gave name+dealership, validated caller's reason. Decent greeting = at least 10.\n` +
+    `rapport (0–20): Made caller feel heard, was warm and conversational. Genuine effort = at least 10.\n` +
+    `needsDiscovery (0–20): Asked about budget, timeline, trade-in, and vehicle preferences before pitching. Any real discovery = at least 10.\n` +
+    `productKnowledge (0–20): Spoke confidently and accurately about the vehicle or options discussed. Competent knowledge = at least 10.\n` +
     `infoCapture (0–20): Got name, phone, email — order doesn't matter. Two of three = at least 10.\n` +
-    `objectionHandling (0–20): Bridged objections, avoided pressure, owned the conversation. Handling even one objection = at least 10.\n` +
-    `appointment (0–20): Asked for specific appointment, day+time, offered reminder. Any real attempt = at least 8.\n\n` +
+    `professionalism (0–20): Patient, positive, not pushy or defensive. Solid tone throughout = at least 10.\n` +
+    `appointment (0–20): Asked for specific appointment with day+time, offered reminder. Any real attempt = at least 8.\n` +
+    `objectionHandling (0–20): Bridged objections, avoided pressure, owned the conversation. Handling even one objection = at least 10.\n\n` +
     `overallScore (0–100): Holistic score calibrated to difficulty level above. feedback: 2–3 sentences of specific, actionable coaching — what they did well AND what to work on next.\n\n` +
     `Respond ONLY in this exact JSON format with no other text:\n` +
-    `{ "opening": number, "rapport": number, "infoCapture": number, "objectionHandling": number, "appointment": number, "overallScore": number, "feedback": string }\n\n` +
+    `{ "opening": number, "rapport": number, "needsDiscovery": number, "productKnowledge": number, "infoCapture": number, "professionalism": number, "appointment": number, "objectionHandling": number, "overallScore": number, "feedback": string }\n\n` +
     `Transcript:\n${transcript}`;
 
   const message = await client.messages.create({
@@ -75,11 +78,8 @@ async function analyzeCall(transcript, persona) {
       }
     }
     return {
-      opening: 0,
-      rapport: 0,
-      infoCapture: 0,
-      objectionHandling: 0,
-      appointment: 0,
+      opening: 0, rapport: 0, needsDiscovery: 0, productKnowledge: 0,
+      infoCapture: 0, professionalism: 0, appointment: 0, objectionHandling: 0,
       overallScore: 0,
       feedback: 'Call analysis could not be parsed. Raw response: ' + raw,
     };

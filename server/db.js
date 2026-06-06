@@ -261,7 +261,7 @@ function getTeamAnalytics(teamId) {
   ).get(...memberIds, weekAgo).n;
 
   // Dimension averages (this month)
-  const dims = { opening: 0, rapport: 0, infoCapture: 0, objectionHandling: 0, appointment: 0 };
+  const dims = { opening: 0, rapport: 0, needsDiscovery: 0, productKnowledge: 0, infoCapture: 0, professionalism: 0, appointment: 0, objectionHandling: 0 };
   if (scores.length) {
     for (const d of Object.keys(dims)) {
       const vals = scores.map(s => s[d] ?? 0);
@@ -279,7 +279,7 @@ function getTeamAnalytics(teamId) {
     const repAppt = repCalls.filter(c => c.outcome === 'Appointment');
     const repApptRate = repCompleted.length ? repAppt.length / repCompleted.length : 0;
 
-    const repDims = { opening: 0, rapport: 0, infoCapture: 0, objectionHandling: 0, appointment: 0 };
+    const repDims = { opening: 0, rapport: 0, needsDiscovery: 0, productKnowledge: 0, infoCapture: 0, professionalism: 0, appointment: 0, objectionHandling: 0 };
     if (repScores.length) {
       for (const d of Object.keys(repDims)) {
         const vals = repScores.map(s => s[d] ?? 0);
@@ -458,17 +458,23 @@ function getAnalytics() {
   const dimRow = db.prepare(`
     SELECT
       ROUND(AVG(CAST(json_extract(score,'$.opening')            AS REAL)),1) AS opening,
-      ROUND(AVG(CAST(json_extract(score,'$.rapport')           AS REAL)),1) AS rapport,
-      ROUND(AVG(CAST(json_extract(score,'$.infoCapture')       AS REAL)),1) AS infoCapture,
-      ROUND(AVG(CAST(json_extract(score,'$.objectionHandling') AS REAL)),1) AS objectionHandling,
-      ROUND(AVG(CAST(json_extract(score,'$.appointment')       AS REAL)),1) AS appointment
+      ROUND(AVG(CAST(json_extract(score,'$.rapport')            AS REAL)),1) AS rapport,
+      ROUND(AVG(CAST(json_extract(score,'$.needsDiscovery')     AS REAL)),1) AS needsDiscovery,
+      ROUND(AVG(CAST(json_extract(score,'$.productKnowledge')   AS REAL)),1) AS productKnowledge,
+      ROUND(AVG(CAST(json_extract(score,'$.infoCapture')        AS REAL)),1) AS infoCapture,
+      ROUND(AVG(CAST(json_extract(score,'$.professionalism')    AS REAL)),1) AS professionalism,
+      ROUND(AVG(CAST(json_extract(score,'$.objectionHandling')  AS REAL)),1) AS objectionHandling,
+      ROUND(AVG(CAST(json_extract(score,'$.appointment')        AS REAL)),1) AS appointment
     FROM calls WHERE score IS NOT NULL
   `).get();
 
   const dims = {
     opening:            dimRow?.opening            || 0,
     rapport:            dimRow?.rapport            || 0,
+    needsDiscovery:     dimRow?.needsDiscovery     || 0,
+    productKnowledge:   dimRow?.productKnowledge   || 0,
     infoCapture:        dimRow?.infoCapture        || 0,
+    professionalism:    dimRow?.professionalism    || 0,
     objectionHandling:  dimRow?.objectionHandling  || 0,
     appointment:        dimRow?.appointment        || 0,
   };
@@ -625,9 +631,10 @@ function getRecordedCallBySid(callSid) {
 }
 
 function getRecordedCallsByTeam(teamId, opts = {}) {
-  const { startDate, endDate, minScore, maxScore, limit = 100 } = opts;
+  const { startDate, endDate, minScore, maxScore, limit = 100, type } = opts;
   let query = 'SELECT * FROM recorded_calls WHERE teamId = ?';
   const params = [teamId];
+  if (type) { query += ' AND type = ?'; params.push(type); }
   if (startDate) { query += ' AND startTime >= ?'; params.push(new Date(startDate).getTime()); }
   if (endDate) { query += ' AND startTime <= ?'; params.push(new Date(endDate).getTime() + 86399999); }
   if (minScore !== undefined && minScore !== '') {

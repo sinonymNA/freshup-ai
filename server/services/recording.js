@@ -30,28 +30,32 @@ async function downloadAndTranscribe(recordingUrl) {
   return typeof transcription === 'string' ? transcription : (transcription.text || '');
 }
 
-const GRADE_PROMPT = `You are an expert car dealership phone sales coach. Grade the following call transcript using this rubric:
+const GRADE_PROMPT = `You are an expert car dealership phone sales coach. Grade the following call transcript using this rubric. Score each dimension 0–20:
 
-1. Greeting and first impression (10 points): Did the rep answer professionally, give their name, and make the caller feel welcome?
-2. Needs discovery (25 points): Did the rep ask qualifying questions about budget, timeline, trade-in, and vehicle preferences before pitching?
-3. Product knowledge (20 points): Did the rep speak confidently and accurately about the vehicle being discussed?
-4. Objection handling (20 points): Did the rep acknowledge objections and respond with value rather than pressure?
-5. Appointment push (15 points): Did the rep attempt to set an in-person appointment or next step?
-6. Professionalism and tone (10 points): Was the rep patient, positive, and not pushy?
+1. opening (0–20): Did the rep answer professionally, give their name and dealership, and validate the caller's reason for calling?
+2. rapport (0–20): Did the rep make the caller feel genuinely heard and build warmth?
+3. needsDiscovery (0–20): Did the rep ask qualifying questions about budget, timeline, trade-in, and vehicle preferences before pitching?
+4. productKnowledge (0–20): Did the rep speak confidently and accurately about the vehicle or financing options discussed?
+5. infoCapture (0–20): Did the rep capture the caller's name, phone number, and email? (Order doesn't matter — getting any two = at least 10)
+6. professionalism (0–20): Was the rep patient, positive, and not pushy or defensive throughout the call?
+7. appointment (0–20): Did the rep attempt to set a specific in-person appointment with a day and time?
+8. objectionHandling (0–20): Did the rep acknowledge objections and respond with value rather than pressure?
 
-CALIBRATION: Grade fairly. A rep who gives a warm greeting, asks a few qualifying questions, and attempts to set an appointment should score 50–65 overall even with imperfections. Reserve 80+ for genuinely strong performances.
+CALIBRATION: Grade fairly. A rep who gives a warm greeting, asks qualifying questions, and makes a real appointment attempt should score 50–65 overall even with imperfections. Reserve 80+ for genuinely strong performances.
 
 Transcript:
 {TRANSCRIPT}
 
 Respond ONLY with raw JSON — no markdown fences, no extra text:
 {
-  "greeting": <0-10>,
-  "needsDiscovery": <0-25>,
+  "opening": <0-20>,
+  "rapport": <0-20>,
+  "needsDiscovery": <0-20>,
   "productKnowledge": <0-20>,
+  "infoCapture": <0-20>,
+  "professionalism": <0-20>,
+  "appointment": <0-20>,
   "objectionHandling": <0-20>,
-  "appointmentPush": <0-15>,
-  "professionalism": <0-10>,
   "overallScore": <0-100>,
   "strengths": "<1-2 sentences of specific strengths>",
   "improvements": "<1-2 sentences of biggest areas to improve>",
@@ -78,9 +82,10 @@ async function gradeRecordedCall(transcript) {
 
   // Fallback: compute overallScore from components if missing or explicitly null/undefined
   if (grade.overallScore == null) {
-    grade.overallScore = (grade.greeting || 0) + (grade.needsDiscovery || 0) +
-      (grade.productKnowledge || 0) + (grade.objectionHandling || 0) +
-      (grade.appointmentPush || 0) + (grade.professionalism || 0);
+    grade.overallScore = (grade.opening || 0) + (grade.rapport || 0) +
+      (grade.needsDiscovery || 0) + (grade.productKnowledge || 0) +
+      (grade.infoCapture || 0) + (grade.professionalism || 0) +
+      (grade.appointment || 0) + (grade.objectionHandling || 0);
   }
 
   return grade;

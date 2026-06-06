@@ -306,7 +306,7 @@ function initPhoneInput(el) {
 
 function weakestDimPill(score) {
   if (!score) return '';
-  const dimLabels = { opening: 'Opening', rapport: 'Rapport', infoCapture: 'Lead Capture', objectionHandling: 'Objection Handling', appointment: 'Close' };
+  const dimLabels = { opening: 'Opening', rapport: 'Rapport', needsDiscovery: 'Needs Discovery', productKnowledge: 'Product Knowledge', infoCapture: 'Lead Capture', professionalism: 'Professionalism', appointment: 'Close', objectionHandling: 'Objection Handling' };
   const keys = ['opening', 'rapport', 'infoCapture', 'objectionHandling', 'appointment'];
   let worst = null, worstVal = Infinity;
   for (const k of keys) {
@@ -1400,7 +1400,7 @@ async function renderDashboard() {
 
   // Dimension averages (last 20 scored calls)
   const dimKeys = ['opening', 'rapport', 'infoCapture', 'objectionHandling', 'appointment'];
-  const dimLabels = { opening: 'Opening', rapport: 'Rapport', infoCapture: 'Lead Capture', objectionHandling: 'Objection Handling', appointment: 'Close' };
+  const dimLabels = { opening: 'Opening', rapport: 'Rapport', needsDiscovery: 'Needs Discovery', productKnowledge: 'Product Knowledge', infoCapture: 'Lead Capture', professionalism: 'Professionalism', appointment: 'Close', objectionHandling: 'Objection Handling' };
   const recent20 = scored.slice(0, 20);
   const dimAvgs = {};
   for (const k of dimKeys) {
@@ -1722,6 +1722,19 @@ async function renderStart() {
                 </div>
               </button>
             </div>
+            <div class="call-type-selector" id="call-type-selector">
+              <div class="call-type-label">Call Type</div>
+              <div class="call-type-chips">
+                <button class="call-type-chip active" data-type="">Any Type</button>
+                <button class="call-type-chip" data-type="hot-lead">Hot Lead</button>
+                <button class="call-type-chip" data-type="price">Price</button>
+                <button class="call-type-chip" data-type="trade-in">Trade-In</button>
+                <button class="call-type-chip" data-type="credit">Credit</button>
+                <button class="call-type-chip" data-type="approval">Approval Needed</button>
+                <button class="call-type-chip" data-type="skeptical">Skeptical</button>
+                <button class="call-type-chip" data-type="competitor">Competitor</button>
+              </div>
+            </div>
           `}
 
           <div class="phone-input-wrap">
@@ -1776,6 +1789,7 @@ async function renderStart() {
   initPhoneInput(phoneInput);
 
   let selectedDifficulty = 'easy';
+  let selectedCallType = '';
 
   // Difficulty selector interaction
   const diffSel = document.getElementById('diff-selector');
@@ -1786,6 +1800,18 @@ async function renderStart() {
       diffSel.querySelectorAll('.diff-opt').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       selectedDifficulty = btn.dataset.diff;
+    });
+  }
+
+  // Call type selector interaction
+  const callTypeSel = document.getElementById('call-type-selector');
+  if (callTypeSel) {
+    callTypeSel.addEventListener('click', e => {
+      const btn = e.target.closest('.call-type-chip');
+      if (!btn) return;
+      callTypeSel.querySelectorAll('.call-type-chip').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedCallType = btn.dataset.type;
     });
   }
 
@@ -1807,6 +1833,7 @@ async function renderStart() {
       body.personaId = selectedPersonaId;
     } else {
       body.difficulty = selectedDifficulty;
+      if (selectedCallType) body.callType = selectedCallType;
     }
 
     try {
@@ -2130,19 +2157,11 @@ function showCallAnalysis(data, callSid) {
               <div class="contact-reveal-sub">Did you capture it?</div>
             </div>
             <div class="quiz-toggle-btns">
-              <button class="quiz-toggle-btn active" id="btn-reveal">Reveal</button>
-              <button class="quiz-toggle-btn" id="btn-quiz">Quiz Me</button>
+              <button class="quiz-toggle-btn active" id="btn-quiz">Quiz Me</button>
+              <button class="quiz-toggle-btn" id="btn-reveal">Reveal</button>
             </div>
           </div>
-          <div id="contact-reveal-panel">
-            <div class="contact-grid">
-              <div class="contact-field"><span class="cf-lbl">Name</span><span class="cf-val">${escHtml(ci.name)}</span></div>
-              <div class="contact-field"><span class="cf-lbl">Phone</span><span class="cf-val">${escHtml(ci.phone)}</span></div>
-              <div class="contact-field"><span class="cf-lbl">Email</span><span class="cf-val">${escHtml(ci.email)}</span></div>
-              <div class="contact-field"><span class="cf-lbl">Vehicle</span><span class="cf-val">${escHtml(ci.car)}</span></div>
-            </div>
-          </div>
-          <div id="contact-quiz-panel" style="display:none">
+          <div id="contact-quiz-panel">
             <div class="quiz-inputs">
               <div class="form-group"><label>Name</label><input type="text" class="quiz-input" data-field="name" placeholder="Caller's name" /></div>
               <div class="form-group"><label>Phone</label><input type="text" class="quiz-input" data-field="phone" placeholder="Callback number" /></div>
@@ -2152,19 +2171,27 @@ function showCallAnalysis(data, callSid) {
             <button class="btn btn-primary btn-full btn-sm" id="quiz-submit-btn">Grade My Notes</button>
             <div id="quiz-results"></div>
           </div>
+          <div id="contact-reveal-panel" style="display:none">
+            <div class="contact-grid">
+              <div class="contact-field"><span class="cf-lbl">Name</span><span class="cf-val">${escHtml(ci.name)}</span></div>
+              <div class="contact-field"><span class="cf-lbl">Phone</span><span class="cf-val">${escHtml(ci.phone)}</span></div>
+              <div class="contact-field"><span class="cf-lbl">Email</span><span class="cf-val">${escHtml(ci.email)}</span></div>
+              <div class="contact-field"><span class="cf-lbl">Vehicle</span><span class="cf-val">${escHtml(ci.car)}</span></div>
+            </div>
+          </div>
         </div>`;
 
+      document.getElementById('btn-quiz').addEventListener('click', () => {
+        document.getElementById('btn-quiz').classList.add('active');
+        document.getElementById('btn-reveal').classList.remove('active');
+        document.getElementById('contact-quiz-panel').style.display = '';
+        document.getElementById('contact-reveal-panel').style.display = 'none';
+      });
       document.getElementById('btn-reveal').addEventListener('click', () => {
         document.getElementById('btn-reveal').classList.add('active');
         document.getElementById('btn-quiz').classList.remove('active');
         document.getElementById('contact-reveal-panel').style.display = '';
         document.getElementById('contact-quiz-panel').style.display = 'none';
-      });
-      document.getElementById('btn-quiz').addEventListener('click', () => {
-        document.getElementById('btn-quiz').classList.add('active');
-        document.getElementById('btn-reveal').classList.remove('active');
-        document.getElementById('contact-reveal-panel').style.display = 'none';
-        document.getElementById('contact-quiz-panel').style.display = '';
       });
       document.getElementById('quiz-submit-btn').addEventListener('click', () => {
         const fields = ['name', 'phone', 'email', 'car'];
@@ -2186,8 +2213,8 @@ function showCallAnalysis(data, callSid) {
         });
         const pct = Math.round(correct / fields.length * 100);
 
-        // Bonus points: +2.5 per correct field, max +10, cap total at 100
-        const bonus = correct * 2.5;
+        // Bonus points: +1.25 per correct field, max +5, cap total at 100
+        const bonus = correct * 1.25;
         if (bonus > 0 && data.score) {
           const newScore = Math.min(100, (data.score.overallScore || 0) + bonus);
           updateGauge({ ...data.score, overallScore: newScore });
@@ -2208,10 +2235,17 @@ function showCallAnalysis(data, callSid) {
         document.getElementById('quiz-results').innerHTML = `
           <div class="quiz-score-banner" style="color:${scoreColor(pct)}">
             ${correct}/${fields.length} captured correctly (${pct}%)
-            ${bonus > 0 ? `<span class="quiz-bonus">+${bonus} bonus pts!</span>` : ''}
+            ${bonus > 0 ? `<span class="quiz-bonus">+${bonus} bonus pts! (max +5)</span>` : ''}
           </div>
-          ${results.join('')}`;
+          ${results.join('')}
+          <button class="btn btn-secondary btn-sm quiz-reveal-btn" id="quiz-reveal-btn" style="margin-top:10px">Reveal Answers</button>`;
         document.getElementById('quiz-submit-btn').style.display = 'none';
+        document.getElementById('quiz-reveal-btn')?.addEventListener('click', () => {
+          document.getElementById('btn-reveal').classList.add('active');
+          document.getElementById('btn-quiz').classList.remove('active');
+          document.getElementById('contact-reveal-panel').style.display = '';
+          document.getElementById('contact-quiz-panel').style.display = 'none';
+        });
       });
     }
   }
@@ -2652,7 +2686,7 @@ async function renderTeam() {
   const seenCallSids = new Set();
   const dedupedRecentCalls = recentCalls.filter(c => { if (seenCallSids.has(c.callSid)) return false; seenCallSids.add(c.callSid); return true; });
 
-  const dimLabels = { opening: 'Opening', rapport: 'Rapport', infoCapture: 'Lead Capture', objectionHandling: 'Objection Handling', appointment: 'Close' };
+  const dimLabels = { opening: 'Opening', rapport: 'Rapport', needsDiscovery: 'Needs Discovery', productKnowledge: 'Product Knowledge', infoCapture: 'Lead Capture', professionalism: 'Professionalism', appointment: 'Close', objectionHandling: 'Objection Handling' };
   let weakestDimKey = null, weakestDimVal = Infinity;
   if (dims) {
     for (const [k, v] of Object.entries(dims)) {
@@ -2696,14 +2730,31 @@ async function renderTeam() {
     <div class="revenue-impact-card">
       <div class="ric-icon">$</div>
       <div class="ric-body">
-        <div class="ric-title">Estimated Revenue Impact — This Month</div>
+        <div class="ric-title">AI Training Impact — This Month</div>
         <div class="ric-calc">
           <span class="ric-num">${monthlyApptsEst}</span> appointment${monthlyApptsEst !== 1 ? 's' : ''} set ×
           <span class="ric-num">25%</span> close rate ×
           <span class="ric-num">$${avgDealValue.toLocaleString()}</span> avg deal =
           <strong class="ric-total">$${Math.round(monthlyApptsEst * 0.25 * avgDealValue).toLocaleString()} pipeline</strong>
         </div>
-        <div class="ric-note">Your team's ${apptRate !== null ? apptRate + '%' : '—'} appt rate vs. 22% industry baseline${apptRate !== null && apptRate > 22 ? ' — above average' : apptRate !== null ? ' — below average' : ''}</div>
+        <div class="ric-note">Based on 50% show rate × 50% close rate · Your team's ${apptRate !== null ? apptRate + '%' : '—'} appt rate vs. 22% industry baseline${apptRate !== null && apptRate > 22 ? ' — above average' : apptRate !== null ? ' — below average' : ''}</div>
+      </div>
+    </div>
+    <div class="revenue-benchmark-card">
+      <div class="ric-icon ric-icon-benchmark">🎯</div>
+      <div class="ric-body">
+        <div class="ric-title">FreshUp Benchmark — What Your Team Should Hit per 100 Calls</div>
+        <div class="benchmark-flow">
+          <div class="bf-step"><span class="bf-num">100</span><span class="bf-lbl">inbound calls</span></div>
+          <span class="bf-arrow">→</span>
+          <div class="bf-step"><span class="bf-num">80</span><span class="bf-lbl">appointments set<br><small>(80% set rate)</small></span></div>
+          <span class="bf-arrow">→</span>
+          <div class="bf-step"><span class="bf-num">48</span><span class="bf-lbl">show up<br><small>(60% show rate)</small></span></div>
+          <span class="bf-arrow">→</span>
+          <div class="bf-step"><span class="bf-num">24</span><span class="bf-lbl">deals closed<br><small>(50% close rate)</small></span></div>
+          <span class="bf-arrow">→</span>
+          <div class="bf-step bf-step-revenue"><span class="bf-num">$${Math.round(24 * avgDealValue).toLocaleString()}</span><span class="bf-lbl">revenue</span></div>
+        </div>
       </div>
     </div>
     ` : `
@@ -2784,7 +2835,7 @@ function repCard(rep, now, WEEK) {
   const apptPct = Math.round((rep.appointmentRate || 0) * 100);
   const trendIcon = rep.trend === 'up' ? '↑' : rep.trend === 'down' ? '↓' : '→';
   const trendClass = rep.trend === 'up' ? 'rc-trend-up' : rep.trend === 'down' ? 'rc-trend-down' : 'rc-trend-flat';
-  const dimLabels = { opening: 'Opening', rapport: 'Rapport', infoCapture: 'Lead Capture', objectionHandling: 'Objection Handling', appointment: 'Close' };
+  const dimLabels = { opening: 'Opening', rapport: 'Rapport', needsDiscovery: 'Needs Discovery', productKnowledge: 'Product Knowledge', infoCapture: 'Lead Capture', professionalism: 'Professionalism', appointment: 'Close', objectionHandling: 'Objection Handling' };
   const weakestLabel = rep.weakestDim ? dimLabels[rep.weakestDim.key] : null;
 
   return `
@@ -3298,12 +3349,19 @@ async function renderGMDashboard() {
     return;
   }
 
+  let gmActiveTab = 'inbound';
+
   app.innerHTML = `
     <div class="page-header">
       <div>
         <h1>Call Records</h1>
-        <p class="subtitle">Every recorded call — AI training sessions and real inbound calls — graded and ready to review.</p>
+        <p class="subtitle">Every recorded call — graded and ready to review.</p>
       </div>
+    </div>
+
+    <div class="gm-tabs" id="gm-tabs">
+      <button class="gm-tab active" data-tab="inbound">📞 Real Calls</button>
+      <button class="gm-tab" data-tab="bot">🤖 AI Training</button>
     </div>
 
     <div class="gm-filters card">
@@ -3346,11 +3404,15 @@ async function renderGMDashboard() {
     if (ed) params.set('endDate', ed);
     if (mn) params.set('minScore', mn);
     if (mx) params.set('maxScore', mx);
+    params.set('type', gmActiveTab);
 
     try {
       const { calls } = await api(`/api/gm/calls?${params}`);
       if (!calls.length) {
-        wrap.innerHTML = '<div class="empty-state">No recorded calls yet. Calls are recorded automatically when reps take training calls or when real inbound calls come in on your tracking number.</div>';
+        const emptyMsg = gmActiveTab === 'inbound'
+          ? 'No real inbound calls recorded yet. Set up call tracking in Settings to start recording real calls.'
+          : 'No AI training calls recorded yet. Reps can take training calls from the Call Arena.';
+        wrap.innerHTML = `<div class="empty-state">${emptyMsg}</div>`;
         return;
       }
 
@@ -3361,7 +3423,6 @@ async function renderGMDashboard() {
               <tr>
                 <th>Date</th>
                 <th>Rep</th>
-                <th>Type</th>
                 <th>Duration</th>
                 <th>Score</th>
                 <th></th>
@@ -3370,14 +3431,10 @@ async function renderGMDashboard() {
             <tbody>
               ${calls.map(c => {
                 const date = c.startTime ? new Date(c.startTime).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
-                const typeBadge = c.type === 'inbound'
-                  ? '<span class="type-badge type-badge-inbound">Real Inbound</span>'
-                  : '<span class="type-badge type-badge-bot">AI Training</span>';
                 const score = c.grade?.overallScore ?? null;
                 return `<tr>
                   <td class="gm-td-date">${escHtml(date)}</td>
                   <td class="gm-td-rep">${escHtml(c.repName || 'Unknown')}</td>
-                  <td>${typeBadge}</td>
                   <td class="gm-td-dur">${fmtDuration(c.duration)}</td>
                   <td>${scoreChip(score)}</td>
                   <td><a href="#/gm/${c.id}" class="btn btn-secondary btn-sm">View Report</a></td>
@@ -3391,6 +3448,15 @@ async function renderGMDashboard() {
       wrap.innerHTML = `<div class="empty-state error-state">${escHtml(err.message)}</div>`;
     }
   }
+
+  document.getElementById('gm-tabs').addEventListener('click', e => {
+    const btn = e.target.closest('.gm-tab');
+    if (!btn) return;
+    document.querySelectorAll('.gm-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    gmActiveTab = btn.dataset.tab;
+    loadCalls();
+  });
 
   document.getElementById('gm-apply-btn').addEventListener('click', loadCalls);
   loadCalls();
@@ -3450,12 +3516,14 @@ async function renderGMCallDetail(id) {
           </div>
           ${g ? `
           <div class="gm-rubric-list">
-            ${rubricBar('Greeting', g.greeting ?? 0, 10)}
-            ${rubricBar('Needs Discovery', g.needsDiscovery ?? 0, 25)}
+            ${rubricBar('Opening', g.opening ?? 0, 20)}
+            ${rubricBar('Rapport', g.rapport ?? 0, 20)}
+            ${rubricBar('Needs Discovery', g.needsDiscovery ?? 0, 20)}
             ${rubricBar('Product Knowledge', g.productKnowledge ?? 0, 20)}
+            ${rubricBar('Lead Capture', g.infoCapture ?? 0, 20)}
+            ${rubricBar('Professionalism', g.professionalism ?? 0, 20)}
+            ${rubricBar('Appointment', g.appointment ?? 0, 20)}
             ${rubricBar('Objection Handling', g.objectionHandling ?? 0, 20)}
-            ${rubricBar('Appointment Push', g.appointmentPush ?? 0, 15)}
-            ${rubricBar('Professionalism', g.professionalism ?? 0, 10)}
           </div>
           ` : '<p class="subtle">Grading not yet available.</p>'}
         </div>
@@ -3735,6 +3803,29 @@ function renderGauntletIdle() {
           </div>
         </div>
 
+        <div class="gauntlet-abar-explainer">
+          <div class="gae-heading">The 4-Step Objection Framework</div>
+          <div class="gae-example-obj">"What's the price on this vehicle?"</div>
+          <div class="gae-steps">
+            <div class="gae-step" style="--gae-color:#3b82f6">
+              <div class="gae-step-name">Acknowledge</div>
+              <div class="gae-step-text">"I understand price is super important to you."</div>
+            </div>
+            <div class="gae-step" style="--gae-color:#8b5cf6">
+              <div class="gae-step-name">Bridge</div>
+              <div class="gae-step-text">"But you haven't even driven it yet — and that's where the real value is."</div>
+            </div>
+            <div class="gae-step" style="--gae-color:#f59e0b">
+              <div class="gae-step-name">Answer</div>
+              <div class="gae-step-text">"Get in here, we'll drive it, I'll get you the best deal possible."</div>
+            </div>
+            <div class="gae-step" style="--gae-color:#10b981">
+              <div class="gae-step-name">Redirect</div>
+              <div class="gae-step-text">"Are you thinking right now or a little later today?"</div>
+            </div>
+          </div>
+        </div>
+
         <button class="btn-gauntlet-enter" id="gauntlet-start-btn" ${filtered.length === 0 ? 'disabled' : ''}>
           ENTER THE GAUNTLET
         </button>
@@ -3834,12 +3925,56 @@ function renderGauntletChallenge() {
       <div class="form-group">
         <label for="gauntlet-response">Your Response</label>
         <textarea id="gauntlet-response" rows="4" placeholder="Type exactly what you would say on the phone…" class="gauntlet-textarea"></textarea>
+        ${(typeof SpeechRecognition !== 'undefined' || typeof webkitSpeechRecognition !== 'undefined') ? `
+        <button class="btn btn-secondary btn-sm gauntlet-mic-btn" id="gauntlet-mic-btn" type="button">🎙️ Record Response</button>
+        ` : ''}
       </div>
       <button class="btn btn-primary btn-lg" id="gauntlet-submit-btn">
         Submit Response
       </button>
     </div>
   `;
+
+  // Voice input via Web Speech API
+  const micBtn = document.getElementById('gauntlet-mic-btn');
+  if (micBtn) {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognition = null;
+    let isRecording = false;
+    micBtn.addEventListener('click', () => {
+      if (!isRecording) {
+        recognition = new SR();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'en-US';
+        const textarea = document.getElementById('gauntlet-response');
+        const base = textarea.value;
+        recognition.onresult = (e) => {
+          let interim = '';
+          let final = base;
+          for (let i = e.resultIndex; i < e.results.length; i++) {
+            if (e.results[i].isFinal) {
+              final += e.results[i][0].transcript;
+            } else {
+              interim += e.results[i][0].transcript;
+            }
+          }
+          textarea.value = final + interim;
+        };
+        recognition.onend = () => {
+          isRecording = false;
+          micBtn.textContent = '🎙️ Record Response';
+          micBtn.classList.remove('recording');
+        };
+        recognition.start();
+        isRecording = true;
+        micBtn.innerHTML = '<span class="recording-indicator"></span> Stop Recording';
+        micBtn.classList.add('recording');
+      } else {
+        recognition.stop();
+      }
+    });
+  }
 
   document.getElementById('gauntlet-submit-btn').addEventListener('click', async () => {
     const response = document.getElementById('gauntlet-response').value.trim();
@@ -3876,9 +4011,10 @@ function renderGauntletResult(challenge, userResponse, result) {
   const color = scoreColor(score);
   const canSave = score >= 70;
 
-  // Update sessionStorage streak and best
+  // Update sessionStorage streak (only increment on pass ≥70) and best
   const prevStreak = parseInt(sessionStorage.getItem('gauntlet_streak') || '0', 10);
-  const newStreak = prevStreak + 1;
+  const passed = score >= 70;
+  const newStreak = passed ? prevStreak + 1 : 0;
   sessionStorage.setItem('gauntlet_streak', String(newStreak));
   const prevBest = parseInt(sessionStorage.getItem('gauntlet_best') || '0', 10);
   if (score > prevBest) sessionStorage.setItem('gauntlet_best', String(score));
@@ -3895,7 +4031,7 @@ function renderGauntletResult(challenge, userResponse, result) {
     <a href="#/learn" class="back-link" id="gauntlet-result-back">← Learn</a>
     <div class="page-header">
       <div><h1>Gauntlet Result</h1></div>
-      <span class="gauntlet-streak-badge">🔥 ${newStreak} in a row</span>
+      ${newStreak > 0 ? `<span class="gauntlet-streak-badge">🔥 ${newStreak} in a row</span>` : `<span class="gauntlet-streak-badge streak-reset">Score ≥ 70 to build a streak</span>`}
     </div>
     <div class="gauntlet-result-wrap">
       <div class="result-score-circle" style="--score-color:${color}">
@@ -3947,7 +4083,9 @@ function renderGauntletResult(challenge, userResponse, result) {
 
       <div class="gauntlet-result-actions">
         ${canSave ? `<button class="btn btn-secondary" id="save-playbook-btn">📖 Save to Playbook</button>` : ''}
-        <button class="btn-gauntlet-enter" id="next-challenge-btn">NEXT CHALLENGE →</button>
+        ${passed
+          ? `<button class="btn-gauntlet-enter" id="next-challenge-btn">NEXT CHALLENGE →</button>`
+          : `<button class="btn-gauntlet-enter btn-gauntlet-retry" id="next-challenge-btn">Try Again 🔄</button>`}
       </div>
 
       <div id="playbook-save-msg" style="display:none" class="settings-msg success">Saved to your playbook!</div>
@@ -3959,6 +4097,11 @@ function renderGauntletResult(challenge, userResponse, result) {
   });
 
   document.getElementById('next-challenge-btn').addEventListener('click', () => {
+    if (!passed) {
+      // Retry — same challenge
+      renderGauntletChallenge();
+      return;
+    }
     const pool = getFilteredChallenges();
     if (!pool.length) { navigate('/learn/gauntlet'); return; }
     gauntletState.current = pool[Math.floor(Math.random() * pool.length)];

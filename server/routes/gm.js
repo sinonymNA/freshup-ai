@@ -12,8 +12,8 @@ router.get('/calls', requireAuth, requireManager, (req, res) => {
   const team = getTeamByManagerId(req.user.id);
   if (!team) { res.status(404).json({ error: 'Team not found' }); return; }
 
-  const { startDate, endDate, minScore, maxScore } = req.query;
-  const calls = getRecordedCallsByTeam(team.id, { startDate, endDate, minScore, maxScore });
+  const { startDate, endDate, minScore, maxScore, type } = req.query;
+  const calls = getRecordedCallsByTeam(team.id, { startDate, endDate, minScore, maxScore, type });
   res.json({ calls });
 });
 
