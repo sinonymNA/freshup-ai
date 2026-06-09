@@ -128,6 +128,7 @@ function handleMediaStream(twilioWs, rawUrl) {
       console.log(`[DIAG] ── OpenAI WS opened callSid=${callSid}`);
       const contactInfo = storedCall && storedCall.contactInfo;
       const instructions = buildInstructions(persona, contactInfo);
+      const selectedVoice = persona.voice || REALTIME_VOICE;
 
       const sessionPayload = {
         type: 'session.update',
@@ -149,7 +150,7 @@ function handleMediaStream(twilioWs, rawUrl) {
             },
             output: {
               format: { type: 'audio/pcmu' },
-              voice: REALTIME_VOICE,
+              voice: selectedVoice,
             },
           },
           tools: [
@@ -168,7 +169,7 @@ function handleMediaStream(twilioWs, rawUrl) {
           max_output_tokens: 1024,
         },
       };
-      console.log(`[DIAG] ── Sending session.update voice=${REALTIME_VOICE} model=${REALTIME_MODEL} callSid=${callSid}`);
+      console.log(`[DIAG] ── Sending session.update voice=${selectedVoice} persona=${persona.id} model=${REALTIME_MODEL} callSid=${callSid}`);
       openAiWs.send(JSON.stringify(sessionPayload));
     });
 
