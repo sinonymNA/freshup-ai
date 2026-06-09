@@ -136,12 +136,13 @@ function handleMediaStream(twilioWs, rawUrl) {
           model: REALTIME_MODEL,
           output_modalities: ['audio'],
           instructions,
-          reasoning: { effort: 'low' },
           audio: {
             input: {
               format: { type: 'audio/pcmu' },
+              transcription: { model: 'gpt-4o-transcribe' },
               turn_detection: {
                 type: 'semantic_vad',
+                eagerness: 'high',
                 create_response: true,
                 interrupt_response: true,
               },
@@ -177,7 +178,7 @@ function handleMediaStream(twilioWs, rawUrl) {
         const t = msg.type;
 
         // Log every event type (skip high-volume audio deltas after first)
-        if (t !== 'response.output_audio.delta' && t !== 'input_audio_buffer.speech_stopped') {
+        if (t !== 'response.output_audio.delta' && t !== 'response.output_audio_transcript.delta' && t !== 'response.audio_transcript.delta' && t !== 'input_audio_buffer.speech_stopped') {
           console.log(`[DIAG] ── OpenAI event=${t} callSid=${callSid}`);
         }
 
@@ -252,11 +253,13 @@ function handleMediaStream(twilioWs, rawUrl) {
             greetingDone = true;
             break;
 
+          case 'response.output_audio_transcript.delta':
           case 'response.audio_transcript.delta':
             currentAiTranscript += msg.delta || '';
             emit({ type: 'assistant_delta', delta: msg.delta || '' });
             break;
 
+          case 'response.output_audio_transcript.done':
           case 'response.audio_transcript.done': {
             const content = currentAiTranscript.trim();
             console.log(`[DIAG] ── assistant transcript="${content.slice(0, 80)}" callSid=${callSid}`);
