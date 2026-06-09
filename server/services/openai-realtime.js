@@ -8,6 +8,9 @@ const { analyzeCall } = require('./claude');
 const { getPersonaById } = require('../personas');
 const callEmitter = require('./callEvents');
 
+const REALTIME_MODEL = process.env.OPENAI_REALTIME_MODEL || 'gpt-realtime-2';
+const REALTIME_VOICE = process.env.OPENAI_REALTIME_VOICE || 'coral';
+
 function formatTranscript(history) {
   return history
     .map((m) => `${m.role === 'user' ? 'Sales Rep' : 'Customer'}: ${m.content}`)
@@ -96,21 +99,25 @@ function handleMediaStream(twilioWs, rawUrl) {
   let aiTurnCount = 0;
   let partialScoringInProgress = false;
   let sessionSeeded = false;
+  let sessionReady = false;
   let aiResponseActive = false;
   let greetingDone = false;
   let mediaPacketsReceived = 0;
   let audioPacketsSent = 0;
+  let closed = false;
+
+  const pendingTwilioAudio = [];
+  const MAX_PENDING_PACKETS = 250;
 
   function emit(event) {
     if (callSid) callEmitter.emit(`call:${callSid}`, event);
   }
 
   function startOpenAiSession(storedCall) {
-    const model = 'gpt-4o-realtime-preview';
-    console.log(`[DIAG] ── Opening OpenAI WS callSid=${callSid} persona=${persona.id} model=${model}`);
+    console.log(`[DIAG] ── Opening OpenAI WS callSid=${callSid} persona=${persona.id} model=${REALTIME_MODEL}`);
 
     openAiWs = new WebSocket(
-      `wss://api.openai.com/v1/realtime?model=${model}`,
+      `wss://api.openai.com/v1/realtime?model=${REALTIME_MODEL}`,
       {
         headers: {
           Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
@@ -122,22 +129,21 @@ function handleMediaStream(twilioWs, rawUrl) {
       console.log(`[DIAG] ── OpenAI WS opened callSid=${callSid}`);
       const contactInfo = storedCall && storedCall.contactInfo;
       const instructions = buildInstructions(persona, contactInfo);
-      const voice = persona.voice || 'alloy';
 
       const sessionPayload = {
         type: 'session.update',
         session: {
           modalities: ['audio', 'text'],
           instructions,
-          voice,
+          voice: REALTIME_VOICE,
           input_audio_format: 'g711_ulaw',
           output_audio_format: 'g711_ulaw',
-          input_audio_transcription: { model: 'whisper-1' },
+          input_audio_transcription: { model: 'gpt-4o-transcribe' },
           turn_detection: {
-            type: 'server_vad',
-            threshold: 0.4,
-            prefix_padding_ms: 150,
-            silence_duration_ms: 600,
+            type: 'semantic_vad',
+            eagerness: 'balanced',
+            create_response: true,
+            interrupt_response: true,
           },
           tools: [
             {
@@ -152,9 +158,10 @@ function handleMediaStream(twilioWs, rawUrl) {
             },
           ],
           tool_choice: 'auto',
+          max_response_output_tokens: 500,
         },
       };
-      console.log(`[DIAG] ── Sending session.update voice=${voice} callSid=${callSid}`);
+      console.log(`[DIAG] ── Sending session.update voice=${REALTIME_VOICE} model=${REALTIME_MODEL} callSid=${callSid}`);
       openAiWs.send(JSON.stringify(sessionPayload));
     });
 
@@ -174,7 +181,13 @@ function handleMediaStream(twilioWs, rawUrl) {
             break;
 
           case 'session.updated':
-            console.log(`[DIAG] ── session.updated — seeding conversation callSid=${callSid}`);
+            sessionReady = true;
+            console.log(`[DIAG] ── session.updated — flushing ${pendingTwilioAudio.length} buffered packets callSid=${callSid}`);
+            // Flush buffered audio packets
+            while (pendingTwilioAudio.length > 0 && openAiWs.readyState === WebSocket.OPEN) {
+              openAiWs.send(JSON.stringify({ type: 'input_audio_buffer.append', audio: pendingTwilioAudio.shift() }));
+            }
+            // Seed the conversation
             if (!sessionSeeded) {
               sessionSeeded = true;
               openAiWs.send(JSON.stringify({
@@ -214,9 +227,19 @@ function handleMediaStream(twilioWs, rawUrl) {
             }
             break;
 
-          case 'response.done':
+          case 'response.done': {
+            aiResponseActive = false;
+            greetingDone = true;
+            const usage = msg.response?.usage;
+            if (usage) {
+              console.log(`[DIAG] ── usage callSid=${callSid} inputTokens=${usage.input_tokens} outputTokens=${usage.output_tokens} inputAudio=${usage.input_token_details?.audio_tokens || 0} outputAudio=${usage.output_token_details?.audio_tokens || 0}`);
+            }
+            console.log(`[DIAG] ── response.done audioPacketsSent=${audioPacketsSent} callSid=${callSid}`);
+            break;
+          }
+
           case 'response.cancelled':
-            console.log(`[DIAG] ── ${t} audioPacketsSent=${audioPacketsSent} callSid=${callSid}`);
+            console.log(`[DIAG] ── response.cancelled audioPacketsSent=${audioPacketsSent} callSid=${callSid}`);
             aiResponseActive = false;
             greetingDone = true;
             break;
@@ -261,11 +284,53 @@ function handleMediaStream(twilioWs, rawUrl) {
             console.log(`[DIAG] ── speech_started greetingDone=${greetingDone} callSid=${callSid}`);
             if (greetingDone) {
               aiResponseActive = false;
+              // Cancel active response at OpenAI
+              if (openAiWs && openAiWs.readyState === WebSocket.OPEN) {
+                openAiWs.send(JSON.stringify({ type: 'response.cancel' }));
+              }
+              // Clear buffered audio at Twilio
               if (streamSid) {
                 twilioWs.send(JSON.stringify({ event: 'clear', streamSid }));
               }
             }
             break;
+
+          case 'response.function_call_arguments.done': {
+            const fnName = msg.name;
+            const fnArgs = JSON.parse(msg.arguments || '{}');
+            console.log(`[DIAG] ── function_call name=${fnName} args=${JSON.stringify(fnArgs)} callSid=${callSid}`);
+
+            if (fnName === 'end_call') {
+              const reason = fnArgs.reason || 'hang_up';
+              const outcome = reason === 'appointment_set' ? 'Appointment Set' : 'Hung Up';
+              console.log(`[DIAG] ── end_call reason=${reason} outcome=${outcome} callSid=${callSid}`);
+
+              if (callSid) {
+                updateCall(callSid, { outcome, endTime: Date.now() });
+                emit({ type: 'outcome', outcome });
+
+                analyzeCall(formatTranscript(history), persona)
+                  .then((score) => {
+                    updateCall(callSid, { score });
+                    emit({ type: 'score', score });
+                  })
+                  .catch((err) => console.error('[DIAG] analyzeCall error:', err));
+              }
+
+              // Hang up via Twilio REST after a short delay so the AI can finish speaking
+              setTimeout(() => {
+                try {
+                  const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+                  client.calls(callSid).update({ status: 'completed' })
+                    .then(() => console.log(`[DIAG] ── Twilio call ended callSid=${callSid}`))
+                    .catch((err) => console.error(`[DIAG] ── Twilio hangup error callSid=${callSid}:`, err.message));
+                } catch (err) {
+                  console.error(`[DIAG] ── Twilio hangup setup error:`, err.message);
+                }
+              }, 2500);
+            }
+            break;
+          }
 
           case 'error':
             console.error(`[DIAG] ── OpenAI ERROR callSid=${callSid}:`, JSON.stringify(msg.error));
@@ -281,6 +346,10 @@ function handleMediaStream(twilioWs, rawUrl) {
     });
     openAiWs.on('close', (code, reason) => {
       console.log(`[DIAG] ── OpenAI WS CLOSED callSid=${callSid} code=${code} reason=${reason} audioPacketsSent=${audioPacketsSent}`);
+      if (!closed) {
+        closed = true;
+        if (twilioWs.readyState === WebSocket.OPEN) twilioWs.close();
+      }
     });
   }
 
@@ -290,6 +359,10 @@ function handleMediaStream(twilioWs, rawUrl) {
       const msg = JSON.parse(data.toString());
 
       switch (msg.event) {
+        case 'connected':
+          console.log(`[DIAG] ── Twilio connected event (pre-start)`);
+          break;
+
         case 'start':
           streamSid = msg.start.streamSid;
           callSid = msg.start.callSid;
@@ -317,13 +390,17 @@ function handleMediaStream(twilioWs, rawUrl) {
           if (mediaPacketsReceived === 1) {
             console.log(`[DIAG] ── First Twilio media packet received callSid=${callSid}`);
           }
-          if (openAiWs && openAiWs.readyState === WebSocket.OPEN) {
+          if (!sessionReady || !openAiWs || openAiWs.readyState !== WebSocket.OPEN) {
+            pendingTwilioAudio.push(msg.media.payload);
+            while (pendingTwilioAudio.length > MAX_PENDING_PACKETS) pendingTwilioAudio.shift();
+            if (mediaPacketsReceived === 1) {
+              console.log(`[DIAG] ── Media buffered (session not ready) callSid=${callSid}`);
+            }
+          } else {
             openAiWs.send(JSON.stringify({
               type: 'input_audio_buffer.append',
               audio: msg.media.payload,
             }));
-          } else if (mediaPacketsReceived === 1) {
-            console.log(`[DIAG] ── Media arrived but OpenAI WS not ready (state=${openAiWs?.readyState}) callSid=${callSid}`);
           }
           break;
 
@@ -342,7 +419,10 @@ function handleMediaStream(twilioWs, rawUrl) {
 
   twilioWs.on('close', (code, reason) => {
     console.log(`[DIAG] ── Twilio WS closed callSid=${callSid} code=${code} reason=${reason}`);
-    if (openAiWs && openAiWs.readyState === WebSocket.OPEN) openAiWs.close();
+    if (!closed) {
+      closed = true;
+      if (openAiWs && openAiWs.readyState === WebSocket.OPEN) openAiWs.close();
+    }
   });
 
   twilioWs.on('error', (err) => console.error(`[DIAG] Twilio WS error callSid=${callSid}: ${err.message}`));
