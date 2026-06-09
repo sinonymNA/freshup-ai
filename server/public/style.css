@@ -68,13 +68,13 @@ nav.scrolled { box-shadow: var(--shadow-md); }
   height: 32px;
   width: auto;
   display: block;
-  mix-blend-mode: multiply;
+  mix-blend-mode: multiply; /* removes white PNG background on light nav */
 }
 :root[data-theme="dark"] .nav-logo,
 :root[data-theme="gridiron"] .nav-logo,
 :root[data-theme="midnight"] .nav-logo {
-  mix-blend-mode: normal;
-  filter: brightness(0) invert(1);
+  filter: invert(1);        /* white bg → black, dark logo → white */
+  mix-blend-mode: screen;   /* screen blends black away, keeps white logo visible */
 }
 
 #nav-links {
