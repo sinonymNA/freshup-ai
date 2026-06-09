@@ -133,7 +133,8 @@ function handleMediaStream(twilioWs, rawUrl) {
       const sessionPayload = {
         type: 'session.update',
         session: {
-          modalities: ['audio', 'text'],
+          type: 'realtime',
+          output_modalities: ['audio', 'text'],
           instructions,
           voice: REALTIME_VOICE,
           input_audio_format: 'g711_ulaw',
