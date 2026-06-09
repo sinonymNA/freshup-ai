@@ -2702,6 +2702,25 @@ async function renderTeam() {
     ? callsThisWeek - callsLastWeek : 0;
   const monthlyApptsEst = analytics?.appointmentsThisMonth ?? 0;
 
+  // ── API cost estimate (gpt-realtime-2 audio token pricing) ──
+  // ~$32 / 1M input audio tokens, ~$64 / 1M output audio tokens (approx GA rates)
+  const inTok = analytics?.totalInputTokens ?? 0;
+  const outTok = analytics?.totalOutputTokens ?? 0;
+  const apiCost = (inTok / 1e6) * 32 + (outTok / 1e6) * 64;
+  const costCardHtml = (inTok + outTok > 0) ? `
+    <div class="revenue-impact-card cost-card">
+      <div class="ric-icon ric-icon-cost">⚡</div>
+      <div class="ric-body">
+        <div class="ric-title">AI Training Cost — This Month</div>
+        <div class="ric-calc">
+          <span class="ric-num">${(inTok / 1000).toFixed(0)}K</span> input +
+          <span class="ric-num">${(outTok / 1000).toFixed(0)}K</span> output tokens =
+          <strong class="ric-total">≈ $${apiCost.toFixed(2)}</strong>
+        </div>
+        <div class="ric-note">Live voice training powered by gpt-realtime-2 · A fraction of the cost of a single missed appointment.</div>
+      </div>
+    </div>` : '';
+
   // Deduplicate reps and recent calls defensively
   const seenRepIds = new Set();
   const dedupedRepStats = repStats.filter(r => { if (seenRepIds.has(r.id)) return false; seenRepIds.add(r.id); return true; });
@@ -2779,6 +2798,7 @@ async function renderTeam() {
         </div>
       </div>
     </div>
+    ${costCardHtml}
     ` : `
     <div class="revenue-impact-card ric-empty">
       <div class="ric-icon">$</div>
@@ -3405,6 +3425,7 @@ async function renderGMDashboard() {
           <input type="number" id="gm-max-score" placeholder="100" min="0" max="100" class="gm-score-input" />
         </div>
         <button class="btn btn-primary" id="gm-apply-btn">Apply</button>
+        <button class="btn btn-secondary" id="gm-export-btn">↓ Export CSV</button>
       </div>
     </div>
 
@@ -3481,6 +3502,27 @@ async function renderGMDashboard() {
   });
 
   document.getElementById('gm-apply-btn').addEventListener('click', loadCalls);
+
+  document.getElementById('gm-export-btn').addEventListener('click', async () => {
+    const token = localStorage.getItem('freshup_token');
+    const btn = document.getElementById('gm-export-btn');
+    btn.textContent = 'Exporting…'; btn.disabled = true;
+    try {
+      const res = await fetch(`/api/gm/calls/export.csv?type=${gmActiveTab}`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) throw new Error('export failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `freshup-calls-${gmActiveTab}-${Date.now()}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      showToast('Could not export CSV', 'error');
+    }
+    btn.textContent = '↓ Export CSV'; btn.disabled = false;
+  });
+
   loadCalls();
 }
 

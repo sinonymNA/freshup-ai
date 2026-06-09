@@ -77,6 +77,12 @@ const existingCallCols = db.prepare('PRAGMA table_info(calls)').all().map(r => r
 if (!existingCallCols.includes('contactInfo')) {
   db.exec('ALTER TABLE calls ADD COLUMN contactInfo TEXT');
 }
+if (!existingCallCols.includes('inputTokens')) {
+  db.exec('ALTER TABLE calls ADD COLUMN inputTokens INTEGER DEFAULT 0');
+}
+if (!existingCallCols.includes('outputTokens')) {
+  db.exec('ALTER TABLE calls ADD COLUMN outputTokens INTEGER DEFAULT 0');
+}
 
 const existingTeamCols = db.prepare('PRAGMA table_info(teams)').all().map(r => r.name);
 if (!existingTeamCols.includes('config')) {
@@ -332,11 +338,18 @@ function getTeamAnalytics(teamId) {
   const appointmentsThisMonth = appointmentCalls.length;
   const callsThisMonth = completedCalls.length;
 
+  // API token usage this month (for cost tracking)
+  const tokenRow = db.prepare(
+    `SELECT COALESCE(SUM(inputTokens),0) AS inTok, COALESCE(SUM(outputTokens),0) AS outTok
+     FROM calls WHERE userId IN (${placeholders}) AND startTime >= ?`
+  ).get(...memberIds, monthAgo);
+
   return {
     appointmentRate, callsThisWeek, callsLastWeek,
     appointmentsThisMonth, callsThisMonth,
     teamAvgScore, activeRepsThisWeek, totalReps: memberIds.length,
     dimensionAverages: dims, repStats, recentCalls,
+    totalInputTokens: tokenRow.inTok, totalOutputTokens: tokenRow.outTok,
   };
 }
 
@@ -374,19 +387,21 @@ function getCall(callSid) {
 
 function setCall(callSid, data) {
   db.prepare(`
-    INSERT INTO calls (callSid, userId, personaId, personaName, history, outcome, score, startTime, endTime, audioFiles, contactInfo)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO calls (callSid, userId, personaId, personaName, history, outcome, score, startTime, endTime, audioFiles, contactInfo, inputTokens, outputTokens)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(callSid) DO UPDATE SET
-      userId      = excluded.userId,
-      personaId   = excluded.personaId,
-      personaName = excluded.personaName,
-      history     = excluded.history,
-      outcome     = excluded.outcome,
-      score       = excluded.score,
-      startTime   = excluded.startTime,
-      endTime     = excluded.endTime,
-      audioFiles  = excluded.audioFiles,
-      contactInfo = excluded.contactInfo
+      userId       = excluded.userId,
+      personaId    = excluded.personaId,
+      personaName  = excluded.personaName,
+      history      = excluded.history,
+      outcome      = excluded.outcome,
+      score        = excluded.score,
+      startTime    = excluded.startTime,
+      endTime      = excluded.endTime,
+      audioFiles   = excluded.audioFiles,
+      contactInfo  = excluded.contactInfo,
+      inputTokens  = excluded.inputTokens,
+      outputTokens = excluded.outputTokens
   `).run(
     callSid,
     data.userId ?? null,
@@ -398,7 +413,9 @@ function setCall(callSid, data) {
     data.startTime ?? null,
     data.endTime ?? null,
     JSON.stringify(data.audioFiles ?? []),
-    data.contactInfo ? JSON.stringify(data.contactInfo) : null
+    data.contactInfo ? JSON.stringify(data.contactInfo) : null,
+    data.inputTokens ?? 0,
+    data.outputTokens ?? 0
   );
 }
 

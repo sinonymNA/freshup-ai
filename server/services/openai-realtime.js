@@ -3,9 +3,10 @@
 const WebSocket = require('ws');
 const twilio = require('twilio');
 
-const { getCall, updateCall } = require('../store');
+const { getCall, updateCall, getUserById } = require('../store');
 const { analyzeCall } = require('./claude');
 const { getPersonaById } = require('../personas');
+const { sendRepAppointmentSMS } = require('./sms');
 const callEmitter = require('./callEvents');
 
 const REALTIME_MODEL = process.env.OPENAI_REALTIME_MODEL || 'gpt-realtime-2';
@@ -104,6 +105,8 @@ function handleMediaStream(twilioWs, rawUrl) {
   let mediaPacketsReceived = 0;
   let audioPacketsSent = 0;
   let closed = false;
+  let totalInputTokens = 0;
+  let totalOutputTokens = 0;
 
   const pendingTwilioAudio = [];
   const MAX_PENDING_PACKETS = 250;
@@ -243,7 +246,10 @@ function handleMediaStream(twilioWs, rawUrl) {
             greetingDone = true;
             const usage = msg.response?.usage;
             if (usage) {
+              totalInputTokens += usage.input_tokens || 0;
+              totalOutputTokens += usage.output_tokens || 0;
               console.log(`[DIAG] ── usage callSid=${callSid} inputTokens=${usage.input_tokens} outputTokens=${usage.output_tokens} inputAudio=${usage.input_token_details?.audio_tokens || 0} outputAudio=${usage.output_token_details?.audio_tokens || 0}`);
+              if (callSid) updateCall(callSid, { inputTokens: totalInputTokens, outputTokens: totalOutputTokens });
             }
             console.log(`[DIAG] ── response.done audioPacketsSent=${audioPacketsSent} callSid=${callSid}`);
             break;
@@ -324,6 +330,22 @@ function handleMediaStream(twilioWs, rawUrl) {
                   .then((score) => {
                     updateCall(callSid, { score });
                     emit({ type: 'score', score });
+
+                    // Confirmation SMS to the rep when they set an appointment
+                    if (reason === 'appointment_set') {
+                      const storedCall = getCall(callSid);
+                      const repId = storedCall?.userId;
+                      if (repId) {
+                        const user = getUserById(repId);
+                        if (user?.phone_number) {
+                          sendRepAppointmentSMS({
+                            repPhone: user.phone_number,
+                            personaName: persona.name,
+                            score: score?.overallScore,
+                          }).catch((err) => console.error('[DIAG] rep SMS error:', err.message));
+                        }
+                      }
+                    }
                   })
                   .catch((err) => console.error('[DIAG] analyzeCall error:', err));
               }

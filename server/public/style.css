@@ -5383,6 +5383,19 @@ body[data-page="landing"] .nav-logo {
   justify-content: center;
   flex-shrink: 0;
 }
+.cost-card { border-left: 3px solid var(--warning); }
+.ric-icon-cost {
+  font-size: 1.4rem;
+  background: var(--warning-bg);
+  color: var(--warning);
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
 .benchmark-flow {
   display: flex;
   align-items: center;
