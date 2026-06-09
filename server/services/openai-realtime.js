@@ -107,12 +107,18 @@ function handleMediaStream(twilioWs, rawUrl) {
   let closed = false;
   let totalInputTokens = 0;
   let totalOutputTokens = 0;
+  let repTeamId = null;
+  let repName = null;
 
   const pendingTwilioAudio = [];
   const MAX_PENDING_PACKETS = 250;
 
   function emit(event) {
     if (callSid) callEmitter.emit(`call:${callSid}`, event);
+  }
+
+  function emitTeam(type, data) {
+    if (repTeamId) callEmitter.emit(`team:${repTeamId}:${type}`, data);
   }
 
   function startOpenAiSession(storedCall) {
@@ -274,6 +280,7 @@ function handleMediaStream(twilioWs, rawUrl) {
               history.push({ role: 'assistant', content });
               if (callSid) updateCall(callSid, { history: [...history] });
               emit({ type: 'assistant_message', content });
+              emitTeam('training_transcript', { callSid, role: 'assistant', content });
             }
             currentAiTranscript = '';
             aiTurnCount++;
@@ -295,6 +302,7 @@ function handleMediaStream(twilioWs, rawUrl) {
               history.push({ role: 'user', content });
               if (callSid) updateCall(callSid, { history: [...history] });
               emit({ type: 'user_message', content });
+              emitTeam('training_transcript', { callSid, role: 'user', content, repName: repName || 'Rep' });
             }
             break;
 
@@ -325,11 +333,13 @@ function handleMediaStream(twilioWs, rawUrl) {
               if (callSid) {
                 updateCall(callSid, { outcome, endTime: Date.now() });
                 emit({ type: 'outcome', outcome });
+                emitTeam('training_ended', { callSid, outcome, repName: repName || 'Unknown Rep' });
 
                 analyzeCall(formatTranscript(history), persona)
                   .then((score) => {
                     updateCall(callSid, { score });
                     emit({ type: 'score', score });
+                    emitTeam('training_graded', { callSid, score: score?.overallScore, repName: repName || 'Unknown Rep' });
 
                     // Confirmation SMS to the rep when they set an appointment
                     if (reason === 'appointment_set') {
@@ -396,27 +406,42 @@ function handleMediaStream(twilioWs, rawUrl) {
           console.log(`[DIAG] ── Twilio connected event (pre-start)`);
           break;
 
-        case 'start':
+        case 'start': {
           streamSid = msg.start.streamSid;
           callSid = msg.start.callSid;
           console.log(`[DIAG] ── Twilio start callSid=${callSid} streamSid=${streamSid}`);
 
-          {
-            const storedCall = getCall(callSid);
-            const personaId = storedCall && storedCall.personaId;
-            persona = personaId ? getPersonaById(personaId) : null;
+          const storedCall = getCall(callSid);
+          const personaId = storedCall && storedCall.personaId;
+          persona = personaId ? getPersonaById(personaId) : null;
 
-            console.log(`[DIAG] ── storedCall=${!!storedCall} personaId=${personaId} persona=${persona?.id || 'NOT FOUND'}`);
+          console.log(`[DIAG] ── storedCall=${!!storedCall} personaId=${personaId} persona=${persona?.id || 'NOT FOUND'}`);
 
-            if (!persona) {
-              console.error(`[DIAG] ── FATAL: Persona not found callSid=${callSid} personaId=${personaId}`);
-              twilioWs.close(1008, 'Persona not found');
-              return;
-            }
-
-            startOpenAiSession(storedCall);
+          if (!persona) {
+            console.error(`[DIAG] ── FATAL: Persona not found callSid=${callSid} personaId=${personaId}`);
+            twilioWs.close(1008, 'Persona not found');
+            return;
           }
+
+          // Look up rep info for team-level live monitoring
+          if (storedCall?.userId) {
+            const repUser = getUserById(storedCall.userId);
+            if (repUser) {
+              repTeamId = repUser.team_id || null;
+              repName = repUser.name || 'Unknown Rep';
+            }
+          }
+
+          startOpenAiSession(storedCall);
+
+          emitTeam('training_started', {
+            callSid,
+            personaName: persona.name,
+            repName: repName || 'Unknown Rep',
+            startTime: Date.now(),
+          });
           break;
+        }
 
         case 'media':
           mediaPacketsReceived++;

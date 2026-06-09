@@ -4,6 +4,13 @@ const express = require('express');
 const twilio = require('twilio');
 const router = express.Router();
 
+const { sendSMS, sendManagerAlert } = require('../services/sms');
+
+// Track active inbound calls so we can emit team events when they end
+const activeInboundCalls = new Map(); // callSid → { teamId, from }
+
+const HOT_KEYWORDS = ['ready to buy', 'pre-approved', 'pre approved', 'this weekend', 'today', 'cash', 'trade-in', 'trade in', 'buying today', 'already approved'];
+
 // Validate that incoming webhook requests are genuinely from Twilio.
 // Only enforced when TWILIO_AUTH_TOKEN is set; skipped in dev/test.
 function validateTwilioRequest(req, res, next) {
@@ -45,7 +52,7 @@ function formatTranscript(history) {
 
 // ── Shared recording pipeline ────────────────────────────────────────────────
 // Called async after Twilio fires the recording callback.
-async function processRecording({ callSid, recordingSid, recordingUrl, duration, type, teamId }) {
+async function processRecording({ callSid, recordingSid, recordingUrl, duration, type, teamId, callerFrom }) {
   console.log(`[recording] Processing callSid=${callSid} type=${type}`);
 
   // Resolve user/team info from the training call record if available
@@ -100,6 +107,28 @@ async function processRecording({ callSid, recordingSid, recordingUrl, duration,
     return;
   }
 
+  // Hot keyword detection — alert GM if high-intent phrases found on inbound calls
+  if (type === 'inbound' && resolvedTeamId) {
+    const lower = transcript.toLowerCase();
+    const hits = HOT_KEYWORDS.filter(kw => lower.includes(kw));
+    if (hits.length >= 1) {
+      try {
+        const hotTeam = getTeamById(resolvedTeamId);
+        if (hotTeam) {
+          let hotConfig = {};
+          try { hotConfig = JSON.parse(hotTeam.config || '{}'); } catch { /* ignore */ }
+          if (hotConfig.gmPhone) {
+            const snippet = transcript.slice(0, 150).replace(/\n/g, ' ');
+            sendManagerAlert({ gmPhone: hotConfig.gmPhone, callerFrom: callerFrom || '', teamName: hotTeam.name, snippet })
+              .catch(err => console.error('[recording] manager alert SMS error:', err.message));
+          }
+        }
+      } catch (err) {
+        console.error('[recording] manager alert lookup error:', err.message);
+      }
+    }
+  }
+
   // Grade with the 6-dimension rubric
   let grade = null;
   try {
@@ -116,29 +145,46 @@ async function processRecording({ callSid, recordingSid, recordingUrl, duration,
 
   if (!grade || !resolvedTeamId) return;
 
+  const postCallTeam = getTeamById(resolvedTeamId);
+  let postCallConfig = {};
+  if (postCallTeam) {
+    try { postCallConfig = JSON.parse(postCallTeam.config || '{}'); } catch { /* ignore */ }
+  }
+
   // Send email report to GM if configured
   try {
-    const team = getTeamById(resolvedTeamId);
-    if (team) {
-      let config = {};
-      try { config = JSON.parse(team.config || '{}'); } catch { /* ignore */ }
-      const gmEmail = config.gmEmail || null;
-      if (gmEmail) {
-        const base = (process.env.BASE_URL || '').replace(/\/$/, '');
-        await sendGradeReport({
-          repName: repName || 'Unknown Rep',
-          score: grade.overallScore,
-          callDate: existingCall?.startTime || Date.now(),
-          summary: grade.strengths || grade.improvements || 'See the full report for details.',
-          dashboardUrl: `${base}/#/gm`,
-          gmEmail,
-        });
-        updateRecordedCall(record.id, { emailSent: 1 });
-      }
+    const gmEmail = postCallConfig.gmEmail || null;
+    if (gmEmail && postCallTeam) {
+      const base = (process.env.BASE_URL || '').replace(/\/$/, '');
+      await sendGradeReport({
+        repName: repName || 'Unknown Rep',
+        score: grade.overallScore,
+        callDate: existingCall?.startTime || Date.now(),
+        summary: grade.strengths || grade.improvements || 'See the full report for details.',
+        dashboardUrl: `${base}/#/gm`,
+        gmEmail,
+      });
+      updateRecordedCall(record.id, { emailSent: 1 });
     }
   } catch (err) {
     console.error('[recording] Email failed:', err.message);
   }
+
+  // Post-call SMS follow-up to the caller
+  if (type === 'inbound' && postCallConfig.smsFollowup && callerFrom) {
+    sendSMS(
+      callerFrom,
+      `Hi! Thanks for calling ${postCallTeam?.name || 'us'}. We'll be in touch shortly.`
+    ).catch(err => console.error('[recording] SMS followup error:', err.message));
+  }
+
+  // Emit graded event so the GM live dashboard can update
+  callEmitter.emit(`team:${resolvedTeamId}:call_graded`, {
+    callSid,
+    repName: repName || 'Unknown Rep',
+    score: grade.overallScore,
+    type,
+  });
 }
 
 // ── POST /webhook/voice ───────────────────────────────────────────────────────
@@ -198,6 +244,13 @@ router.post('/status', validateTwilioRequest, async (req, res) => {
   console.log(`[webhook/status] CallSid=${CallSid} status=${CallStatus}`);
 
   if (CallStatus === 'completed') {
+    // Emit team event for inbound call monitoring
+    const inboundInfo = activeInboundCalls.get(CallSid);
+    if (inboundInfo) {
+      callEmitter.emit(`team:${inboundInfo.teamId}:call_ended`, { callSid: CallSid });
+      activeInboundCalls.delete(CallSid);
+    }
+
     const callData = getCall(CallSid);
     if (callData) {
       const updates = {};
@@ -241,6 +294,7 @@ router.post('/recording', validateTwilioRequest, (req, res) => {
 
   const type = req.query.type || 'bot';
   const teamId = req.query.teamId ? parseInt(req.query.teamId, 10) : null;
+  const callerFrom = req.query.callerFrom || null;
 
   processRecording({
     callSid: CallSid,
@@ -249,6 +303,7 @@ router.post('/recording', validateTwilioRequest, (req, res) => {
     duration: parseInt(RecordingDuration || '0', 10),
     type,
     teamId,
+    callerFrom,
   }).catch(err => console.error('[webhook/recording] pipeline error:', err));
 });
 
@@ -269,7 +324,15 @@ router.post('/inbound', validateTwilioRequest, (req, res) => {
       try { config = JSON.parse(team.config || '{}'); } catch { /* ignore */ }
     }
 
-    const recordingCb = `${base}/webhook/recording?type=inbound&teamId=${teamId}`;
+    // Track this call for live monitoring and end events
+    if (teamId) {
+      activeInboundCalls.set(CallSid, { teamId, from: From });
+      const maskedFrom = From ? `***-${From.slice(-4)}` : 'Unknown';
+      callEmitter.emit(`team:${teamId}:call_started`, { callSid: CallSid, from: maskedFrom, startTime: Date.now() });
+    }
+
+    const callerFromParam = From ? `&callerFrom=${encodeURIComponent(From)}` : '';
+    const recordingCb = `${base}/webhook/recording?type=inbound&teamId=${teamId}${callerFromParam}`;
     const response = new twilio.twiml.VoiceResponse();
 
     if (config.forwardNumber) {

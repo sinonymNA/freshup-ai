@@ -3150,6 +3150,19 @@ async function renderSettings() {
               value="${escHtml(teamConfig.gmEmail || '')}" autocomplete="email" />
             <p class="input-hint">A graded scorecard is emailed here after every recorded call.</p>
           </div>
+          <div class="form-group form-group-full">
+            <label for="settings-gm-phone">Manager Alert Phone</label>
+            <input type="tel" id="settings-gm-phone" placeholder="(555) 123-4567"
+              value="${escHtml(teamConfig.gmPhone || '')}" autocomplete="tel" />
+            <p class="input-hint">Receive a text alert when a hot lead is detected on an inbound call (keywords: ready to buy, pre-approved, cash, etc.).</p>
+          </div>
+          <div class="form-group form-group-full">
+            <label class="toggle-label">
+              <input type="checkbox" id="settings-sms-followup" ${teamConfig.smsFollowup ? 'checked' : ''} />
+              <span>Auto-send SMS follow-up to caller after call ends</span>
+            </label>
+            <p class="input-hint">Sends a brief courtesy text to the customer's number after a recorded inbound call completes.</p>
+          </div>
         </div>
         <div id="settings-dealer-msg" class="settings-msg" style="display:none"></div>
         <button class="btn btn-primary" id="save-dealer-btn">Save</button>
@@ -3231,6 +3244,7 @@ async function renderSettings() {
 
   // Wire phone formatters
   initPhoneInput(document.getElementById('settings-phone'));
+  initPhoneInput(document.getElementById('settings-gm-phone'));
 
   // Account save
   document.getElementById('save-account-btn').addEventListener('click', async () => {
@@ -3321,6 +3335,8 @@ async function renderSettings() {
     const dealValue = document.getElementById('settings-deal-value')?.value.trim();
     const brand = document.getElementById('settings-brand')?.value;
     const gmEmail = document.getElementById('settings-gm-email')?.value.trim();
+    const gmPhone = document.getElementById('settings-gm-phone')?.value.trim();
+    const smsFollowup = document.getElementById('settings-sms-followup')?.checked;
     const forwardNumber = document.getElementById('settings-forward-number')?.value.trim();
     const trackingNumber = document.getElementById('settings-tracking-number')?.value.trim();
     const msgEl = document.getElementById('settings-dealer-msg');
@@ -3328,6 +3344,8 @@ async function renderSettings() {
     if (dealValue) payload.avgDealValue = Number(dealValue);
     if (brand) payload.brand = brand;
     if (gmEmail !== undefined) payload.gmEmail = gmEmail || null;
+    if (gmPhone !== undefined) payload.gmPhone = gmPhone || null;
+    payload.smsFollowup = !!smsFollowup;
     if (forwardNumber !== undefined) payload.forwardNumber = forwardNumber || null;
     if (trackingNumber !== undefined) payload.trackingNumber = trackingNumber || null;
     try {
@@ -3392,6 +3410,11 @@ async function renderGMDashboard() {
   }
 
   let gmActiveTab = 'inbound';
+  let liveEs = null;
+
+  function stopLiveMonitoring() {
+    if (liveEs) { liveEs.close(); liveEs = null; }
+  }
 
   app.innerHTML = `
     <div class="page-header">
@@ -3404,9 +3427,10 @@ async function renderGMDashboard() {
     <div class="gm-tabs" id="gm-tabs">
       <button class="gm-tab active" data-tab="inbound">📞 Real Calls</button>
       <button class="gm-tab" data-tab="bot">🤖 AI Training</button>
+      <button class="gm-tab" data-tab="live">📡 Live</button>
     </div>
 
-    <div class="gm-filters card">
+    <div class="gm-filters card" id="gm-filters">
       <div class="gm-filter-row">
         <div class="form-group gm-filter-group">
           <label>From</label>
@@ -3432,6 +3456,8 @@ async function renderGMDashboard() {
     <div id="gm-table-wrap">
       <div class="loading">Loading calls…</div>
     </div>
+
+    <div id="gm-live-wrap" style="display:none"></div>
   `;
 
   async function loadCalls() {
@@ -3492,13 +3518,166 @@ async function renderGMDashboard() {
     }
   }
 
+  function startLiveMonitoring() {
+    const token = localStorage.getItem('freshup_token');
+    const wrap = document.getElementById('gm-live-wrap');
+    if (!wrap) return;
+
+    wrap.innerHTML = `
+      <div class="live-status-bar" id="live-status-bar">
+        <div class="live-pulse"></div>
+        <span>Monitoring active calls</span>
+      </div>
+      <div id="live-calls-list">
+        <div class="live-call-empty">No active calls right now. When a call comes in or a rep starts training, it will appear here.</div>
+      </div>
+    `;
+
+    stopLiveMonitoring();
+    liveEs = new EventSource(`/api/gm/live?token=${encodeURIComponent(token || '')}`);
+
+    liveEs.onmessage = (e) => {
+      try { handleLiveEvent(JSON.parse(e.data)); } catch { /* ignore parse errors */ }
+    };
+
+    liveEs.onerror = () => {
+      const bar = document.getElementById('live-status-bar');
+      if (bar) bar.innerHTML = '<div class="live-pulse live-pulse-error"></div><span>Connection lost — retrying…</span>';
+    };
+
+    liveEs.addEventListener('open', () => {
+      const bar = document.getElementById('live-status-bar');
+      if (bar) bar.innerHTML = '<div class="live-pulse"></div><span>Monitoring active calls — connected</span>';
+    });
+  }
+
+  function handleLiveEvent(data) {
+    const list = document.getElementById('live-calls-list');
+    if (!list) return;
+
+    const { event } = data;
+
+    if (event === 'snapshot') {
+      if (data.calls && data.calls.length > 0) {
+        list.innerHTML = data.calls.map(c => liveCallCardHtml(c)).join('');
+      }
+      return;
+    }
+
+    if (event === 'call_started') {
+      const empty = list.querySelector('.live-call-empty');
+      if (empty) empty.remove();
+      const div = document.createElement('div');
+      div.id = `live-call-${data.callSid}`;
+      div.innerHTML = liveCallCardHtml({ callSid: data.callSid, type: 'inbound', from: data.from, startTime: data.startTime });
+      list.prepend(div);
+      return;
+    }
+
+    if (event === 'training_started') {
+      const empty = list.querySelector('.live-call-empty');
+      if (empty) empty.remove();
+      const div = document.createElement('div');
+      div.id = `live-call-${data.callSid}`;
+      div.innerHTML = liveCallCardHtml({ callSid: data.callSid, type: 'training', repName: data.repName, personaName: data.personaName, startTime: data.startTime });
+      list.prepend(div);
+      return;
+    }
+
+    if (event === 'call_ended' || event === 'training_ended') {
+      const card = document.getElementById(`live-call-${data.callSid}`);
+      if (card) {
+        const statusEl = card.querySelector('.live-call-status');
+        if (statusEl) statusEl.textContent = 'Ended — grading…';
+        card.querySelector('.live-call-card')?.classList.add('live-call-ended');
+      }
+      return;
+    }
+
+    if (event === 'call_graded' || event === 'training_graded') {
+      const card = document.getElementById(`live-call-${data.callSid}`);
+      if (card) {
+        const statusEl = card.querySelector('.live-call-status');
+        if (statusEl) statusEl.textContent = data.score != null ? `Score: ${data.score}/100` : 'Graded';
+        const scoreEl = card.querySelector('.live-call-score');
+        if (scoreEl && data.score != null) {
+          const cls = data.score >= 70 ? 'score-chip-good' : data.score >= 50 ? 'score-chip-ok' : 'score-chip-low';
+          scoreEl.innerHTML = `<span class="score-chip ${cls}">${data.score}/100</span>`;
+        }
+        if (data.repName) {
+          const repEl = card.querySelector('.live-call-rep');
+          if (repEl) repEl.textContent = data.repName;
+        }
+      }
+      return;
+    }
+
+    if (event === 'training_transcript') {
+      const card = document.getElementById(`live-call-${data.callSid}`);
+      if (card) {
+        const transcriptEl = card.querySelector('.live-call-transcript');
+        if (transcriptEl) {
+          const speaker = data.role === 'user' ? (data.repName || 'Rep') : 'AI';
+          const line = document.createElement('div');
+          line.className = `live-transcript-line live-transcript-${data.role}`;
+          line.innerHTML = `<span class="live-transcript-speaker">${escHtml(speaker)}:</span> ${escHtml(data.content)}`;
+          transcriptEl.appendChild(line);
+          transcriptEl.scrollTop = transcriptEl.scrollHeight;
+        }
+      }
+    }
+  }
+
+  function liveCallCardHtml(c) {
+    const typeLabel = c.type === 'inbound' ? '📞 Inbound Call' : '🤖 AI Training';
+    const callerInfo = c.type === 'inbound'
+      ? `<span class="live-call-from">${escHtml(c.from || 'Unknown caller')}</span>`
+      : `<span class="live-call-persona">vs ${escHtml(c.personaName || 'AI Persona')}</span>`;
+    const repDisplay = c.repName ? `<span class="live-call-rep">${escHtml(c.repName)}</span>` : '';
+    const startTime = c.startTime ? new Date(c.startTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '';
+    const status = c.ended ? (c.score != null ? `Score: ${c.score}/100` : 'Ended — grading…') : 'Active';
+    const scoreHtml = c.score != null
+      ? `<span class="score-chip ${c.score >= 70 ? 'score-chip-good' : c.score >= 50 ? 'score-chip-ok' : 'score-chip-low'}">${c.score}/100</span>`
+      : '';
+
+    return `
+      <div class="live-call-card ${c.ended ? 'live-call-ended' : ''}">
+        <div class="live-call-header">
+          <div class="live-call-type-badge">${typeLabel}</div>
+          <div class="live-call-time">${escHtml(startTime)}</div>
+        </div>
+        <div class="live-call-meta">
+          ${repDisplay}
+          ${callerInfo}
+          <span class="live-call-status">${escHtml(status)}</span>
+          <span class="live-call-score">${scoreHtml}</span>
+        </div>
+        ${c.type === 'training' ? `<div class="live-call-transcript"></div>` : ''}
+      </div>
+    `;
+  }
+
   document.getElementById('gm-tabs').addEventListener('click', e => {
     const btn = e.target.closest('.gm-tab');
     if (!btn) return;
     document.querySelectorAll('.gm-tab').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
+
+    const prevTab = gmActiveTab;
     gmActiveTab = btn.dataset.tab;
-    loadCalls();
+
+    if (gmActiveTab === 'live') {
+      document.getElementById('gm-filters').style.display = 'none';
+      document.getElementById('gm-table-wrap').style.display = 'none';
+      document.getElementById('gm-live-wrap').style.display = '';
+      startLiveMonitoring();
+    } else {
+      if (prevTab === 'live') stopLiveMonitoring();
+      document.getElementById('gm-filters').style.display = '';
+      document.getElementById('gm-table-wrap').style.display = '';
+      document.getElementById('gm-live-wrap').style.display = 'none';
+      loadCalls();
+    }
   });
 
   document.getElementById('gm-apply-btn').addEventListener('click', loadCalls);
