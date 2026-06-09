@@ -100,7 +100,6 @@ function handleMediaStream(twilioWs, rawUrl) {
   let partialScoringInProgress = false;
   let sessionSeeded = false;
   let sessionReady = false;
-  let aiResponseActive = false;
   let greetingDone = false;
   let mediaPacketsReceived = 0;
   let audioPacketsSent = 0;
@@ -178,7 +177,7 @@ function handleMediaStream(twilioWs, rawUrl) {
         const t = msg.type;
 
         // Log every event type (skip high-volume audio deltas after first)
-        if (t !== 'response.audio.delta' && t !== 'input_audio_buffer.speech_stopped') {
+        if (t !== 'response.output_audio.delta' && t !== 'input_audio_buffer.speech_stopped') {
           console.log(`[DIAG] ── OpenAI event=${t} callSid=${callSid}`);
         }
 
@@ -211,31 +210,34 @@ function handleMediaStream(twilioWs, rawUrl) {
             break;
 
           case 'response.created':
-            aiResponseActive = true;
-            console.log(`[DIAG] ── response.created — audio gate OPEN callSid=${callSid}`);
+            console.log(`[DIAG] ── response.created callSid=${callSid}`);
             break;
 
-          case 'response.audio.delta':
-            if (streamSid && msg.delta && aiResponseActive) {
-              twilioWs.send(JSON.stringify({
-                event: 'media',
-                streamSid,
-                media: { payload: msg.delta },
-              }));
-              audioPacketsSent++;
-              if (audioPacketsSent === 1) {
-                console.log(`[DIAG] ── First audio packet sent to Twilio callSid=${callSid}`);
-              }
-            } else if (!aiResponseActive) {
-              // Log first drop only
-              if (audioPacketsSent === 0) {
-                console.log(`[DIAG] ── Audio delta DROPPED (gate closed) callSid=${callSid}`);
-              }
+          case 'response.output_audio.delta': {
+            if (!msg.delta) break;
+            if (!streamSid) {
+              console.warn(`[DIAG] ── DROP audio: no streamSid callSid=${callSid}`);
+              break;
+            }
+            if (twilioWs.readyState !== WebSocket.OPEN) {
+              console.warn(`[DIAG] ── DROP audio: Twilio state=${twilioWs.readyState} callSid=${callSid}`);
+              break;
+            }
+            twilioWs.send(JSON.stringify({
+              event: 'media',
+              streamSid,
+              media: { payload: msg.delta },
+            }), (err) => {
+              if (err) console.error(`[DIAG] ── Twilio send error callSid=${callSid}: ${err.message}`);
+            });
+            audioPacketsSent++;
+            if (audioPacketsSent === 1) {
+              console.log(`[DIAG] ── First audio packet sent to Twilio callSid=${callSid} streamSid=${streamSid} payloadLength=${msg.delta.length}`);
             }
             break;
+          }
 
           case 'response.done': {
-            aiResponseActive = false;
             greetingDone = true;
             const usage = msg.response?.usage;
             if (usage) {
@@ -247,7 +249,6 @@ function handleMediaStream(twilioWs, rawUrl) {
 
           case 'response.cancelled':
             console.log(`[DIAG] ── response.cancelled audioPacketsSent=${audioPacketsSent} callSid=${callSid}`);
-            aiResponseActive = false;
             greetingDone = true;
             break;
 
@@ -290,7 +291,6 @@ function handleMediaStream(twilioWs, rawUrl) {
           case 'input_audio_buffer.speech_started':
             console.log(`[DIAG] ── speech_started greetingDone=${greetingDone} callSid=${callSid}`);
             if (greetingDone) {
-              aiResponseActive = false;
               // Cancel active response at OpenAI
               if (openAiWs && openAiWs.readyState === WebSocket.OPEN) {
                 openAiWs.send(JSON.stringify({ type: 'response.cancel' }));
