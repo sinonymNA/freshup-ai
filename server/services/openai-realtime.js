@@ -134,17 +134,23 @@ function handleMediaStream(twilioWs, rawUrl) {
         type: 'session.update',
         session: {
           type: 'realtime',
-          output_modalities: ['audio', 'text'],
+          model: REALTIME_MODEL,
+          output_modalities: ['audio'],
           instructions,
-          voice: REALTIME_VOICE,
-          input_audio_format: 'g711_ulaw',
-          output_audio_format: 'g711_ulaw',
-          input_audio_transcription: { model: 'gpt-4o-transcribe' },
-          turn_detection: {
-            type: 'semantic_vad',
-            eagerness: 'balanced',
-            create_response: true,
-            interrupt_response: true,
+          reasoning: { effort: 'low' },
+          audio: {
+            input: {
+              format: { type: 'audio/pcmu' },
+              turn_detection: {
+                type: 'semantic_vad',
+                create_response: true,
+                interrupt_response: true,
+              },
+            },
+            output: {
+              format: { type: 'audio/pcmu' },
+              voice: REALTIME_VOICE,
+            },
           },
           tools: [
             {
