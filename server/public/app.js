@@ -159,6 +159,7 @@ function render() {
   if (path.startsWith('/team/rep/')) return renderRepDetail(path.slice('/team/rep/'.length));
   if (path === '/gm') return renderGMDashboard();
   if (path.startsWith('/gm/')) return renderGMCallDetail(path.slice('/gm/'.length));
+  if (path === '/updates') return renderUpdates();
 
   // /learn/courses routes — same renderers as /courses
   const learnCourseModuleMatch = path.match(/^\/learn\/courses\/([^/]+)\/([^/]+)$/);
@@ -4560,4 +4561,123 @@ function renderPlaybook() {
     localStorage.removeItem('freshup_playbook');
     renderPlaybook();
   });
+}
+
+// ── UPDATES / CHANGELOG ───────────────────────────────────────────────────────
+
+function renderUpdates() {
+  const RELEASES = [
+    {
+      version: 'v1.4',
+      label: 'Live Operations',
+      date: 'June 9, 2026',
+      current: true,
+      color: '#3b82f6',
+      entries: [
+        { tag: 'GM Tools', text: '📡 Live tab in Call Records — SSE stream shows active inbound and AI training calls in real time, with per-turn transcripts and scores as they land.' },
+        { tag: 'SMS', text: '🔥 Manager Alert SMS — GM gets a text when hot-intent keywords (ready to buy, pre-approved, cash, etc.) are detected in a recorded inbound call.' },
+        { tag: 'SMS', text: '📱 Post-call SMS follow-up — send an automatic courtesy text to the caller after an inbound call is processed. Toggle on/off in Settings.' },
+        { tag: 'Settings', text: 'Manager Alert Phone and SMS follow-up toggle added to Settings → Your Dealership.' },
+      ],
+    },
+    {
+      version: 'v1.3',
+      label: 'GM Analytics',
+      date: 'June 7, 2026',
+      current: false,
+      color: '#8b5cf6',
+      entries: [
+        { tag: 'GM Tools', text: '⚡ API Cost Card — GM dashboard shows monthly token usage and estimated training cost for gpt-realtime-2 calls.' },
+        { tag: 'GM Tools', text: '↓ Export CSV — download the full Call Records table as a CSV file for any CRM or spreadsheet import.' },
+        { tag: 'SMS', text: '🎉 Rep appointment confirmation — reps receive an SMS when they set an appointment in AI training, if their phone number is saved in Settings.' },
+      ],
+    },
+    {
+      version: 'v1.2',
+      label: 'Reports & Learning Center',
+      date: 'June 6, 2026',
+      current: false,
+      color: '#10b981',
+      entries: [
+        { tag: 'Calls', text: '↓ PDF Call Report — download a formatted multi-page PDF of any training call: score card, 8 dimension bars, coaching feedback, and full transcript.' },
+        { tag: 'Learning', text: '✨ Learning Center redesign — hero strip with live stats, 4 rich section cards (2 × 2 grid), achievement shelf with badge tracking, and weekly focus card.' },
+        { tag: 'UI', text: 'Logo theme fix — logo now renders correctly in all four themes (Light, Dark, Gridiron, Midnight) using CSS blend modes.' },
+      ],
+    },
+    {
+      version: 'v1.1',
+      label: 'Voice & Scoring Fixes',
+      date: 'June 4, 2026',
+      current: false,
+      color: '#f59e0b',
+      entries: [
+        { tag: 'Calls', text: 'Migrated to OpenAI gpt-realtime-2 GA API — fixed silent calls caused by the deprecated beta session shape.' },
+        { tag: 'Calls', text: 'Per-persona voice assignment — each of the 12 buyer personas now uses a distinct voice (ash / coral / sage) matching their character.' },
+        { tag: 'Calls', text: 'Transcript reliability — restored gpt-4o-transcribe transcription; eliminated the 5-10 s greeting delay with semantic_vad eagerness tuning.' },
+        { tag: 'GM Tools', text: 'GM Call Records dashboard — inbound and AI training calls recorded, transcribed, and graded; viewable by managers.' },
+        { tag: 'GM Tools', text: 'Email grade reports — GM receives a scorecard email after every recorded inbound call.' },
+      ],
+    },
+    {
+      version: 'v1.0',
+      label: 'Initial Release',
+      date: 'June 1, 2026',
+      current: false,
+      color: '#64748b',
+      entries: [
+        { tag: 'Calls', text: 'AI Call Arena — live voice training calls against 12 buyer personas with adjustable difficulty.' },
+        { tag: 'Calls', text: '8-dimension call scoring — Opening, Rapport, Needs Discovery, Product Knowledge, Lead Capture, Professionalism, Close, Objection Handling.' },
+        { tag: 'Learning', text: 'FreshUp Framework, Courses, Objection Gauntlet, and My Playbook.' },
+        { tag: 'Learning', text: 'Leaderboard and call history with full transcripts.' },
+        { tag: 'Team', text: 'Team management — managers can invite reps, drill into individual performance, and view coaching notes.' },
+        { tag: 'Calls', text: 'Real call tracking — inbound Twilio calls recorded and graded automatically when a tracking number is configured.' },
+      ],
+    },
+  ];
+
+  const tagColors = {
+    'GM Tools': '#3b82f6',
+    'Calls':    '#10b981',
+    'Learning': '#8b5cf6',
+    'SMS':      '#f59e0b',
+    'Settings': '#64748b',
+    'Team':     '#ef4444',
+    'UI':       '#06b6d4',
+  };
+
+  app.innerHTML = `
+    <div class="page-header">
+      <div>
+        <h1>What's New</h1>
+        <p class="subtitle">FreshUp AI release history</p>
+      </div>
+    </div>
+
+    <div class="updates-timeline">
+      ${RELEASES.map(r => `
+        <div class="updates-release">
+          <div class="updates-rail">
+            <div class="updates-dot" style="background:${r.color}"></div>
+            <div class="updates-line"></div>
+          </div>
+          <div class="updates-card card">
+            <div class="updates-card-header">
+              <span class="updates-version-badge" style="background:${r.color}20;color:${r.color};border-color:${r.color}40">${escHtml(r.version)}</span>
+              <span class="updates-release-name">${escHtml(r.label)}</span>
+              ${r.current ? '<span class="updates-current-badge">Current</span>' : ''}
+              <span class="updates-date">${escHtml(r.date)}</span>
+            </div>
+            <ul class="updates-entry-list">
+              ${r.entries.map(e => `
+                <li class="updates-entry">
+                  <span class="updates-tag" style="background:${tagColors[e.tag] || '#64748b'}20;color:${tagColors[e.tag] || '#64748b'}">${escHtml(e.tag)}</span>
+                  <span class="updates-entry-text">${e.text}</span>
+                </li>
+              `).join('')}
+            </ul>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
 }
