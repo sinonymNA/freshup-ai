@@ -106,7 +106,7 @@ function handleMediaStream(twilioWs, rawUrl) {
   }
 
   function startOpenAiSession(storedCall) {
-    const model = 'gpt-4o-realtime-preview-2025-06-03';
+    const model = 'gpt-4o-realtime-preview';
     console.log(`[DIAG] ── Opening OpenAI WS callSid=${callSid} persona=${persona.id} model=${model}`);
 
     openAiWs = new WebSocket(

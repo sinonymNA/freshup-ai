@@ -51,7 +51,7 @@ app.get('/health/openai', async (req, res) => {
       ws.on('open', () => { clearTimeout(timeout); ws.close(); resolve(); });
       ws.on('error', (err) => { clearTimeout(timeout); reject(err); });
     });
-    res.json({ ok: true, model: 'gpt-4o-realtime-preview-2025-06-03' });
+    res.json({ ok: true, model: 'gpt-4o-realtime-preview' });
   } catch (err) {
     res.status(502).json({ ok: false, error: err.message });
   }
