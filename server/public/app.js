@@ -266,6 +266,28 @@ function initials(name) {
   return String(name || '').split(' ').slice(0, 2).map(w => w[0] || '').join('').toUpperCase();
 }
 
+async function downloadCallReport(callSid) {
+  const token = localStorage.getItem('freshup_token');
+  if (!token) { showToast('Please log in to download reports', 'error'); return; }
+  const btn = document.querySelector('.report-dl-btn');
+  if (btn) { btn.textContent = 'Generating…'; btn.disabled = true; }
+  try {
+    const res = await fetch(`/api/call/${callSid}/report.pdf`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) throw new Error('Report generation failed');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `freshup-report-${callSid.slice(-8)}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+    if (btn) { btn.textContent = '↓ Download Report'; btn.disabled = false; }
+  } catch (err) {
+    showToast('Could not download report', 'error');
+    if (btn) { btn.textContent = '↓ Download Report'; btn.disabled = false; }
+  }
+}
+
 function avatar(name, size) {
   return `<div class="avatar${size ? ' ' + size : ''}">${initials(name)}</div>`;
 }
@@ -2282,7 +2304,7 @@ function showCallAnalysis(data, callSid) {
           : data.outcome === 'HangUp'
           ? "Here's what to work on:"
           : 'Coaching feedback:';
-        fw.innerHTML = `<div class="live-feedback-header">${feedbackHeader}</div><div class="live-feedback">${escHtml(data.score.feedback)}</div>`;
+        fw.innerHTML = `<div class="live-feedback-header">${feedbackHeader}</div><div class="live-feedback">${escHtml(data.score.feedback)}</div><button class="btn btn-secondary btn-sm report-dl-btn" onclick="downloadCallReport('${callSid}')">↓ Download Report</button>`;
       }
     }
   } else {
@@ -3557,50 +3579,181 @@ async function renderGMCallDetail(id) {
   `;
 }
 
-// ── LEARN HUB ─────────────────────────────────────────────────────────────────
+// ── LEARNING CENTER ───────────────────────────────────────────────────────────
 
-function renderLearn() {
+async function renderLearn() {
+  app.innerHTML = `<div class="loading">Loading your learning center…</div>`;
+
+  let calls = [];
+  try { calls = await api('/api/call/history'); } catch (e) { /* unauthenticated / error */ }
+
+  // ── Compute stats from call history ──────────────────────────────────────────
+  const scored = calls.filter(c => c.score?.overallScore != null);
+  const totalCalls = calls.length;
+  const avgScore = scored.length ? Math.round(scored.reduce((s, c) => s + c.score.overallScore, 0) / scored.length) : 0;
+  const apptCalls = calls.filter(c => c.outcome === 'Appointment Set' || c.outcome === 'Appointment');
+  const apptRate = totalCalls ? Math.round((apptCalls.length / totalCalls) * 100) : 0;
+
+  // Streak: consecutive days with at least 1 call
+  const daySet = new Set(calls.map(c => new Date(c.startTime).toDateString()));
+  let streak = 0;
+  for (let d = 0; d < 30; d++) {
+    const day = new Date(Date.now() - d * 86400000).toDateString();
+    if (daySet.has(day)) streak++;
+    else if (d > 0) break;
+  }
+
+  // Weakest dimension
+  const dimKeys = ['opening','rapport','needsDiscovery','productKnowledge','infoCapture','professionalism','appointment','objectionHandling'];
+  const dimLabels = { opening:'Opening', rapport:'Rapport', needsDiscovery:'Needs Discovery', productKnowledge:'Product Knowledge', infoCapture:'Info Capture', professionalism:'Professionalism', appointment:'Appointment', objectionHandling:'Objection Handling' };
+  const dimFocus = { opening:'#/learn/framework', rapport:'#/learn/framework', needsDiscovery:'#/courses', productKnowledge:'#/courses', infoCapture:'#/courses', professionalism:'#/learn/framework', appointment:'#/courses', objectionHandling:'#/learn/gauntlet' };
+  let weakestKey = null, weakestAvg = 21;
+  if (scored.length >= 2) {
+    dimKeys.forEach(k => {
+      const vals = scored.map(c => c.score[k] ?? 0);
+      const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+      if (avg < weakestAvg) { weakestAvg = avg; weakestKey = k; }
+    });
+  }
+
+  // Achievements
+  const achievements = [
+    { id:'first_call',    icon:'📞', label:'First Call',       earned: totalCalls >= 1,             tip:'Complete your first AI training call' },
+    { id:'hot_streak',    icon:'🔥', label:'3-Day Streak',     earned: streak >= 3,                 tip:'Practice 3 days in a row' },
+    { id:'appt_setter',   icon:'📅', label:'Appointment Setter', earned: apptCalls.length >= 1,     tip:'Set your first appointment' },
+    { id:'solid_score',   icon:'⭐', label:'Solid Score',      earned: scored.some(c => c.score.overallScore >= 80), tip:'Score 80+ on any call' },
+    { id:'perfect_score', icon:'💯', label:'Perfect Score',    earned: scored.some(c => c.score.overallScore >= 95), tip:'Score 95+ on any call' },
+    { id:'ten_calls',     icon:'🏆', label:'10 Calls',         earned: totalCalls >= 10,            tip:'Complete 10 training calls' },
+    { id:'gauntlet_grad', icon:'⚡', label:'Gauntlet Grad',    earned: false,                       tip:'Score 70+ in the Objection Gauntlet' },
+    { id:'framework_pro', icon:'🏗️', label:'Framework Pro',   earned: totalCalls >= 5 && avgScore >= 75, tip:'Score 75+ avg after 5+ calls' },
+  ];
+
+  const earnedCount = achievements.filter(a => a.earned).length;
+  const badgesHtml = achievements.map(a => `
+    <div class="achievement-badge ${a.earned ? 'earned' : 'locked'}" title="${a.tip}">
+      <div class="ab-icon">${a.icon}</div>
+      <div class="ab-label">${a.label}</div>
+    </div>`).join('');
+
+  const focusHtml = weakestKey ? `
+    <div class="lc-focus-card">
+      <div class="lc-focus-left">
+        <div class="lc-focus-label">This Week's Focus</div>
+        <div class="lc-focus-dim">${dimLabels[weakestKey]}</div>
+        <p class="lc-focus-tip">Your <strong>${dimLabels[weakestKey]}</strong> score averages <strong>${Math.round(weakestAvg)}/20</strong> — your lowest dimension. Level it up to break through your plateau.</p>
+      </div>
+      <a href="${dimFocus[weakestKey]}" class="btn btn-primary lc-focus-cta">Train This Skill →</a>
+    </div>` : '';
+
   app.innerHTML = `
-    <div class="page-header">
-      <div>
-        <h1>Learn</h1>
-        <p class="subtitle">Everything you need to master the phone up</p>
+    <!-- Hero Strip -->
+    <div class="lc-hero">
+      <div class="lc-hero-inner">
+        <div class="lc-hero-text">
+          <div class="lc-hero-eyebrow">Learning Center</div>
+          <h1 class="lc-hero-title">Master the Phone Up</h1>
+          <p class="lc-hero-sub">Everything you need to go from good to elite — framework, courses, live AI training, and instant coaching.</p>
+        </div>
+        <div class="lc-hero-stats">
+          <div class="lc-stat-pill">
+            <span class="lc-stat-num">${streak}</span>
+            <span class="lc-stat-lab">Day Streak 🔥</span>
+          </div>
+          <div class="lc-stat-divider"></div>
+          <div class="lc-stat-pill">
+            <span class="lc-stat-num">${totalCalls}</span>
+            <span class="lc-stat-lab">Calls Made</span>
+          </div>
+          <div class="lc-stat-divider"></div>
+          <div class="lc-stat-pill">
+            <span class="lc-stat-num">${avgScore || '—'}</span>
+            <span class="lc-stat-lab">Avg Score</span>
+          </div>
+          <div class="lc-stat-divider"></div>
+          <div class="lc-stat-pill">
+            <span class="lc-stat-num">${earnedCount}/${achievements.length}</span>
+            <span class="lc-stat-lab">Badges</span>
+          </div>
+        </div>
       </div>
     </div>
-    <div class="learn-hub-grid">
-      <a href="#/learn/framework" class="learn-hub-card" style="--hub-color:#3b82f6">
-        <div class="lhc-icon">🏗️</div>
-        <div class="lhc-body">
-          <h3>FreshUp Framework</h3>
-          <p>The 7-step proprietary system behind every great phone up. Learn the method, master the methodology.</p>
+
+    <!-- Section Cards -->
+    <div class="lc-section-grid">
+
+      <a href="#/learn/framework" class="lc-section-card" style="--lc-color:#3b82f6">
+        <div class="lc-card-header">
+          <div class="lc-card-icon">🏗️</div>
+          <div class="lc-card-title">FreshUp Framework</div>
+          <span class="lc-card-badge">7 Steps</span>
         </div>
-        <span class="lhc-arrow">→</span>
-      </a>
-      <a href="#/courses" class="learn-hub-card" style="--hub-color:#8b5cf6">
-        <div class="lhc-icon">📚</div>
-        <div class="lhc-body">
-          <h3>Courses</h3>
-          <p>7 structured courses from first hello to elite appointment close. Lessons + real phone challenges.</p>
+        <div class="lc-card-body">
+          <p>The proprietary system behind every great phone up — from the first word to the close. Understand the method, master the methodology.</p>
+          <div class="lc-card-meta">
+            <span>7 steps · Read + examples · Instantly applicable</span>
+            <span class="lc-card-arrow">→</span>
+          </div>
         </div>
-        <span class="lhc-arrow">→</span>
       </a>
-      <a href="#/learn/gauntlet" class="learn-hub-card" style="--hub-color:#ef4444">
-        <div class="lhc-icon">⚡</div>
-        <div class="lhc-body">
-          <h3>Objection Gauntlet</h3>
-          <p>One objection. One response. Instant AI coaching. Train your reactions until they're automatic.</p>
+
+      <a href="#/courses" class="lc-section-card" style="--lc-color:#8b5cf6">
+        <div class="lc-card-header">
+          <div class="lc-card-icon">📚</div>
+          <div class="lc-card-title">Courses</div>
+          <span class="lc-card-badge">7 Courses</span>
         </div>
-        <span class="lhc-arrow">→</span>
-      </a>
-      <a href="#/learn/playbook" class="learn-hub-card" style="--hub-color:#10b981">
-        <div class="lhc-icon">📖</div>
-        <div class="lhc-body">
-          <h3>My Playbook</h3>
-          <p>Your personal library of best responses, built from your highest-scoring gauntlet attempts.</p>
+        <div class="lc-card-body">
+          <p>Structured curriculum from first hello to elite appointment close. Each course has lessons, examples, and live AI phone challenges.</p>
+          <div class="lc-card-meta">
+            <span>7 courses · Unlockable modules · Completion certificates</span>
+            <span class="lc-card-arrow">→</span>
+          </div>
         </div>
-        <span class="lhc-arrow">→</span>
       </a>
+
+      <a href="#/learn/gauntlet" class="lc-section-card" style="--lc-color:#ef4444">
+        <div class="lc-card-header">
+          <div class="lc-card-icon">⚡</div>
+          <div class="lc-card-title">Objection Gauntlet</div>
+          ${streak >= 1 ? `<span class="lc-card-badge lc-badge-fire">🔥 ${streak} Day Streak</span>` : '<span class="lc-card-badge">Drill Mode</span>'}
+        </div>
+        <div class="lc-card-body">
+          <p>One objection. One response. Instant AI coaching. Drill until your rebuttals are automatic — the fastest way to handle pressure on live calls.</p>
+          <div class="lc-card-meta">
+            <span>ABAR framework · Scored instantly · Builds automaticity</span>
+            <span class="lc-card-arrow">→</span>
+          </div>
+        </div>
+      </a>
+
+      <a href="#/learn/playbook" class="lc-section-card" style="--lc-color:#10b981">
+        <div class="lc-card-header">
+          <div class="lc-card-icon">📖</div>
+          <div class="lc-card-title">My Playbook</div>
+          <span class="lc-card-badge">Personal</span>
+        </div>
+        <div class="lc-card-body">
+          <p>Your personal library of best responses, built from your highest-scoring gauntlet attempts. Your voice, your style, refined by AI.</p>
+          <div class="lc-card-meta">
+            <span>Saved responses · Searchable · Always growing</span>
+            <span class="lc-card-arrow">→</span>
+          </div>
+        </div>
+      </a>
+
     </div>
+
+    <!-- Achievement Shelf -->
+    <div class="lc-achievements">
+      <div class="lc-achievements-header">
+        <h2 class="lc-section-heading">Achievements <span class="lc-badge-count">${earnedCount}/${achievements.length}</span></h2>
+        <p class="lc-section-sub">Earn badges by training consistently and hitting score milestones.</p>
+      </div>
+      <div class="achievement-shelf">${badgesHtml}</div>
+    </div>
+
+    <!-- Weekly Focus -->
+    ${focusHtml}
   `;
 }
 

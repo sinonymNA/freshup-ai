@@ -317,4 +317,109 @@ router.get('/call/challenge-results/:callSid', (req, res) => {
   }
 });
 
+// ── GET /api/call/:callSid/report.pdf ─────────────────────────────────────────
+router.get('/call/:callSid/report.pdf', requireAuth, (req, res) => {
+  const callData = getCall(req.params.callSid);
+  if (!callData) { res.status(404).json({ error: 'Call not found' }); return; }
+  if (callData.userId !== req.user.id) { res.status(403).json({ error: 'Forbidden' }); return; }
+
+  const PDFDocument = require('pdfkit');
+  const doc = new PDFDocument({ margin: 50, size: 'LETTER' });
+
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="freshup-report-${req.params.callSid.slice(-8)}.pdf"`);
+  doc.pipe(res);
+
+  const score = callData.score || {};
+  const overall = score.overallScore ?? 0;
+  const scoreColor = overall >= 80 ? '#10b981' : overall >= 60 ? '#f59e0b' : '#ef4444';
+  const callDate = callData.startTime ? new Date(callData.startTime).toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' }) : 'Unknown';
+  const dims = [
+    ['Opening',            score.opening],
+    ['Rapport',            score.rapport],
+    ['Needs Discovery',    score.needsDiscovery],
+    ['Product Knowledge',  score.productKnowledge],
+    ['Info Capture',       score.infoCapture],
+    ['Professionalism',    score.professionalism],
+    ['Appointment',        score.appointment],
+    ['Objection Handling', score.objectionHandling],
+  ];
+
+  // ── Header ──
+  doc.fontSize(22).fillColor('#1e293b').text('FreshUp AI', { continued: true });
+  doc.fontSize(22).fillColor('#3b82f6').text(' · Call Report');
+  doc.moveDown(0.3);
+  doc.fontSize(10).fillColor('#64748b').text(`${callDate}  ·  Persona: ${callData.personaName || 'Unknown'}  ·  Outcome: ${callData.outcome || 'Unknown'}`);
+  doc.moveDown(0.5);
+  doc.moveTo(50, doc.y).lineTo(562, doc.y).strokeColor('#e2e8f0').stroke();
+  doc.moveDown(0.7);
+
+  // ── Overall score ──
+  doc.fontSize(13).fillColor('#1e293b').text('Overall Score', { continued: true });
+  doc.fontSize(28).fillColor(scoreColor).text(`  ${overall}/100`, { align: 'right' });
+  doc.moveDown(0.5);
+
+  // ── Dimension bars ──
+  if (dims.some(([, v]) => v != null)) {
+    doc.fontSize(11).fillColor('#1e293b').text('Score Breakdown', { underline: true });
+    doc.moveDown(0.3);
+    const barX = 180, barMaxW = 280, barH = 10, rowH = 22;
+    dims.forEach(([label, val]) => {
+      const v = val ?? 0;
+      const y = doc.y;
+      doc.fontSize(10).fillColor('#475569').text(label, 50, y, { width: 125 });
+      doc.roundedRect(barX, y + 1, barMaxW, barH, 3).fillColor('#e2e8f0').fill();
+      const fillW = Math.round((v / 20) * barMaxW);
+      const barColor = v >= 16 ? '#10b981' : v >= 12 ? '#3b82f6' : v >= 8 ? '#f59e0b' : '#ef4444';
+      if (fillW > 0) doc.roundedRect(barX, y + 1, fillW, barH, 3).fillColor(barColor).fill();
+      doc.fontSize(10).fillColor('#1e293b').text(`${v}/20`, barX + barMaxW + 10, y, { width: 50 });
+      doc.y = y + rowH;
+    });
+    doc.moveDown(0.8);
+  }
+
+  // ── Coaching feedback ──
+  if (score.strengths || score.improvements || score.coachingTips) {
+    doc.moveTo(50, doc.y).lineTo(562, doc.y).strokeColor('#e2e8f0').stroke();
+    doc.moveDown(0.7);
+    doc.fontSize(11).fillColor('#1e293b').text('Coaching Feedback', { underline: true });
+    doc.moveDown(0.3);
+    if (score.strengths) {
+      doc.fontSize(10).fillColor('#10b981').text('Strengths', { continued: false });
+      doc.fontSize(10).fillColor('#1e293b').text(score.strengths, { indent: 10 });
+      doc.moveDown(0.4);
+    }
+    if (score.improvements) {
+      doc.fontSize(10).fillColor('#f59e0b').text('Areas to Improve', { continued: false });
+      doc.fontSize(10).fillColor('#1e293b').text(score.improvements, { indent: 10 });
+      doc.moveDown(0.4);
+    }
+    if (score.coachingTips) {
+      doc.fontSize(10).fillColor('#3b82f6').text('Coaching Tips', { continued: false });
+      doc.fontSize(10).fillColor('#1e293b').text(score.coachingTips, { indent: 10 });
+      doc.moveDown(0.4);
+    }
+  }
+
+  // ── Transcript ──
+  if (callData.history && callData.history.length > 0) {
+    doc.addPage();
+    doc.fontSize(14).fillColor('#1e293b').text('Full Transcript');
+    doc.moveDown(0.3);
+    doc.moveTo(50, doc.y).lineTo(562, doc.y).strokeColor('#e2e8f0').stroke();
+    doc.moveDown(0.5);
+
+    callData.history.forEach((msg) => {
+      const isRep = msg.role === 'user';
+      const speaker = isRep ? 'Sales Rep' : (callData.personaName || 'Customer');
+      const color = isRep ? '#3b82f6' : '#7c3aed';
+      doc.fontSize(9).fillColor(color).text(speaker + ':', { continued: false });
+      doc.fontSize(10).fillColor('#1e293b').text(msg.content || '', { indent: 12, lineGap: 2 });
+      doc.moveDown(0.4);
+    });
+  }
+
+  doc.end();
+});
+
 module.exports = router;
