@@ -165,7 +165,7 @@ function handleMediaStream(twilioWs, rawUrl) {
             },
           ],
           tool_choice: 'auto',
-          max_response_output_tokens: 500,
+          max_output_tokens: 1024,
         },
       };
       console.log(`[DIAG] ── Sending session.update voice=${REALTIME_VOICE} model=${REALTIME_MODEL} callSid=${callSid}`);
