@@ -177,6 +177,7 @@ router.post('/voice', validateTwilioRequest, (req, res) => {
       .replace(/^http:\/\//, 'ws://');
 
     const streamUrl = `${wsBase}/webhook/media-stream?callSid=${callSid}&personaId=${persona.id}`;
+    console.log(`[DIAG] ── voice webhook callSid=${callSid} persona=${persona.id} streamUrl=${streamUrl}`);
 
     const response = new twilio.twiml.VoiceResponse();
     const connect = response.connect();
