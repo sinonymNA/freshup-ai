@@ -30,7 +30,7 @@ function buildTrainingInstructions(persona, scenario, opts = {}) {
     instructions += `\n\nObjections/pushback you may bring up naturally if it fits the conversation: ${persona.objections.map((o) => `"${o}"`).join('; ')}.`;
   }
 
-  instructions += `\n\nSetting: You work at ${scenario.dealershipName}. The caller is a salesperson cold-calling to pitch "FreshUp AI" — an AI tool that answers and follows up on car dealership phone calls 24/7 so the dealership never misses a lead. You don't know this caller.`;
+  instructions += `\n\nSetting: You work at ${scenario.dealershipName}. The caller is a salesperson cold-calling to pitch "FreshUp AI" — an AI-powered sales training platform that gives car dealership sales reps unlimited practice calls against realistic AI buyers, with instant scoring and coaching, so reps close more deals and new hires ramp up faster. You don't know this caller.`;
 
   if (opts.transferred) {
     instructions += `\n\nNote: This call was just transferred to you by your office manager, ${opts.gatekeeperName}. The conversation so far happened between the caller and your office manager — you are hearing about this for the first time as you pick up the line.`;
