@@ -146,6 +146,47 @@ db.exec(`
   );
 `);
 
+const existingTrainingCallCols = db.prepare('PRAGMA table_info(training_calls)').all().map(r => r.name);
+if (!existingTrainingCallCols.includes('userId')) {
+  db.exec('ALTER TABLE training_calls ADD COLUMN userId INTEGER REFERENCES users(id)');
+}
+if (!existingTrainingCallCols.includes('difficulty')) {
+  db.exec('ALTER TABLE training_calls ADD COLUMN difficulty TEXT');
+}
+if (!existingTrainingCallCols.includes('phase')) {
+  db.exec("ALTER TABLE training_calls ADD COLUMN phase TEXT DEFAULT 'menu'");
+}
+if (!existingTrainingCallCols.includes('dealershipId')) {
+  db.exec('ALTER TABLE training_calls ADD COLUMN dealershipId TEXT');
+}
+if (!existingTrainingCallCols.includes('dealershipName')) {
+  db.exec('ALTER TABLE training_calls ADD COLUMN dealershipName TEXT');
+}
+if (!existingTrainingCallCols.includes('gatekeeperPersonaId')) {
+  db.exec('ALTER TABLE training_calls ADD COLUMN gatekeeperPersonaId TEXT');
+}
+if (!existingTrainingCallCols.includes('gmPersonaId')) {
+  db.exec('ALTER TABLE training_calls ADD COLUMN gmPersonaId TEXT');
+}
+if (!existingTrainingCallCols.includes('gmPersonaName')) {
+  db.exec('ALTER TABLE training_calls ADD COLUMN gmPersonaName TEXT');
+}
+if (!existingTrainingCallCols.includes('history')) {
+  db.exec("ALTER TABLE training_calls ADD COLUMN history TEXT DEFAULT '[]'");
+}
+if (!existingTrainingCallCols.includes('outcome')) {
+  db.exec('ALTER TABLE training_calls ADD COLUMN outcome TEXT');
+}
+if (!existingTrainingCallCols.includes('score')) {
+  db.exec('ALTER TABLE training_calls ADD COLUMN score TEXT');
+}
+if (!existingTrainingCallCols.includes('startTime')) {
+  db.exec('ALTER TABLE training_calls ADD COLUMN startTime INTEGER');
+}
+if (!existingTrainingCallCols.includes('endTime')) {
+  db.exec('ALTER TABLE training_calls ADD COLUMN endTime INTEGER');
+}
+
 // Recorded calls — both outbound bot calls and inbound real calls
 db.exec(`
   CREATE TABLE IF NOT EXISTS recorded_calls (
