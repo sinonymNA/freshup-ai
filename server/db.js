@@ -126,6 +126,26 @@ db.exec(`
   );
 `);
 
+// Training calls — hidden Ethan cold-call practice center (additive, isolated from `calls`)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS training_calls (
+    callSid             TEXT PRIMARY KEY,
+    userId              INTEGER REFERENCES users(id),
+    difficulty          TEXT,
+    phase               TEXT DEFAULT 'menu',
+    dealershipId        TEXT,
+    dealershipName      TEXT,
+    gatekeeperPersonaId TEXT,
+    gmPersonaId         TEXT,
+    gmPersonaName       TEXT,
+    history             TEXT DEFAULT '[]',
+    outcome             TEXT,
+    score               TEXT,
+    startTime           INTEGER,
+    endTime             INTEGER
+  );
+`);
+
 // Recorded calls — both outbound bot calls and inbound real calls
 db.exec(`
   CREATE TABLE IF NOT EXISTS recorded_calls (
@@ -437,6 +457,71 @@ function getAllCalls(userId, limit = 50) {
     }));
 }
 
+// ── Training calls (Ethan cold-call practice center) ─────────────────────────
+
+function getTrainingCall(callSid) {
+  const row = db.prepare('SELECT * FROM training_calls WHERE callSid = ?').get(callSid);
+  if (!row) return null;
+  return {
+    ...row,
+    history: JSON.parse(row.history || '[]'),
+    score: row.score ? JSON.parse(row.score) : null,
+  };
+}
+
+function setTrainingCall(callSid, data) {
+  db.prepare(`
+    INSERT INTO training_calls (callSid, userId, difficulty, phase, dealershipId, dealershipName, gatekeeperPersonaId, gmPersonaId, gmPersonaName, history, outcome, score, startTime, endTime)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(callSid) DO UPDATE SET
+      userId              = excluded.userId,
+      difficulty          = excluded.difficulty,
+      phase               = excluded.phase,
+      dealershipId        = excluded.dealershipId,
+      dealershipName      = excluded.dealershipName,
+      gatekeeperPersonaId = excluded.gatekeeperPersonaId,
+      gmPersonaId         = excluded.gmPersonaId,
+      gmPersonaName       = excluded.gmPersonaName,
+      history             = excluded.history,
+      outcome             = excluded.outcome,
+      score               = excluded.score,
+      startTime           = excluded.startTime,
+      endTime             = excluded.endTime
+  `).run(
+    callSid,
+    data.userId ?? null,
+    data.difficulty ?? null,
+    data.phase ?? 'menu',
+    data.dealershipId ?? null,
+    data.dealershipName ?? null,
+    data.gatekeeperPersonaId ?? null,
+    data.gmPersonaId ?? null,
+    data.gmPersonaName ?? null,
+    JSON.stringify(data.history ?? []),
+    data.outcome ?? null,
+    data.score ? JSON.stringify(data.score) : null,
+    data.startTime ?? null,
+    data.endTime ?? null
+  );
+}
+
+function updateTrainingCall(callSid, updates) {
+  const existing = getTrainingCall(callSid);
+  if (!existing) return;
+  setTrainingCall(callSid, { ...existing, ...updates });
+}
+
+function getAllTrainingCalls(userId, limit = 50) {
+  return db
+    .prepare('SELECT * FROM training_calls WHERE userId = ? ORDER BY startTime DESC LIMIT ?')
+    .all(userId, limit)
+    .map((row) => ({
+      ...row,
+      history: JSON.parse(row.history || '[]'),
+      score: row.score ? JSON.parse(row.score) : null,
+    }));
+}
+
 // ── Sales Analytics ───────────────────────────────────────────────────────────
 
 function getAnalytics() {
@@ -739,6 +824,7 @@ module.exports = {
   createTeam, getTeamByCode, getTeamByManagerId, getTeamById,
   getTeamMembers, getTeamConfig, setTeamConfig, getTeamAnalytics,
   getCall, setCall, updateCall, getAllCalls,
+  getTrainingCall, setTrainingCall, updateTrainingCall, getAllTrainingCalls,
   completeModule, getProgress,
   saveGauntletScore, getLeaderboard,
   getAnalytics,

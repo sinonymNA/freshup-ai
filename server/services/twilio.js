@@ -22,4 +22,15 @@ async function initiateCall(toPhoneNumber, personaId, userId) {
   return call;
 }
 
-module.exports = { initiateCall };
+async function initiateTrainingCall(toPhoneNumber, difficulty, userId) {
+  const base = (process.env.BASE_URL || '').replace(/\/$/, '');
+  const call = await client.calls.create({
+    from: process.env.TWILIO_PHONE_NUMBER,
+    to: toPhoneNumber,
+    url: `${base}/training-webhook/voice?difficulty=${difficulty}&userId=${userId || ''}`,
+    statusCallback: `${base}/training-webhook/status`,
+  });
+  return call;
+}
+
+module.exports = { initiateCall, initiateTrainingCall };

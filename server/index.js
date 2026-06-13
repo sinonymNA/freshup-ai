@@ -17,7 +17,10 @@ const gauntletRoutes = require('./routes/gauntlet');
 const analyticsRoutes = require('./routes/analytics');
 const contactRoutes = require('./routes/contact');
 const gmRoutes = require('./routes/gm');
+const trainingRoutes = require('./routes/training');
+const trainingWebhookRoutes = require('./routes/trainingWebhook');
 const { handleMediaStream } = require('./services/openai-realtime');
+const { handleTrainingMediaStream } = require('./services/openai-realtime-training');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -67,6 +70,8 @@ app.use('/api/gauntlet', gauntletRoutes);
 app.use('/api/gm', gmRoutes);
 app.use('/api', callRoutes);
 app.use('/webhook', webhookRoutes);
+app.use('/api', trainingRoutes);
+app.use('/training-webhook', trainingWebhookRoutes);
 
 // SPA fallback — serve index.html for any unmatched GET
 app.get('/{*path}', (req, res) => {
@@ -81,6 +86,8 @@ wss.on('connection', (ws, req) => {
   const url = req.url || '';
   if (url.startsWith('/webhook/media-stream')) {
     handleMediaStream(ws, url);
+  } else if (url.startsWith('/training-webhook/media-stream')) {
+    handleTrainingMediaStream(ws, url);
   } else {
     ws.close(1008, 'Unknown endpoint');
   }

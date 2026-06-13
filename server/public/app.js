@@ -161,6 +161,16 @@ function render() {
   if (path.startsWith('/gm/')) return renderGMCallDetail(path.slice('/gm/'.length));
   if (path === '/updates') return renderUpdates();
 
+  if (path === '/ethantraining') {
+    if (typeof renderEthanTraining === 'function') return renderEthanTraining();
+    const script = document.createElement('script');
+    script.src = '/ethantraining.js';
+    script.onload = () => renderEthanTraining();
+    document.body.appendChild(script);
+    app.innerHTML = '<div class="loading">Loading…</div>';
+    return;
+  }
+
   // /learn/courses routes — same renderers as /courses
   const learnCourseModuleMatch = path.match(/^\/learn\/courses\/([^/]+)\/([^/]+)$/);
   if (learnCourseModuleMatch) return renderModule(learnCourseModuleMatch[1], learnCourseModuleMatch[2]);

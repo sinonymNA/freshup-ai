@@ -1,0 +1,63 @@
+[
+  {
+    "id": "summit-motors",
+    "name": "Summit Motors",
+    "greeting": "Thanks for calling Summit Motors, your home for quality new and used vehicles.",
+    "menu": [
+      { "digit": "1", "label": "Sales Department", "correct": false },
+      { "digit": "2", "label": "Service Department", "correct": false },
+      { "digit": "3", "label": "Front Desk and Office", "correct": true },
+      { "digit": "0", "label": "Repeat this menu", "correct": false, "repeat": true }
+    ]
+  },
+  {
+    "id": "lakeshore-auto-group",
+    "name": "Lakeshore Auto Group",
+    "greeting": "You've reached Lakeshore Auto Group.",
+    "menu": [
+      { "digit": "1", "label": "New Vehicle Sales", "correct": false },
+      { "digit": "2", "label": "Parts and Service", "correct": false },
+      { "digit": "3", "label": "Finance Department", "correct": false },
+      { "digit": "4", "label": "Administration Office", "correct": true },
+      { "digit": "0", "label": "Repeat this menu", "correct": false, "repeat": true }
+    ]
+  },
+  {
+    "id": "valley-view-motors",
+    "name": "Valley View Motors",
+    "greeting": "Thank you for calling Valley View Motors.",
+    "menu": [
+      { "digit": "1", "label": "Sales", "correct": false },
+      { "digit": "2", "label": "Service and Parts", "correct": false },
+      { "digit": "3", "label": "Operator", "correct": true },
+      { "digit": "9", "label": "Spanish, oprima nueve", "correct": false },
+      { "digit": "0", "label": "Repeat this menu", "correct": false, "repeat": true }
+    ]
+  },
+  {
+    "id": "westside-chevrolet",
+    "name": "Westside Chevrolet",
+    "greeting": "Westside Chevrolet, where the deals never stop.",
+    "menu": [
+      { "digit": "1", "label": "New Car Sales", "correct": false },
+      { "digit": "2", "label": "Used Car Sales", "correct": false },
+      { "digit": "3", "label": "Service Center", "correct": false },
+      { "digit": "4", "label": "Business Office", "correct": true },
+      { "digit": "5", "label": "Body Shop", "correct": false },
+      { "digit": "0", "label": "Repeat this menu", "correct": false, "repeat": true }
+    ]
+  },
+  {
+    "id": "metro-auto-plaza",
+    "name": "Metro Auto Plaza",
+    "greeting": "You've reached Metro Auto Plaza.",
+    "menu": [
+      { "digit": "1", "label": "Sales Floor", "correct": false },
+      { "digit": "2", "label": "Service Appointments", "correct": false },
+      { "digit": "3", "label": "Finance and Insurance", "correct": false },
+      { "digit": "4", "label": "Internet Sales Team", "correct": false },
+      { "digit": "5", "label": "General Office", "correct": true },
+      { "digit": "0", "label": "Repeat this menu", "correct": false, "repeat": true }
+    ]
+  }
+]

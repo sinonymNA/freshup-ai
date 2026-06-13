@@ -126,4 +126,53 @@ async function gradeGauntlet(challenge, response) {
   }
 }
 
-module.exports = { analyzeCall, gradeGauntlet };
+async function analyzeTrainingCall(transcript, scenario) {
+  const { dealershipName, gatekeeperName, gmName, difficulty, phase } = scenario || {};
+  const reachedGM = phase === 'gm' || !!gmName;
+
+  const prompt =
+    `You are a sales coach grading a cold-call practice session. Ethan (a salesperson selling "FreshUp AI" — ` +
+    `an AI tool that answers and follows up on car dealership phone calls 24/7) called ${dealershipName || 'a car dealership'} ` +
+    `(${difficulty || 'Medium'} difficulty) to pitch his product.\n\n` +
+    `Ethan first had to get past ${gatekeeperName || 'the gatekeeper'} (the office manager / gatekeeper)${reachedGM ? `, then spoke with ${gmName || 'the General Manager'} (the GM / decision-maker).` : ', and did NOT get transferred to the GM.'}\n\n` +
+    `Score each dimension 0-100:\n` +
+    `gatekeeperPenetration: How effectively did Ethan get past the gatekeeper using genuine persuasion (not pushiness)? ` +
+    `${reachedGM ? 'He was transferred — score based on HOW he earned it (smooth, specific, confident = high; lucky/weak = mid).' : 'He was NOT transferred — score should be low (0-30), reflecting how close he got.'}\n` +
+    `hookStrength: Quality of his opening hook(s) — did he quickly establish a credible, specific reason this call matters to a dealership?\n` +
+    `objectionHandling: How well did he handle pushback/objections (e.g. "we already use something", "no budget", "too busy")? Did he acknowledge, bridge, and respond with value rather than folding or getting pushy?\n` +
+    `valuePropClarity: How clearly and credibly did he articulate what FreshUp AI does and why a dealership would want it?\n` +
+    `nextStepSecured: 100 if he locked in a concrete next step (demo, trial, follow-up call with a specific time), 0 if the call ended without one.\n\n` +
+    `overallScore (0-100): holistic score weighing all of the above.\n` +
+    `feedback: 3-4 sentences of specific, actionable coaching — what worked, what to improve next time.\n\n` +
+    `Respond ONLY in this exact JSON format with no other text:\n` +
+    `{ "gatekeeperPenetration": number, "hookStrength": number, "objectionHandling": number, "valuePropClarity": number, "nextStepSecured": number, "overallScore": number, "feedback": string }\n\n` +
+    `Transcript:\n${transcript}`;
+
+  const message = await client.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 500,
+    messages: [{ role: 'user', content: prompt }],
+  });
+
+  const raw = message.content[0].text.trim();
+
+  try {
+    return JSON.parse(raw);
+  } catch {
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (match) {
+      try {
+        return JSON.parse(match[0]);
+      } catch {
+        // fall through
+      }
+    }
+    return {
+      gatekeeperPenetration: 0, hookStrength: 0, objectionHandling: 0,
+      valuePropClarity: 0, nextStepSecured: 0, overallScore: 0,
+      feedback: 'Call analysis could not be parsed. Raw response: ' + raw,
+    };
+  }
+}
+
+module.exports = { analyzeCall, gradeGauntlet, analyzeTrainingCall };
