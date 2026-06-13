@@ -59,19 +59,24 @@ router.post('/voice', validateTwilioRequest, (req, res) => {
       const userId = req.query.userId ? parseInt(req.query.userId, 10) : null;
       const normalizedDifficulty = normalizeDifficulty(req.query.difficulty);
       const difficultyLabel = normalizedDifficulty.charAt(0).toUpperCase() + normalizedDifficulty.slice(1);
-      const dealership = getRandomDealership();
 
       setTrainingCall(callSid, {
         userId,
         difficulty: difficultyLabel,
         phase: 'menu',
-        dealershipId: dealership.id,
-        dealershipName: dealership.name,
         history: [],
         startTime: Date.now(),
         outcome: null,
         score: null,
       });
+      trainingCall = getTrainingCall(callSid);
+    }
+
+    // /api/training/start pre-creates the row before a dealership is chosen, so
+    // it may exist yet still be missing dealershipId/dealershipName here.
+    if (!trainingCall.dealershipId) {
+      const dealership = getRandomDealership();
+      updateTrainingCall(callSid, { dealershipId: dealership.id, dealershipName: dealership.name });
       trainingCall = getTrainingCall(callSid);
     }
 
