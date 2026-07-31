@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pilot Reset — FreshUp AI</title>
+<meta name="robots" content="noindex, nofollow" />
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif;
+    background: #f4f6f8;
+    color: #111827;
+    margin: 0;
+    padding: 40px 16px;
+    display: flex;
+    justify-content: center;
+  }
+  .card {
+    background: #fff;
+    border: 1px solid #e2e5ea;
+    border-radius: 12px;
+    padding: 28px;
+    max-width: 480px;
+    width: 100%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  h1 { font-size: 19px; margin: 0 0 4px; }
+  p.sub { color: #6b7280; font-size: 13px; margin: 0 0 20px; line-height: 1.5; }
+  label { display: block; font-size: 13px; font-weight: 600; margin: 14px 0 6px; }
+  input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 9px 11px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+  }
+  button {
+    margin-top: 22px;
+    width: 100%;
+    padding: 11px;
+    background: #111827;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button:disabled { opacity: 0.6; cursor: default; }
+  #result {
+    margin-top: 16px;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    display: none;
+  }
+  #result.ok { display: block; background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; }
+  #result.err { display: block; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+  code { background: #f3f4f6; padding: 1px 5px; border-radius: 4px; }
+  @media (prefers-color-scheme: dark) {
+    body { background: #0b0d12; color: #e5e7eb; }
+    .card { background: #14171d; border-color: #262a33; }
+    input { background: #0b0d12; border-color: #2c3038; color: #e5e7eb; }
+    #result.ok { background: #06231a; border-color: #14532d; color: #86efac; }
+    #result.err { background: #2a0f0f; border-color: #7f1d1d; color: #fca5a5; }
+    code { background: #1f2329; }
+  }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>Pilot Reset</h1>
+    <p class="sub">
+      Wipes all call history (accounts stay intact), then creates/updates one manager
+      account and stamps the header logo for their team. Get the secret from the
+      Railway deploy log — look for a line starting with
+      <code>[admin] No ADMIN_RESET_SECRET set…</code>.
+    </p>
+
+    <label for="secret">Admin secret (from Railway logs)</label>
+    <input id="secret" type="text" placeholder="paste secret here" autocomplete="off" />
+
+    <label for="email">Manager email</label>
+    <input id="email" type="email" value="jtphilpott99@gmail.com" />
+
+    <label for="name">Manager name</label>
+    <input id="name" type="text" value="JT Philpott" />
+
+    <label for="password">Password</label>
+    <input id="password" type="text" value="brannen1" />
+
+    <label for="teamName">Team / dealership name</label>
+    <input id="teamName" type="text" value="Brannen Chevrolet-Ford" />
+
+    <label for="logo">Header logo path</label>
+    <input id="logo" type="text" value="/brannen-logo.jpeg" />
+
+    <button id="submitBtn">Run Pilot Reset</button>
+    <div id="result"></div>
+  </div>
+
+<script>
+document.getElementById('submitBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('submitBtn');
+  const resultEl = document.getElementById('result');
+  const secret = document.getElementById('secret').value.trim();
+  if (!secret) {
+    resultEl.className = 'err';
+    resultEl.textContent = 'Paste the admin secret from the Railway logs first.';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Running…';
+  resultEl.className = '';
+  resultEl.textContent = '';
+
+  try {
+    const res = await fetch('/api/admin/pilot-reset', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Secret': secret },
+      body: JSON.stringify({
+        email: document.getElementById('email').value.trim(),
+        name: document.getElementById('name').value.trim(),
+        password: document.getElementById('password').value,
+        teamName: document.getElementById('teamName').value.trim(),
+        dealershipLogo: document.getElementById('logo').value.trim() || undefined,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+
+    resultEl.className = 'ok';
+    resultEl.textContent =
+      `Done.\nManager account: ${data.email}${data.managerCreated ? ' (created)' : ' (updated)'}\n` +
+      `Calls wiped — calls: ${data.wiped.calls}, training: ${data.wiped.trainingCalls}, recorded: ${data.wiped.recordedCalls}\n` +
+      `Header logo set to: ${data.dealershipLogo}`;
+  } catch (err) {
+    resultEl.className = 'err';
+    resultEl.textContent = err.message || 'Something went wrong.';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Run Pilot Reset';
+  }
+});
+</script>
+</body>
+</html>
