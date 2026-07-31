@@ -7,7 +7,7 @@ const router = express.Router();
 
 const {
   getUserByEmail, createUser, updateUser,
-  createTeam, getTeamByManagerId, getTeamConfig, setTeamConfig,
+  createTeam, getTeamByManagerId, getTeamConfig, setTeamConfig, updateTeamName,
   wipeAllCallData,
 } = require('../store');
 
@@ -54,6 +54,9 @@ router.post('/pilot-reset', async (req, res) => {
       if (!team) {
         team = createTeam({ name: teamName.trim(), managerId: user.id });
         user = updateUser(user.id, { team_id: team.id });
+      } else if (team.name !== teamName.trim()) {
+        updateTeamName(team.id, teamName.trim());
+        team = { ...team, name: teamName.trim() };
       }
     }
 

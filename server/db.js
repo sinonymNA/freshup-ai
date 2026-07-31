@@ -278,6 +278,10 @@ function setTeamConfig(teamId, config) {
   db.prepare('UPDATE teams SET config = ? WHERE id = ?').run(JSON.stringify(config), teamId);
 }
 
+function updateTeamName(teamId, name) {
+  db.prepare('UPDATE teams SET name = ? WHERE id = ?').run(name, teamId);
+}
+
 function getTeamAnalytics(teamId) {
   const now = Date.now();
   const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
@@ -874,7 +878,7 @@ function wipeAllCallData() {
 module.exports = {
   createUser, updateUser, getUserById, getUserByEmail, getSecurityQuestionByEmail,
   createTeam, getTeamByCode, getTeamByManagerId, getTeamById,
-  getTeamMembers, getTeamConfig, setTeamConfig, getTeamAnalytics,
+  getTeamMembers, getTeamConfig, setTeamConfig, updateTeamName, getTeamAnalytics,
   getCall, setCall, updateCall, getAllCalls,
   getTrainingCall, setTrainingCall, updateTrainingCall, getAllTrainingCalls,
   completeModule, getProgress,
