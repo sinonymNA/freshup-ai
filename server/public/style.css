@@ -77,6 +77,22 @@ nav.scrolled { box-shadow: var(--shadow-md); }
   mix-blend-mode: screen;   /* screen blends black away, keeps white logo visible */
 }
 
+.nav-center-logo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: none;
+  align-items: center;
+  pointer-events: none;
+}
+.nav-center-logo.visible { display: flex; }
+.nav-center-logo img {
+  height: 34px;
+  width: auto;
+  display: block;
+}
+
 #nav-links {
   display: flex;
   align-items: center;
@@ -1281,6 +1297,7 @@ a.link:hover { text-decoration: underline; }
   nav  { padding: 0 16px; }
   #nav-links { display: none; }
   #nav-auth  { display: none; }
+  .nav-center-logo { display: none !important; }
   .nav-toggle { display: flex; }
   .stats-strip { grid-template-columns: repeat(2, 1fr); }
   .persona-grid { grid-template-columns: repeat(2, 1fr); }

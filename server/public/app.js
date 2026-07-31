@@ -185,6 +185,34 @@ function render() {
   app.innerHTML = '<div class="empty-state">Page not found.</div>';
 }
 
+// ── DEALERSHIP BRANDING (centered header logo, per-team) ─────────────────────
+
+function renderCenterLogo(logoUrl) {
+  const el = document.getElementById('nav-center-logo');
+  if (!el) return;
+  if (logoUrl) {
+    el.innerHTML = `<img src="${logoUrl}" alt="">`;
+    el.classList.add('visible');
+  } else {
+    el.innerHTML = '';
+    el.classList.remove('visible');
+  }
+}
+
+async function loadDealershipBranding(teamId) {
+  if (!teamId) { renderCenterLogo(null); return; }
+  const cacheKey = `freshup_branding_${teamId}`;
+  const cached = localStorage.getItem(cacheKey);
+  if (cached !== null) renderCenterLogo(cached || null);
+  try {
+    const data = await api('/api/team/branding');
+    localStorage.setItem(cacheKey, data.logoUrl || '');
+    renderCenterLogo(data.logoUrl || null);
+  } catch {
+    // Keep whatever was cached/already shown — branding is not critical path.
+  }
+}
+
 function updateNav(path) {
   const user = getUser();
   const linksEl = document.getElementById('nav-links');
@@ -208,6 +236,7 @@ function updateNav(path) {
   const drawer = document.getElementById('nav-drawer');
 
   if (user) {
+    loadDealershipBranding(user.teamId);
     const isManager = user.role === 'manager';
     const links = `
       ${navLink('/', 'dashboard', 'Dashboard')}
@@ -239,6 +268,7 @@ function updateNav(path) {
       });
     }
   } else {
+    renderCenterLogo(null);
     linksEl.innerHTML = '';
     authEl.innerHTML = `
       <a href="#/login" class="btn btn-ghost btn-sm">Log In</a>

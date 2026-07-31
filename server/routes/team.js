@@ -6,8 +6,25 @@ const router = express.Router();
 const { requireAuth, requireManager } = require('../middleware/requireAuth');
 const {
   getTeamByManagerId, getTeamMembers, getAllCalls, getProgress,
-  getTeamConfig, setTeamConfig, getTeamAnalytics, getCall,
+  getTeamConfig, setTeamConfig, getTeamAnalytics, getCall, getTeamById,
 } = require('../store');
+
+// GET /api/team/branding — dealership logo (if any) for the current user's
+// team, shown centered in the header. Any team member can read this, not
+// just managers — reps need it too.
+router.get('/branding', requireAuth, (req, res) => {
+  if (!req.user.teamId) {
+    res.json({ logoUrl: null });
+    return;
+  }
+  const team = getTeamById(req.user.teamId);
+  if (!team) {
+    res.json({ logoUrl: null });
+    return;
+  }
+  const config = getTeamConfig(team.id);
+  res.json({ logoUrl: config.dealershipLogo || null });
+});
 
 // GET /api/team — team overview + member list
 router.get('/', requireAuth, requireManager, (req, res) => {
