@@ -3,25 +3,52 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FreshUp AI — Sales Training</title>
+  <title>FreshUp AI — Inbound Phone Training for Car Dealerships</title>
+  <meta name="description" content="Train your car dealership sales reps on AI buyers that push back, object, and hang up — just like real inbound phone-ups. Every call scored instantly." />
+  <meta property="og:title" content="FreshUp AI — Inbound Phone Training for Car Dealerships" />
+  <meta property="og:description" content="Real buyer AI. Real pressure. Every call scored. Train your reps on inbound calls that feel like the real thing." />
+  <meta property="og:type" content="website" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/freshupsmall.png">
+  <link rel="apple-touch-icon" href="/freshupsmall.png">
   <link rel="stylesheet" href="/style.css" />
+  <!-- Start of HubSpot Embed Code -->
+  <script type="text/javascript" id="hs-script-loader" async defer src="//js-na2.hs-scripts.com/246242025.js"></script>
+  <script src="https://js-na2.hsforms.net/forms/embed/246242025.js" defer></script>
+  <script type="text/javascript" src="https://static.hsappstatic.net/MeetingsEmbed/ex/MeetingsEmbedCode.js" defer></script>
+  <!-- End of HubSpot Embed Code -->
 </head>
 <body>
 
 <nav id="nav">
-  <a class="nav-brand" href="#/">Fresh<span>Up AI</span></a>
-  <a href="#/" data-nav="dashboard">Dashboard</a>
-  <a href="#/start" data-nav="start">Start Call</a>
-  <a href="#/history" data-nav="history">History</a>
-  <a href="#/personas" data-nav="personas">Personas</a>
+  <a class="nav-brand" href="#/"><img src="/freshupbig.png" alt="FreshUp AI" class="nav-logo"></a>
+  <div id="nav-center-logo" class="nav-center-logo"></div>
+  <div id="nav-links"></div>
+  <div id="nav-auth"></div>
+  <button class="nav-toggle" id="nav-toggle" aria-label="Open menu">
+    <span></span><span></span><span></span>
+  </button>
 </nav>
+<div id="nav-drawer" class="nav-drawer"></div>
+
+<!-- HubSpot Meetings Modal -->
+<div id="demo-modal" class="demo-modal-overlay" style="display:none" role="dialog" aria-modal="true" aria-label="Book a live demo">
+  <div class="demo-modal-box">
+    <button class="demo-modal-close" id="demo-modal-close" aria-label="Close">✕</button>
+    <div class="meetings-iframe-container" data-src="https://meetings-na2.hubspot.com/jt-philpott?embed=true"></div>
+  </div>
+</div>
 
 <main id="app">
   <div class="loading">Loading…</div>
 </main>
+
+<footer class="site-footer">
+  <span>© 2026 FreshUp AI</span>
+  <a href="#/updates" class="site-footer-link">v1.4 · What's New</a>
+</footer>
 
 <div class="toast" id="toast"></div>
 

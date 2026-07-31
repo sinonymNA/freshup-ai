@@ -1,0 +1,70 @@
+{
+  "id": "phone-objections",
+  "order": 5,
+  "title": "Objection Mastery",
+  "description": "Turn every objection into a conversation. From 'I need to think about it' to 'I'm looking at other dealerships' — master the responses that keep the door open and the appointment within reach.",
+  "level": "Intermediate",
+  "color": "#ef4444",
+  "modules": [
+    {
+      "id": "phone-objections-1",
+      "order": 1,
+      "title": "What Objections Actually Are",
+      "objective": "Reframe objections as signals of interest, not rejection",
+      "lesson": "<h2>What Objections Actually Are</h2><p>Most salespeople hear an objection and feel a wave of dread. In reality, objections are one of the best things that can happen on a call. A customer who objects is engaging — they haven't hung up, they haven't said \"not interested.\" They're giving you information about what they need in order to say yes.</p><h3>The Objection Spectrum</h3><p><strong>Brush-offs</strong> (early in call): \"I'm just looking\" — not real objections, just shields<br><strong>Concerns</strong>: \"I need to think about it\" — they're interested but need reassurance<br><strong>Conditions</strong>: \"My wife needs to approve it\" — real factors that need to be addressed<br><strong>Smokescreens</strong>: \"The price is too high\" — often a proxy for \"I don't trust you yet\"</p><h3>The Universal Rule</h3><p>Never argue with an objection. Never dismiss it. And never use \"I understand, but...\" — the \"but\" negates everything before it and the customer hears \"I don't actually understand.\"</p><h3>The Acknowledge-Explore-Respond Framework</h3><p>1. Acknowledge: repeat back what they said to show you heard it<br>2. Explore: ask a follow-up question to understand the real concern<br>3. Respond: address the actual concern, not the surface objection</p><h3>Practice Goal</h3><p>Ashley will give you an objection early in the call. Use the Acknowledge-Explore-Respond framework and don't fight it.</p>",
+      "challenge": {
+        "personaId": "ashley-thompson",
+        "minScore": 60,
+        "label": "Ashley Thompson — Medium"
+      }
+    },
+    {
+      "id": "phone-objections-2",
+      "order": 2,
+      "title": "I Need to Think About It",
+      "objective": "Turn the most common brush-off into a real conversation about what's holding them back",
+      "lesson": "<h2>I Need to Think About It</h2><p>\"I need to think about it\" is the most common objection in phone sales. It almost never means what it literally says. What it usually means is: \"I'm not ready to commit because I have an unanswered question or unresolved concern that I haven't told you yet.\"</p><h3>The Dig-Down Response</h3><p><em>\"Totally — I want you to feel completely comfortable. Can I ask — is it more about the vehicle itself, the timing, or something around the numbers?\"</em></p><p>This question forces specificity. Whatever they name next is the real objection — and now you have something to actually work with.</p><h3>The Three Buckets</h3><p>Almost every \"think about it\" comes down to:<br>1. <strong>Product uncertainty</strong> — they need to see/drive it<br>2. <strong>Financial concern</strong> — budget, financing, trade value<br>3. <strong>Third party</strong> — spouse, parent, partner who isn't involved yet</p><p>Once you identify the bucket, you can speak to it directly.</p><h3>Practice Goal</h3><p>Tyler will say he needs to think about it. Dig down, identify the real concern, and address it in a way that re-opens the door.</p>",
+      "challenge": {
+        "personaId": "tyler-kowalski",
+        "minScore": 60,
+        "label": "Tyler Kowalski — Medium"
+      }
+    },
+    {
+      "id": "phone-objections-3",
+      "order": 3,
+      "title": "Shopping Multiple Dealerships",
+      "objective": "Respond when a customer tells you they're shopping around without sounding defensive",
+      "lesson": "<h2>Shopping Multiple Dealerships</h2><p>\"I'm going to check a few other dealerships\" is not an insult — it's smart shopping. Your job isn't to convince them not to shop around. Your job is to give them a reason to come to you first, and to make such an impression that they come back to you last.</p><h3>The Encourage + Differentiate Move</h3><p><em>\"Absolutely — that's the smart play. I'd actually encourage you to shop around. Here's what I'd ask you to compare: total out-the-door price, not just sticker; trade-in appraisal; and the follow-up service after the sale. Those three things will tell you more than the monthly payment quote will. And for what it's worth, I think we're very strong on all three. Would you want to come in first and use us as your benchmark?\"</em></p><h3>Why This Works</h3><ul><li>You didn't get defensive or desperate</li><li>You gave them a real framework for comparison</li><li>You planted seeds of doubt about what competitors might hide</li><li>You positioned yourself as the standard to beat</li></ul><h3>Practice Goal</h3><p>James mentions he's going to look at a few places. Encourage it and use the differentiate move to position your dealership as the one to come back to.</p>",
+      "challenge": {
+        "personaId": "james-okafor",
+        "minScore": 60,
+        "label": "James Okafor — Medium"
+      }
+    },
+    {
+      "id": "phone-objections-4",
+      "order": 4,
+      "title": "The Third-Party Objection",
+      "objective": "Handle 'my spouse/partner needs to approve it' without losing the appointment",
+      "lesson": "<h2>The Third-Party Objection</h2><p>\"My husband/wife/partner needs to see it\" is one of the most powerful objections because it's often genuine — and it's not yours to dismiss. The classic mistake is to try to work around the third party, which the customer sees as disrespect. The correct move is to welcome and include them.</p><h3>The Inclusion Response</h3><p><em>\"Of course — honestly, that's the right call. A decision this big, you want everyone involved. Can we find a time that works for both of you? I'll actually make sure we have enough time to walk through everything properly so there are no rushed decisions.\"</em></p><h3>What Not to Say</h3><ul><li>\"Can you make a decision without them?\" — feels like you're trying to cut out the spouse</li><li>\"She/he doesn't need to come for a test drive\" — dismissive and dangerous</li><li>\"Let me know when they're ready\" — you've just lost control of the timeline</li></ul><h3>The Appointment for Two</h3><p>When the third party is real, the appointment time becomes your main ask: <em>\"When do you think you'd both have some time? Even an hour together would be enough to look at a few options.\"</em></p><h3>Practice Goal</h3><p>Margaret mentions her daughter needs to see the car before she commits. Use the inclusion response to welcome the daughter and close for a shared appointment.</p>",
+      "challenge": {
+        "personaId": "margaret-kim",
+        "minScore": 60,
+        "label": "Margaret Kim — Medium"
+      }
+    },
+    {
+      "id": "phone-objections-5",
+      "order": 5,
+      "title": "The Hard No",
+      "objective": "Recover from a firm refusal and leave the door open for a future call",
+      "lesson": "<h2>The Hard No</h2><p>Sometimes you do everything right and still hit a wall. The customer says no to the appointment, no to giving their number, no to continuing the conversation. When you hit a hard no, the goal isn't to reverse it — it's to end on a note that leaves the relationship intact for a future call.</p><h3>The Graceful Exit</h3><p><em>\"That's completely okay — I appreciate you taking the time. If things change or you want a second opinion at any point, my name is [name] and you can always ask for me directly. I'll make it worth your time.\"</em></p><h3>What You're Doing</h3><ul><li>You're not desperate or pushy</li><li>You're planting your name so they remember you</li><li>You're leaving a low-pressure door open</li></ul><h3>The 24-Hour Rule</h3><p>A customer who said no today might be ready tomorrow. The way you handle a no determines whether they call back. Salespeople who get angry, sulk, or push harder after a no permanently close the door. Salespeople who exit gracefully often get a callback.</p><h3>Practice Goal</h3><p>Nina has heard your pitch and she's going to hit you with a hard stop. Handle the exit with grace and leave enough of an impression that she might reconsider.</p>",
+      "challenge": {
+        "personaId": "nina-patel",
+        "minScore": 60,
+        "label": "Nina Patel — Hard"
+      }
+    }
+  ]
+}

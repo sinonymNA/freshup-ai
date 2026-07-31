@@ -7,41 +7,30 @@ const client = twilio(
   process.env.TWILIO_AUTH_TOKEN
 );
 
-async function initiateCall(toPhoneNumber, personaId) {
+async function initiateCall(toPhoneNumber, personaId, userId) {
+  const base = (process.env.BASE_URL || '').replace(/\/$/, '');
   const call = await client.calls.create({
     from: process.env.TWILIO_PHONE_NUMBER,
     to: toPhoneNumber,
-    url: `${process.env.BASE_URL}/webhook/voice?personaId=${personaId}`,
-    statusCallback: `${process.env.BASE_URL}/webhook/status`,
+    url: `${base}/webhook/voice?personaId=${personaId}&userId=${userId || ''}`,
+    statusCallback: `${base}/webhook/status`,
+    record: true,
+    recordingStatusCallback: `${base}/webhook/recording?type=bot`,
+    recordingStatusCallbackEvent: ['completed'],
+    recordingChannels: 'dual',
   });
-
   return call;
 }
 
-function generateTwiML(audioUrl, nextWebhook) {
-  const response = new twilio.twiml.VoiceResponse();
-
-  response.play(audioUrl);
-
-  const gather = response.gather({
-    input: 'speech',
-    timeout: 5,
-    speechTimeout: 'auto',
-    action: nextWebhook,
+async function initiateTrainingCall(toPhoneNumber, difficulty, userId) {
+  const base = (process.env.BASE_URL || '').replace(/\/$/, '');
+  const call = await client.calls.create({
+    from: process.env.TWILIO_PHONE_NUMBER,
+    to: toPhoneNumber,
+    url: `${base}/training-webhook/voice?difficulty=${difficulty}&userId=${userId || ''}`,
+    statusCallback: `${base}/training-webhook/status`,
   });
-
-  gather.say('...');
-
-  return response.toString();
+  return call;
 }
 
-function generateEndTwiML(audioUrl) {
-  const response = new twilio.twiml.VoiceResponse();
-
-  response.play(audioUrl);
-  response.hangup();
-
-  return response.toString();
-}
-
-module.exports = { initiateCall, generateTwiML, generateEndTwiML };
+module.exports = { initiateCall, initiateTrainingCall };

@@ -1,0 +1,71 @@
+{
+  "id": "phone-capture",
+  "hidden": true,
+  "order": 2,
+  "title": "Information Before Education",
+  "description": "Learn the cardinal rule of phone ups: never educate a customer about price, availability, or financing before you have their contact information. Master the art of capturing without feeling like an interrogation.",
+  "level": "Beginner",
+  "color": "#8b5cf6",
+  "modules": [
+    {
+      "id": "phone-capture-1",
+      "order": 1,
+      "title": "Why Info Comes First",
+      "objective": "Understand the business logic behind capturing contact info before answering questions",
+      "lesson": "<h2>Why Info Comes First</h2><p>Every dealership has experienced this: a customer calls, gets their price question answered, says \"thanks\" and hangs up. They now have your best number and can shop it at three other stores. You have nothing. No name. No number. No appointment. The call was wasted.</p><h3>The Physics of a Phone Up</h3><p>On an inbound call, information is currency. The customer has it. They want you to spend yours (inventory knowledge, pricing, availability) before they spend theirs (name, number, intent). Your job is to flip that dynamic — not with tricks, but with genuine value exchange.</p><h3>The Golden Rule</h3><p><strong>Never educate before you capture.</strong> This means: before you quote a price, share a specific vehicle, or discuss financing, you have their name and callback number.</p><h3>Why Customers Resist</h3><p>Customers resist giving info because they fear the consequence — a flood of emails, calls, and pressure. Your job is to make sharing feel safe and natural, not like filling out a form.</p><h3>Practice Goal</h3><p>Ashley is asking about pricing right away. Your job is to acknowledge her question warmly and smoothly pivot to capturing her name and number before giving any specific numbers.</p>",
+      "challenge": {
+        "personaId": "ashley-thompson",
+        "minScore": 55,
+        "label": "Ashley Thompson — Easy"
+      }
+    },
+    {
+      "id": "phone-capture-2",
+      "order": 2,
+      "title": "The Smooth Name Capture",
+      "objective": "Get the customer's name in a way that feels natural, not scripted",
+      "lesson": "<h2>The Smooth Name Capture</h2><p>The name ask is the smallest ask — and it should always come first. Once a customer has given their name, they've started saying yes. The phone number ask that comes later is dramatically easier after you have their name.</p><h3>The Three Approaches</h3><p><strong>1. The Introduction Reciprocity:</strong> Give your name first.<br><em>\"This is Marcus — and who do I have the pleasure of speaking with?\"</em></p><p><strong>2. The Before I Look It Up:</strong><br><em>\"Before I pull that vehicle up, who am I speaking with?\"</em></p><p><strong>3. The Already Talking:</strong> If they've been talking, break in naturally:<br><em>\"I want to make sure I'm giving you the right information — I'm sorry, I didn't catch your name?\"</em></p><h3>If They Hesitate</h3><p>Don't push. Just move forward and try again later: <em>\"No worries — let me look into that for you.\"</em> Forcing the name creates resistance; patience usually gets it within another minute.</p><h3>Practice Goal</h3><p>Tyler is shy about giving his information. Get his name using the reciprocity method and use it to build rapport throughout the call.</p>",
+      "challenge": {
+        "personaId": "tyler-kowalski",
+        "minScore": 55,
+        "label": "Tyler Kowalski — Easy"
+      }
+    },
+    {
+      "id": "phone-capture-3",
+      "order": 3,
+      "title": "The Phone Number Bridge",
+      "objective": "Transition from conversation to phone number capture without breaking the flow",
+      "lesson": "<h2>The Phone Number Bridge</h2><p>The phone number is the most valuable piece of information in a car deal. It's how you follow up, it's how your manager can reach out, and it's what separates a real lead from a ghost. Yet most salespeople either never ask or ask at the worst possible moment — and get rejected.</p><h3>Timing Is Everything</h3><p>Ask for the number after you've built a little rapport and before you give substantial information about the car. The bridge sounds like:<br><em>\"I want to look into the exact availability on that for you — what's the best number to reach you at if I need to call you back?\"</em></p><h3>The Implied Follow-Up</h3><p>Framing the ask around follow-up removes the pressure:<br><em>\"I'm going to pull up a few options — in case you step away or we get cut off, what's a good callback number?\"</em></p><h3>What If They Won't Give It</h3><p>Don't stall the call. Say: <em>\"No problem — you can always reach me directly at [your number].\"</em> Then keep going. You can ask again later when they're more engaged.</p><h3>Practice Goal</h3><p>James has called about a vehicle he saw online. Your job is to get his name and phone number before you give him any specific pricing. Use the timing and bridge techniques from this lesson.</p>",
+      "challenge": {
+        "personaId": "james-okafor",
+        "minScore": 55,
+        "label": "James Okafor — Easy"
+      }
+    },
+    {
+      "id": "phone-capture-4",
+      "order": 4,
+      "title": "Handling Info Resistance",
+      "objective": "Respond confidently and without pressure when customers push back on giving their info",
+      "lesson": "<h2>Handling Info Resistance</h2><p>Some customers are seasoned dealership-callers. They know the game — they know that giving their phone number means callbacks, emails, and text blasts. They'll push back. The way you handle that pushback determines whether you keep the call or lose them.</p><h3>Common Resistances and Responses</h3><p><strong>\"I don't want to give my number.\"</strong><br>Response: <em>\"Totally fair — you can always reach me directly. I just didn't want to lose you if we got disconnected. No pressure.\"</em></p><p><strong>\"Can you just answer my question first?\"</strong><br>Response: <em>\"Absolutely. I just like knowing who I'm talking to — I'm Marcus, and you are?\"</em> (Name only, drop the number ask for now.)</p><p><strong>\"Why do you need my information?\"</strong><br>Response: <em>\"Honestly, I just like to pull up a file so I can follow up properly if we find the right vehicle. It's not for spam — promise.\"</em></p><h3>The Transparency Play</h3><p>Being honest about why you want the info often works better than technique. Customers respect directness and disarm when you're real with them.</p><h3>Practice Goal</h3><p>Margaret is nervous about sharing her information — she's heard stories about being hounded by dealerships. Put her at ease and earn the info through trust, not pressure.</p>",
+      "challenge": {
+        "personaId": "margaret-kim",
+        "minScore": 55,
+        "label": "Margaret Kim — Easy"
+      }
+    },
+    {
+      "id": "phone-capture-5",
+      "order": 5,
+      "title": "The Full Capture Sequence",
+      "objective": "Execute name, phone, email, and vehicle interest capture in a single fluid call",
+      "lesson": "<h2>The Full Capture Sequence</h2><p>A complete phone up capture includes: name, phone number, email, and vehicle of interest. Do all four in the right order and the call feels like a conversation. Do them at the wrong moments or in the wrong way and it feels like an interrogation.</p><h3>The Sequence</h3><ol><li><strong>Name</strong> — first 30 seconds, through reciprocity or natural ask</li><li><strong>Phone number</strong> — after rapport, before pricing, framed as follow-up</li><li><strong>Vehicle of interest</strong> — flows naturally from their question (\"What are you looking for?\")</li><li><strong>Email</strong> — last, framed as a convenience: <em>\"What's the best email to send you some photos/details?\"</em></li></ol><h3>The Email Frame</h3><p>Asking for email last works because by then the customer is engaged. Frame it as doing them a favor — sending info, photos, or a specific vehicle link. This makes them want to give it.</p><h3>Record Everything</h3><p>As you capture each piece, mentally (or physically) log it. At the end of the call, confirm: <em>\"Perfect — so I have you as Nina, I'll reach you at [number] and shoot an email to [address] — does that all look right?\"</em></p><h3>Practice Goal</h3><p>Nina is a businesslike caller. She'll give information efficiently if you're efficient with her. Get all four data points in the call without it feeling like a form.</p>",
+      "challenge": {
+        "personaId": "nina-patel",
+        "minScore": 55,
+        "label": "Nina Patel — Medium"
+      }
+    }
+  ]
+}

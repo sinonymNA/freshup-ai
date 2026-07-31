@@ -1,0 +1,70 @@
+{
+  "id": "phone-close",
+  "order": 6,
+  "title": "The Appointment Close",
+  "description": "The only goal of a phone up is the appointment. Master the timing, language, and follow-through that converts conversations into confirmed visits — and confirmed visits into deals.",
+  "level": "Advanced",
+  "color": "#10b981",
+  "modules": [
+    {
+      "id": "phone-close-1",
+      "order": 1,
+      "title": "When to Ask",
+      "objective": "Recognize the exact moment the call is ready for an appointment close",
+      "lesson": "<h2>When to Ask</h2><p>Asking for the appointment too early feels pushy. Asking too late feels like you wasted their time. The right moment is when three conditions are met: you've built rapport, you've identified their main need or vehicle interest, and you've created some curiosity or excitement about a specific option.</p><h3>The Three Green Lights</h3><ol><li><strong>Rapport</strong> — they're relaxed, using your name, engaged in conversation</li><li><strong>Need identified</strong> — you know what they're looking for and why</li><li><strong>Excitement created</strong> — you've mentioned something specific that resonated (\"We actually have a pre-owned version coming in this week that might be perfect for you\")</li></ol><h3>The Soft Tie-Down</h3><p>Before the close, tie down their interest:<br><em>\"Based on what you've told me, it sounds like the [vehicle] might actually be a really strong fit — does that feel like the right direction?\"</em><br>If they say yes, you close immediately.</p><h3>Don't Wait for Perfect</h3><p>Perfect conditions rarely arrive. If you've hit two of three green lights, ask. The worst that happens is they hedge and you learn what's still in the way.</p><h3>Practice Goal</h3><p>Ashley is engaged. Watch for the green lights and close when they appear. Don't wait too long.</p>",
+      "challenge": {
+        "personaId": "ashley-thompson",
+        "minScore": 65,
+        "label": "Ashley Thompson — Medium"
+      }
+    },
+    {
+      "id": "phone-close-2",
+      "order": 2,
+      "title": "The Assumptive Close",
+      "objective": "Ask for the appointment as if it's the natural next step, not a big ask",
+      "lesson": "<h2>The Assumptive Close</h2><p>The assumptive close is the most effective closing technique in phone sales because it removes the binary yes/no decision. Instead of \"Would you like to come in?\" — which invites a no — you assume they're coming and simply ask about timing.</p><h3>The Formula</h3><p><em>\"Great — I've got some availability tomorrow afternoon and also Saturday morning. Which of those works better for your schedule?\"</em></p><h3>Why It Works</h3><ul><li>The customer's brain processes a choice (Tuesday vs. Saturday) rather than a yes/no decision</li><li>It implies forward momentum — the call has been productive and the next step is obvious</li><li>It respects their time by offering specific options</li></ul><h3>The Backup Close</h3><p>If they don't like either option: <em>\"No problem — what does your week look like? I can work around almost anything.\"</em> Now they're helping you find a time, which is behaviorally closer to agreeing to come in.</p><h3>Practice Goal</h3><p>Tyler is warming up. Set the tie-down, then execute the assumptive close with two specific time options.</p>",
+      "challenge": {
+        "personaId": "tyler-kowalski",
+        "minScore": 65,
+        "label": "Tyler Kowalski — Medium"
+      }
+    },
+    {
+      "id": "phone-close-3",
+      "order": 3,
+      "title": "The Soft No Recovery",
+      "objective": "Respond to 'I'm not sure yet' without abandoning the appointment or losing rapport",
+      "lesson": "<h2>The Soft No Recovery</h2><p>The soft no — \"I'm not ready to commit\" / \"Let me think about it\" / \"I'll call you back\" — is not the end. It's a signal that the customer is interested but hasn't gotten far enough in the process to say yes. Your job is to lower the commitment required and offer a smaller next step.</p><h3>The Lower-Commitment Offer</h3><p><em>\"Totally fair — I tell you what, let me send over the details on that vehicle so you have everything in front of you. And if you want to pop by any time this week — no appointment necessary, just ask for me — I'll take 10 minutes and show it to you in person. No pressure, no pitch.\"</em></p><h3>What This Does</h3><ul><li>Removes the formal \"appointment\" framing (less intimidating)</li><li>Gives them control — they can \"just pop by\"</li><li>Creates a specific follow-up action (the email/details)</li></ul><h3>Always Leave With a Next Step</h3><p>The call should never end without some kind of next step — even if it's just: <em>\"I'll send you those photos, and I'll check back in a few days. Is that okay?\"</em></p><h3>Practice Goal</h3><p>James is going to hedge. Use the lower-commitment offer to keep momentum and end the call with a clear next step.</p>",
+      "challenge": {
+        "personaId": "james-okafor",
+        "minScore": 65,
+        "label": "James Okafor — Medium"
+      }
+    },
+    {
+      "id": "phone-close-4",
+      "order": 4,
+      "title": "Confirming the Appointment",
+      "objective": "Lock in the appointment with a verbal confirmation that reduces no-shows",
+      "lesson": "<h2>Confirming the Appointment</h2><p>Getting a \"yes\" for an appointment is only half the battle. A verbal yes without proper confirmation leads to no-shows. The way you close the appointment determines whether the customer actually shows up.</p><h3>The Five-Point Confirmation</h3><ol><li><strong>Repeat the day and time</strong>: \"So we've got you down for Saturday at 11.\"</li><li><strong>Use their name</strong>: \"I'll be watching for you, [Name].\"</li><li><strong>Create anticipation</strong>: \"I'm going to pull a couple options that match exactly what you described.\"</li><li><strong>Give your direct number</strong>: \"If anything comes up, you can reach me directly at [number].\"</li><li><strong>Confirm they have your info</strong>: \"And you've got my name? Just ask for Marcus when you get here.\"</li></ol><h3>The Mental Commitment</h3><p>Each of these steps creates a micro-commitment that makes the customer more likely to follow through. Neuroscience shows that people who articulate a specific time and person are dramatically more likely to keep appointments.</p><h3>Practice Goal</h3><p>Margaret is ready to come in. Lock down the appointment with all five confirmation points and make her feel genuinely excited about coming in.</p>",
+      "challenge": {
+        "personaId": "margaret-kim",
+        "minScore": 65,
+        "label": "Margaret Kim — Medium"
+      }
+    },
+    {
+      "id": "phone-close-5",
+      "order": 5,
+      "title": "The Full Phone Up Close",
+      "objective": "Execute a complete phone up from greeting to confirmed appointment under pressure",
+      "lesson": "<h2>The Full Phone Up Close</h2><p>You've learned every component: the greeting, the name capture, the phone number bridge, discovery questions, objection handling, and the appointment close. This final challenge puts it all together in a high-pressure scenario with a customer who won't make it easy.</p><h3>The Full PHONUP Sequence</h3><ol><li><strong>P</strong>ick up with confidence — warm greeting, your name, dealership</li><li><strong>H</strong>old their attention — get their name, confirm their interest</li><li><strong>O</strong>pen the discovery — ask needs questions before answering theirs</li><li><strong>N</strong>umber exchange — secure callback number before pricing</li><li><strong>U</strong>ncover objections early — acknowledge and bridge</li><li><strong>P</strong>ush for the appointment — tie-down, assumptive close, confirm</li></ol><h3>Under Pressure</h3><p>When a customer is impatient or difficult, the temptation is to rush — skip discovery, drop your price, beg for the appointment. This is exactly backwards. Steady, confident reps who hold their process under pressure close at dramatically higher rates than reactive ones.</p><h3>Practice Goal</h3><p>Nina is a skeptical, analytical buyer. This is your final exam. Execute the full PHONUP sequence from hello to confirmed appointment. Your overall score on this call determines your course completion.</p>",
+      "challenge": {
+        "personaId": "nina-patel",
+        "minScore": 70,
+        "label": "Nina Patel — Hard"
+      }
+    }
+  ]
+}

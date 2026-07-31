@@ -1,0 +1,70 @@
+{
+  "id": "phone-price",
+  "order": 4,
+  "title": "The Price Objection Playbook",
+  "description": "Handle the most common phone-up killer with confidence: when customers demand a price before you can build value, these are the techniques that keep the conversation alive and moving toward an appointment.",
+  "level": "Intermediate",
+  "color": "#f59e0b",
+  "modules": [
+    {
+      "id": "phone-price-1",
+      "order": 1,
+      "title": "Why Price Questions Kill Calls",
+      "objective": "Understand the psychology of price-first buyers and how to reframe the conversation",
+      "lesson": "<h2>Why Price Questions Kill Calls</h2><p>The moment a customer asks for price and you give it, the call is essentially over. If your number is lower than competitors, they leave to shop it around. If it's higher, they hang up. Either way, you've handed over your most valuable negotiating tool — price — without getting anything in return.</p><h3>The Price Trap</h3><p>Customers ask for price early not because price is actually their #1 concern — research shows it's usually 4th or 5th — but because it's the easiest way to eliminate a dealership fast. It's a filter, not a genuine requirement.</p><h3>What They're Really Asking</h3><p>\"What's the price?\" usually means one of three things:<br>1. \"Am I wasting my time with you?\" → Build value first<br>2. \"Can I trust you?\" → Be honest and personable<br>3. \"I want to know if you're competitive\" → Acknowledge and redirect</p><h3>The Mindset Shift</h3><p>Stop thinking of price questions as obstacles and start seeing them as opportunities to demonstrate how you're different from every other dealership that just blurts out a number and loses the call.</p><h3>Practice Goal</h3><p>Ashley is asking for price immediately. Acknowledge her question warmly, avoid giving a number, and keep the conversation moving toward understanding her real needs.</p>",
+      "challenge": {
+        "personaId": "ashley-thompson",
+        "minScore": 60,
+        "label": "Ashley Thompson — Medium"
+      }
+    },
+    {
+      "id": "phone-price-2",
+      "order": 2,
+      "title": "The Bridge Technique",
+      "objective": "Redirect price questions toward value and the appointment without sounding evasive",
+      "lesson": "<h2>The Bridge Technique</h2><p>The bridge is a conversational move that acknowledges the price question, validates it, and then steers the conversation toward something more productive — without the customer feeling brushed off.</p><h3>The Formula</h3><p><strong>Acknowledge → Validate → Bridge → Question</strong></p><p>Example:<br><em>\"Great question on price — and I want to make sure I give you an accurate number, not just a figure off the top of my head. The price actually depends on a couple of things: which trim you're looking at and whether we're doing a straight purchase or a trade. Can I ask — is there a specific configuration you had in mind, or are you still figuring that part out?\"</em></p><h3>What Makes This Work</h3><ul><li>You didn't refuse to answer — you deferred for a legitimate reason</li><li>You reframed the conversation around their specific situation</li><li>You ended with a question that moves discovery forward</li></ul><h3>Practice Goal</h3><p>Tyler is going to ask about price early. Use the bridge formula to keep the call alive and transition into discovery.</p>",
+      "challenge": {
+        "personaId": "tyler-kowalski",
+        "minScore": 60,
+        "label": "Tyler Kowalski — Medium"
+      }
+    },
+    {
+      "id": "phone-price-3",
+      "order": 3,
+      "title": "The Ballpark Request",
+      "objective": "Handle 'just give me a ballpark' without losing the call or your negotiating position",
+      "lesson": "<h2>The Ballpark Request</h2><p>\"I just need a rough idea\" is a trap. Give them a ballpark and they'll hold you to it. Give them a range and you've potentially eliminated yourself if you're high, or sold yourself cheap if you're low. The ballpark request needs to be handled with a response that gives them enough to keep talking without locking you into a number.</p><h3>The Honest Range Response</h3><p><em>\"Honestly, the range on that model runs anywhere from [$X] to [$Y] depending on the trim and what's on the lot — it varies quite a bit. But more importantly, I want to make sure I find you the right vehicle at the right price, not just whatever happens to be the cheapest. Can I ask — is there a monthly payment range that feels comfortable, or are you more focused on the purchase price?\"</em></p><h3>What This Does</h3><ul><li>Provides a real, honest range (builds credibility)</li><li>Signals that you're thinking about their needs, not just the sale</li><li>Transitions from price to budget — a more productive conversation</li></ul><h3>Practice Goal</h3><p>James will push for a ballpark number. Use the honest range response to redirect without evasion, then pivot to a budget conversation.</p>",
+      "challenge": {
+        "personaId": "james-okafor",
+        "minScore": 60,
+        "label": "James Okafor — Medium"
+      }
+    },
+    {
+      "id": "phone-price-4",
+      "order": 4,
+      "title": "The Online Price Comparison",
+      "objective": "Respond when a customer says they found it cheaper online or at a competitor",
+      "lesson": "<h2>The Online Price Comparison</h2><p>Online pricing has become one of the biggest objections in modern car sales. Customers come armed with screenshots, listings, and competitor quotes. The instinct to immediately match or beat the price is almost always wrong — it trains customers that your prices are always negotiable and cheapens your value.</p><h3>What Online Prices Don't Show</h3><ul><li>Hidden fees (doc fees, prep fees, advertising fees)</li><li>Condition of the vehicle</li><li>Whether the car is actually still available</li><li>Trade-in value buried in the deal</li><li>Financing terms attached to that price</li></ul><h3>The Apples-to-Apples Response</h3><p><em>\"I appreciate you doing the research — and I want to be totally fair with you. Online prices are often missing a few pieces, and they vary significantly based on fees and what's actually included. The best thing I can do is invite you in so we can compare apples to apples. That way you know exactly what you're getting and can make a real decision. Would that work?\"</em></p><h3>Practice Goal</h3><p>Margaret will mention a price she saw online. Validate her research without undermining your own position, and use it as a reason to come in for a proper comparison.</p>",
+      "challenge": {
+        "personaId": "margaret-kim",
+        "minScore": 60,
+        "label": "Margaret Kim — Medium"
+      }
+    },
+    {
+      "id": "phone-price-5",
+      "order": 5,
+      "title": "Best Price, First Call",
+      "objective": "Handle the 'what's your absolute best price' demand without losing the deal or your leverage",
+      "lesson": "<h2>Best Price, First Call</h2><p>\"What's the absolute best price you can do?\" on the first call is a test. The customer isn't really expecting you to hand over your lowest number — they're testing whether you'll play the game they've learned to play with dealerships. If you crumble and give a low number, you've lost all leverage. If you deflect poorly, you lose the call entirely.</p><h3>The Respect Response</h3><p><em>\"I respect that — and I want to give you a real answer, not a starting-point number that we'd end up negotiating anyway. Here's how I actually work: when you come in, I'll walk you through exactly what we can do and why. No games. You'll know our real number. Most people who give me 30 minutes end up walking out happy. Does that sound fair?\"</em></p><h3>Why This Works</h3><ul><li>You matched their directness (they respect it)</li><li>You promised transparency in person</li><li>You made the appointment feel like the fastest path to their answer</li></ul><h3>The Key Word: Real</h3><p>Using the word \"real\" — real price, real number, real answer — signals honesty. Customers are conditioned to hear dealership-speak; \"real\" cuts through it.</p><h3>Practice Goal</h3><p>Nina wants the best price immediately. Use the respect response framework and turn it into an appointment close. This is your hardest challenge yet.</p>",
+      "challenge": {
+        "personaId": "nina-patel",
+        "minScore": 65,
+        "label": "Nina Patel — Hard"
+      }
+    }
+  ]
+}

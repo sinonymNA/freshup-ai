@@ -4,43 +4,62 @@ const Anthropic = require('@anthropic-ai/sdk');
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-async function generateCustomerResponse(conversationHistory, persona) {
-  if (!persona || !persona.systemPrompt) {
-    throw new Error('Persona is required to generate customer response');
-  }
-  const systemPrompt =
-    persona.systemPrompt +
-    '\nKeep responses to 1-3 sentences. You are on a phone call. Speak like a real human, not a chatbot. React directly to what was just said to you.';
-
-  const messages = conversationHistory && conversationHistory.length > 0
-    ? conversationHistory
-    : [{ role: 'user', content: 'Hello?' }];
-
-  const message = await client.messages.create({
-    model: 'claude-sonnet-4-5',
-    max_tokens: 300,
-    system: systemPrompt,
-    messages: messages,
-  });
-  return message.content[0].text;
-}
-
 async function analyzeCall(transcript, persona) {
   if (!persona || !persona.name) {
     throw new Error('Persona is required to analyze call');
   }
+
+  const difficulty = persona.difficulty || 'Easy';
+  const isHard = difficulty === 'Hard';
+  const isMedium = difficulty === 'Medium';
+
+  // Difficulty-aware baseline and score ceiling guidance
+  const difficultyContext = isHard
+    ? `PERSONA DIFFICULTY: Hard. ${persona.name} is a genuinely difficult customer — guarded, skeptical, and designed to resist. A rep who keeps them engaged, handles their objections with grace, and makes any real progress at all is performing well. Do not penalize the rep for the customer's deliberate resistance.\n` +
+      `Hard-persona score benchmarks:\n` +
+      `• 25–45 = Rep handled a difficult customer competently — solid for Hard\n` +
+      `• 45–65 = Rep earned genuine trust despite real resistance — strong performance\n` +
+      `• 65–80 = Rep was exceptional — broke through significant barriers\n` +
+      `• 80+ = Near-perfect call against a hard persona — rare, award only for truly outstanding execution\n\n`
+    : isMedium
+    ? `PERSONA DIFFICULTY: Medium. ${persona.name} has real objections and a specific sticking point but is reachable. A rep who handles their main concern and moves toward an appointment is doing well.\n` +
+      `Medium-persona score benchmarks:\n` +
+      `• 35–55 = Rep handled a medium-difficulty customer adequately\n` +
+      `• 55–75 = Rep navigated the objections well and made strong progress\n` +
+      `• 75+ = Strong execution — set clear appointment or near-close\n\n`
+    : `PERSONA DIFFICULTY: Easy. ${persona.name} is a high-intent buyer who responds well to warmth and knowledge. A rep who misses basics here should score lower.\n\n`;
+
   const prompt =
-    `You are a sales training coach. Analyze this car dealership phone call transcript. ` +
-    `The sales rep was speaking with a customer named ${persona.name}. ` +
-    `Score the rep 0-100 on four skills: rapport (did they build connection), ` +
-    `discovery (did they ask good questions), objections (did they handle pushback well), ` +
-    `closing (did they ask for the appointment). Also write 2-3 sentences of specific actionable feedback. ` +
-    `Respond only in this exact JSON format with no other text: ` +
-    `{ rapport: number, discovery: number, objections: number, closing: number, overallScore: number, feedback: string }\n\n` +
+    `You are a car dealership phone-up coach grading a training call. The sales rep RECEIVED an inbound call from ${persona.name} (${difficulty} difficulty).\n\n` +
+    difficultyContext +
+    `CALIBRATION — grade like a fair, experienced coach:\n` +
+    `• 15–20/20 = Excellent at this skill\n` +
+    `• 10–14/20 = Competent; some room to grow\n` +
+    `• 5–9/20   = Attempting but falling short\n` +
+    `• 0–4/20   = Missed this skill entirely\n\n` +
+    `IMPORTANT: Grade what actually happened on this specific call with this specific customer. The persona's designed resistance counts — don't penalize the rep for behaviors the customer was designed to exhibit.\n\n` +
+    `SCORE GUIDELINES:\n` +
+    `• Rep got name + phone + email + appointment → score toward the higher end of the difficulty range\n` +
+    `• Rep did NOT get an appointment → stay within the lower half of the difficulty range\n` +
+    `• Do NOT penalize for order of information collected — grade holistically\n\n` +
+    `POSITIVE factors: strong greeting, validates caller's reason, asks needs/wants questions, handles objections with value (not pressure), captures contact info, attempts a specific appointment with day+time.\n` +
+    `NEGATIVE factors: pushy language, defensive phrases, lazy one-word responses, interrupting, ignoring what the customer said.\n\n` +
+    `Score each dimension 0–20:\n` +
+    `opening (0–20): Greeting warmth, gave name+dealership, validated caller's reason. Decent greeting = at least 10.\n` +
+    `rapport (0–20): Made caller feel heard, was warm and conversational. Genuine effort = at least 10.\n` +
+    `needsDiscovery (0–20): Asked about budget, timeline, trade-in, and vehicle preferences before pitching. Any real discovery = at least 10.\n` +
+    `productKnowledge (0–20): Spoke confidently and accurately about the vehicle or options discussed. Competent knowledge = at least 10.\n` +
+    `infoCapture (0–20): Got name, phone, email — order doesn't matter. Two of three = at least 10.\n` +
+    `professionalism (0–20): Patient, positive, not pushy or defensive. Solid tone throughout = at least 10.\n` +
+    `appointment (0–20): Asked for specific appointment with day+time, offered reminder. Any real attempt = at least 8.\n` +
+    `objectionHandling (0–20): Bridged objections, avoided pressure, owned the conversation. Handling even one objection = at least 10.\n\n` +
+    `overallScore (0–100): Holistic score calibrated to difficulty level above. feedback: 2–3 sentences of specific, actionable coaching — what they did well AND what to work on next.\n\n` +
+    `Respond ONLY in this exact JSON format with no other text:\n` +
+    `{ "opening": number, "rapport": number, "needsDiscovery": number, "productKnowledge": number, "infoCapture": number, "professionalism": number, "appointment": number, "objectionHandling": number, "overallScore": number, "feedback": string }\n\n` +
     `Transcript:\n${transcript}`;
 
   const message = await client.messages.create({
-    model: 'claude-sonnet-4-5',
+    model: 'claude-sonnet-4-6',
     max_tokens: 500,
     messages: [{ role: 'user', content: prompt }],
   });
@@ -59,14 +78,101 @@ async function analyzeCall(transcript, persona) {
       }
     }
     return {
-      rapport: 0,
-      discovery: 0,
-      objections: 0,
-      closing: 0,
+      opening: 0, rapport: 0, needsDiscovery: 0, productKnowledge: 0,
+      infoCapture: 0, professionalism: 0, appointment: 0, objectionHandling: 0,
       overallScore: 0,
       feedback: 'Call analysis could not be parsed. Raw response: ' + raw,
     };
   }
 }
 
-module.exports = { generateCustomerResponse, analyzeCall };
+async function gradeGauntlet(challenge, response) {
+  const prompt =
+    `You are a car dealership phone-up coach grading a single response in a training drill.\n\n` +
+    `Scenario: ${challenge.context}\n` +
+    `Customer said: "${challenge.challenge}"\n` +
+    `Sales rep responded: "${response}"\n\n` +
+    `Grade using the Four-Part Response Framework. Score each part 0–25:\n` +
+    `• acknowledge (0–25): Did they validate the concern without agreeing or folding?\n` +
+    `• bridge (0–25): Did they shift conversation toward a solution without dismissing the concern?\n` +
+    `• answer (0–25): Did they give a clear, confident response addressing the REAL concern beneath the objection?\n` +
+    `• redirect (0–25): Did they guide the conversation back toward the appointment?\n\n` +
+    `Penalize for: giving up at first pushback, matching resistance with pressure, answering only the surface objection, rushing to give price or payment, going silent or stopping at "I understand."\n\n` +
+    `score: sum of all four parts (0–100).\n` +
+    `whatWorked: 1 sentence on what they did right.\n` +
+    `whatMissed: 1 sentence on what they missed or could improve.\n` +
+    `strongerLine: one line they could have said instead, written in first person as the rep.\n\n` +
+    `Respond ONLY in JSON: { "score": number, "acknowledge": number, "bridge": number, "answer": number, "redirect": number, "whatWorked": string, "whatMissed": string, "strongerLine": string }`;
+
+  const msg = await client.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 400,
+    messages: [{ role: 'user', content: prompt }],
+  });
+
+  const raw = msg.content[0].text.trim();
+  try {
+    return JSON.parse(raw);
+  } catch {
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (match) {
+      try {
+        return JSON.parse(match[0]);
+      } catch {
+        // fall through
+      }
+    }
+    return { score: 0, acknowledge: 0, bridge: 0, answer: 0, redirect: 0, whatWorked: '', whatMissed: 'Could not parse response', strongerLine: '' };
+  }
+}
+
+async function analyzeTrainingCall(transcript, scenario) {
+  const { dealershipName, gatekeeperName, gmName, difficulty, phase } = scenario || {};
+  const reachedGM = phase === 'gm' || !!gmName;
+
+  const prompt =
+    `You are a sales coach grading a cold-call practice session. Ethan (a salesperson selling "FreshUp AI" — ` +
+    `an AI tool that answers and follows up on car dealership phone calls 24/7) called ${dealershipName || 'a car dealership'} ` +
+    `(${difficulty || 'Medium'} difficulty) to pitch his product.\n\n` +
+    `Ethan first had to get past ${gatekeeperName || 'the gatekeeper'} (the office manager / gatekeeper)${reachedGM ? `, then spoke with ${gmName || 'the General Manager'} (the GM / decision-maker).` : ', and did NOT get transferred to the GM.'}\n\n` +
+    `Score each dimension 0-100:\n` +
+    `gatekeeperPenetration: How effectively did Ethan get past the gatekeeper using genuine persuasion (not pushiness)? ` +
+    `${reachedGM ? 'He was transferred — score based on HOW he earned it (smooth, specific, confident = high; lucky/weak = mid).' : 'He was NOT transferred — score should be low (0-30), reflecting how close he got.'}\n` +
+    `hookStrength: Quality of his opening hook(s) — did he quickly establish a credible, specific reason this call matters to a dealership?\n` +
+    `objectionHandling: How well did he handle pushback/objections (e.g. "we already use something", "no budget", "too busy")? Did he acknowledge, bridge, and respond with value rather than folding or getting pushy?\n` +
+    `valuePropClarity: How clearly and credibly did he articulate what FreshUp AI does and why a dealership would want it?\n` +
+    `nextStepSecured: 100 if he locked in a concrete next step (demo, trial, follow-up call with a specific time), 0 if the call ended without one.\n\n` +
+    `overallScore (0-100): holistic score weighing all of the above.\n` +
+    `feedback: 3-4 sentences of specific, actionable coaching — what worked, what to improve next time.\n\n` +
+    `Respond ONLY in this exact JSON format with no other text:\n` +
+    `{ "gatekeeperPenetration": number, "hookStrength": number, "objectionHandling": number, "valuePropClarity": number, "nextStepSecured": number, "overallScore": number, "feedback": string }\n\n` +
+    `Transcript:\n${transcript}`;
+
+  const message = await client.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 500,
+    messages: [{ role: 'user', content: prompt }],
+  });
+
+  const raw = message.content[0].text.trim();
+
+  try {
+    return JSON.parse(raw);
+  } catch {
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (match) {
+      try {
+        return JSON.parse(match[0]);
+      } catch {
+        // fall through
+      }
+    }
+    return {
+      gatekeeperPenetration: 0, hookStrength: 0, objectionHandling: 0,
+      valuePropClarity: 0, nextStepSecured: 0, overallScore: 0,
+      feedback: 'Call analysis could not be parsed. Raw response: ' + raw,
+    };
+  }
+}
+
+module.exports = { analyzeCall, gradeGauntlet, analyzeTrainingCall };

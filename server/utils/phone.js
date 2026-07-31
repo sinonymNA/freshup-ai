@@ -5,12 +5,16 @@ function normalizePhone(input) {
   const trimmed = input.trim();
   if (!trimmed) return null;
 
-  // keep leading +, strip spaces, dashes, parens and dots.
-  const normalized = trimmed
-    .replace(/[\s().-]/g, '')
-    .replace(/(?!^)\+/g, '');
+  // Strip formatting: spaces, dashes, parens, dots
+  let s = trimmed.replace(/[\s().-]/g, '').replace(/(?!^)\+/g, '');
 
-  return normalized;
+  // Auto-prefix US numbers:
+  // 10 digits (no country code) → +1XXXXXXXXXX
+  if (/^\d{10}$/.test(s)) return '+1' + s;
+  // 11 digits starting with 1 (e.g. 15551234567) → +15551234567
+  if (/^1\d{10}$/.test(s)) return '+' + s;
+
+  return s;
 }
 
 function isE164(phone) {
@@ -20,7 +24,7 @@ function isE164(phone) {
 function parseAndValidatePhone(input) {
   const normalized = normalizePhone(input);
   if (!normalized || !isE164(normalized)) {
-    return { ok: false, error: 'phoneNumber must be valid E.164 format (e.g. +15551234567)' };
+    return { ok: false, error: 'Enter a valid US phone number, e.g. (555) 123-4567' };
   }
   return { ok: true, phoneNumber: normalized };
 }

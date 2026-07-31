@@ -1,0 +1,70 @@
+{
+  "id": "phone-elite",
+  "order": 7,
+  "title": "Elite Phone Up Master",
+  "description": "The top 1% of phone-up performers share five traits: elite pattern recognition, psychological insight, creative problem-solving under pressure, consistent process discipline, and genuine human connection. This course develops all five.",
+  "level": "Elite",
+  "color": "#1e293b",
+  "modules": [
+    {
+      "id": "phone-elite-1",
+      "order": 1,
+      "title": "Pattern Recognition",
+      "objective": "Identify buyer types within 30 seconds and adapt your approach instantly",
+      "lesson": "<h2>Pattern Recognition</h2><p>Elite phone-up reps don't treat every call the same. Within the first 30 seconds — the way someone speaks, what they ask first, their energy level, how quickly they get to the point — they've already formed a working hypothesis about who this buyer is and what they need.</p><h3>The Four Caller Archetypes</h3><p><strong>The Researcher</strong>: Already knows the vehicle, wants to confirm details. Efficient, somewhat guarded. Give them precision, not warmth overload.</p><p><strong>The Emotional Buyer</strong>: Excited, describes their needs vividly, more talkative. Match their energy and let them paint the picture.</p><p><strong>The Skeptic</strong>: Short answers, tests you early, watches for inconsistency. Be direct, honest, and don't over-promise.</p><p><strong>The Overwhelmed</strong>: Hasn't done much research, seems uncertain. Slow down, simplify, guide.</p><h3>The Adaptive Rep</h3><p>The best reps can shift their style within the same call if their initial read was wrong. They're never locked into a script — they're locked into a goal (appointment) and flexible on the path.</p><h3>Practice Goal</h3><p>Ashley — identify her archetype in the first 30 seconds and adapt your approach accordingly. Your opening questions and tone should reflect your read of her.</p>",
+      "challenge": {
+        "personaId": "ashley-thompson",
+        "minScore": 70,
+        "label": "Ashley Thompson — Hard"
+      }
+    },
+    {
+      "id": "phone-elite-2",
+      "order": 2,
+      "title": "The Psychology of Yes",
+      "objective": "Use micro-commitments and reciprocity to create momentum toward the appointment",
+      "lesson": "<h2>The Psychology of Yes</h2><p>Every \"yes\" makes the next \"yes\" easier. This is the principle of commitment and consistency — once people begin saying yes, they tend to continue. Elite phone-up reps engineer a series of small yeses throughout the call, so that when they ask for the appointment, the customer is already in a yes-momentum.</p><h3>The Yes Ladder</h3><p>A well-structured call contains 5-7 micro-commitments before the appointment ask:<br>1. \"Is now a good time?\" → yes<br>2. Name exchange → mini-commitment<br>3. \"Does that sound like what you were looking for?\" → yes<br>4. \"Does [vehicle feature] matter to you?\" → yes<br>5. Tie-down: \"Does that feel like the right direction?\" → yes<br>6. Assumptive close: \"Tuesday or Saturday?\" → appointment</p><h3>The Reciprocity Engine</h3><p>When you give something — your time, specific vehicle information, a tip about which trim is the best value — the customer feels a natural pull to give something back. This is reciprocity and it's one of the most powerful forces in human psychology. Use it deliberately.</p><h3>Practice Goal</h3><p>Tyler needs to climb the yes ladder. Build micro-commitments throughout the call. By the time you ask for the appointment, he should already be halfway there.</p>",
+      "challenge": {
+        "personaId": "tyler-kowalski",
+        "minScore": 70,
+        "label": "Tyler Kowalski — Hard"
+      }
+    },
+    {
+      "id": "phone-elite-3",
+      "order": 3,
+      "title": "Creative Problem Solving",
+      "objective": "Turn seemingly impossible objections into appointment opportunities",
+      "lesson": "<h2>Creative Problem Solving</h2><p>Some objections don't have a standard response. They require real-time creative thinking — finding a solution that actually addresses the customer's specific constraint. Elite reps are problem-solvers first, salespeople second.</p><h3>The Constraint Map</h3><p>When a customer presents an unusual objection, map their constraint:<br>1. What is the specific thing preventing them from coming in?<br>2. Is it time, distance, money, information, or a third party?<br>3. What's the minimum viable solution that addresses that specific constraint?</p><h3>Examples of Creative Solutions</h3><p><em>\"I live an hour away.\"</em> → \"What if we do a video walkthrough first and you only come in once you know it's the right car?\"</p><p><em>\"I can only come in at 7pm.\"</em> → \"I'll arrange to stay late. What night works?\"</p><p><em>\"I'm waiting on my tax refund.\"</em> → \"Should we at least lock in the vehicle at today's price so it's waiting for you when you're ready?\"</p><h3>Practice Goal</h3><p>James will give you a constraint you haven't encountered before. Find the creative solution that keeps the deal alive.</p>",
+      "challenge": {
+        "personaId": "james-okafor",
+        "minScore": 70,
+        "label": "James Okafor — Hard"
+      }
+    },
+    {
+      "id": "phone-elite-4",
+      "order": 4,
+      "title": "Process Discipline",
+      "objective": "Maintain your full process even when the customer tries to shortcut it",
+      "lesson": "<h2>Process Discipline</h2><p>The biggest weakness of talented salespeople is that they skip steps when they feel confident. They build rapport quickly and jump to the close. They skip the phone number because the customer seems committed. They skip discovery because the customer seems to know what they want. This is how deals die in the parking lot.</p><h3>The Disciplined Close Sequence</h3><p>No matter how engaged the customer seems, the sequence is always:<br>Rapport → Name → Phone → Discovery → Tie-Down → Close → Confirm</p><h3>The Shortcutter's Tell</h3><p>When a customer tries to rush your process — \"Just tell me the price\" / \"I don't need to come in, just email me\" — it often means they're not as committed as they appear. The rep who maintains their process signals confidence and control. The rep who bends looks desperate.</p><h3>Saying No to the Customer</h3><p>Elite reps occasionally say no to the customer's preferred shortcut:<br><em>\"I could email you a price, but honestly it wouldn't mean much without knowing what we're working with. Fifteen minutes here and you'll have a real number. That's worth more than a figure on a screen.\"</em></p><h3>Practice Goal</h3><p>Margaret will try to shortcut your process. Hold the sequence even when she pushes back. Every step is there for a reason.</p>",
+      "challenge": {
+        "personaId": "margaret-kim",
+        "minScore": 70,
+        "label": "Margaret Kim — Hard"
+      }
+    },
+    {
+      "id": "phone-elite-5",
+      "order": 5,
+      "title": "The Elite Call",
+      "objective": "Execute a flawless phone up against the most demanding caller in the training system",
+      "lesson": "<h2>The Elite Call</h2><p>This is the final challenge of the FreshUp PHONUP Mastery program. You will face a caller who tests every skill you've developed: a disciplined opener, full info capture, deep discovery, skilled objection handling, and a confident, confirmed appointment close.</p><h3>What Elite Looks Like</h3><p>An elite phone up is not a perfect execution of a script. It's a genuine human conversation that happens to follow a disciplined process. The customer walks away feeling like they found someone they actually want to do business with — not someone who \"handled\" them.</p><h3>The Four Marks of an Elite Rep</h3><ol><li><strong>They never get rattled.</strong> Pressure makes average reps speed up. Elite reps slow down.</li><li><strong>They're always curious.</strong> Every customer is an interesting puzzle, not a transaction.</li><li><strong>They close with confidence.</strong> The appointment ask is direct, clear, and unhesitating.</li><li><strong>They leave people feeling good.</strong> Even the calls that don't convert leave the door wide open.</li></ol><h3>Final Practice Goal</h3><p>Nina is your final challenge. She is analytical, direct, and skeptical. She has called three other dealerships. She is not impressed easily. Your job is to be the one she remembers. Go.</p>",
+      "challenge": {
+        "personaId": "nina-patel",
+        "minScore": 75,
+        "label": "Nina Patel — Elite"
+      }
+    }
+  ]
+}

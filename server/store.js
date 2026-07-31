@@ -1,7 +1,5 @@
 'use strict';
 
-// Thin wrapper over SQLite db — keeps the same API as the old in-memory Map
-// so all routes continue to work without changes.
-const { getCall, setCall, updateCall, getAllCalls } = require('./db');
-
-module.exports = { getCall, setCall, updateCall, getAllCalls };
+// store.js is a thin re-export so route files don't import directly from db.js.
+// Add any new db.js exports here too.
+module.exports = require('./db');

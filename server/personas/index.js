@@ -24,4 +24,9 @@ function getRandomPersona() {
   return JSON.parse(fs.readFileSync(path.join(DATA_DIR, file), 'utf8'));
 }
 
-module.exports = { getAllPersonas, getPersonaById, getRandomPersona };
+function getPersonasByDifficulty(difficulty) {
+  const normalized = (difficulty || '').toLowerCase();
+  return getAllPersonas().filter(p => (p.difficulty || '').toLowerCase() === normalized);
+}
+
+module.exports = { getAllPersonas, getPersonaById, getRandomPersona, getPersonasByDifficulty };

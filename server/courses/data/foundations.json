@@ -1,0 +1,70 @@
+{
+  "id": "foundations",
+  "order": 1,
+  "title": "Sales Foundations",
+  "description": "Master the core skills every car sales rep needs: a strong opening, genuine rapport, smart discovery questions, handling early hesitation, and closing for the appointment.",
+  "level": "Beginner",
+  "color": "#3b82f6",
+  "modules": [
+    {
+      "id": "foundations-1",
+      "order": 1,
+      "title": "The Perfect Introduction",
+      "objective": "Open every call with confidence, warmth, and a clear purpose",
+      "lesson": "<h2>The Perfect Introduction</h2><p>The first 10 seconds of a call determine whether a customer stays engaged or mentally checks out. A great introduction does three things: it establishes who you are, where you're calling from, and — critically — it creates curiosity rather than resistance.</p><h3>The Formula</h3><p><strong>Your name → Dealership → Warm bridge → Open question</strong></p><p>Example: <em>\"Hi, this is Marcus calling from Riverside Auto — I actually saw you were checking out our inventory online and wanted to personally reach out. Quick question — was there a specific vehicle you had in mind, or are you still figuring that out?\"</em></p><h3>What to Avoid</h3><ul><li>Starting with \"Is now a good time?\" — it invites a no</li><li>Diving straight into a pitch before you've connected</li><li>Using a robotic script that sounds copy-pasted</li><li>Apologizing for calling — you're offering help, not bothering them</li></ul><h3>The Tone Principle</h3><p>Smile when you talk — it genuinely changes how your voice sounds. Match the customer's energy within the first 30 seconds. If they're upbeat, match that. If they're calm and measured, slow down slightly.</p><h3>Practice Goal</h3><p>In your challenge call, focus entirely on your opening 3 sentences. Make Ashley feel like you're genuinely glad she called and that you're about to make her life easier.</p>",
+      "challenge": {
+        "personaId": "ashley-thompson",
+        "minScore": 55,
+        "label": "Ashley Thompson — Easy"
+      }
+    },
+    {
+      "id": "foundations-2",
+      "order": 2,
+      "title": "Building Rapport",
+      "objective": "Create a genuine human connection before talking about vehicles",
+      "lesson": "<h2>Building Rapport</h2><p>People buy from people they like and trust. Rapport isn't small talk — it's the deliberate act of making someone feel heard, understood, and comfortable with you specifically.</p><h3>The Listen-Mirror-Validate Loop</h3><p><strong>1. Listen actively</strong> — don't just wait to talk. Notice what they say and what they <em>don't</em> say.<br><strong>2. Mirror back</strong> — repeat key words or phrases they used. It signals you were paying attention.<br><strong>3. Validate</strong> — acknowledge their situation before moving to solutions.</p><p>Example: Customer says \"my old car just died and I need something fast.\" Strong response: <em>\"Oh wow, so you're kind of in emergency mode right now — that's stressful. Okay, let's make this as easy as possible for you.\"</em></p><h3>Finding Common Ground</h3><p>Look for hooks in what they share — family, job, location, lifestyle. A single genuine comment like \"Oh, Columbus — do you go to OSU games?\" does more for rapport than five minutes of product features.</p><h3>Avoid the Feature Dump</h3><p>A major rapport-killer is pivoting to features before you've made a real connection. Even if you know the perfect car for them, hold off. Earn the right to recommend first.</p><h3>Practice Goal</h3><p>Tyler is a first-time buyer who's nervous. Your job isn't to sell — it's to make him feel safe. By the end of the call he should feel like you're on his side.</p>",
+      "challenge": {
+        "personaId": "tyler-kowalski",
+        "minScore": 55,
+        "label": "Tyler Kowalski — Easy"
+      }
+    },
+    {
+      "id": "foundations-3",
+      "order": 3,
+      "title": "Discovery Questions",
+      "objective": "Uncover the real need behind the stated need",
+      "lesson": "<h2>Discovery Questions</h2><p>Most reps ask surface-level questions: \"What's your budget?\" and \"What color do you want?\" Great reps dig deeper to understand the <em>why</em> behind every stated need.</p><h3>The Iceberg Model</h3><p>What a customer says is the tip of the iceberg. Beneath it: their fears, their family situation, their financial pressure, their past bad experience with a dealership. Discovery is about understanding the whole iceberg.</p><h3>Question Types</h3><p><strong>Situational:</strong> \"What are you driving now?\" — establish baseline<br><strong>Problem:</strong> \"What's the main thing you're looking to change or improve?\" — find pain<br><strong>Implication:</strong> \"How has that been affecting your daily commute?\" — deepen the pain<br><strong>Vision:</strong> \"Ideally, what would a perfect vehicle look like for your life right now?\" — get them selling themselves</p><h3>The Rule of 3</h3><p>Never accept the first answer. Ask at least three follow-up questions before recommending anything. The real reason someone is buying usually comes out in the third or fourth exchange.</p><h3>Practice Goal</h3><p>James is a retired teacher — patient, thoughtful, and genuinely interested in the right car. Use all four question types before suggesting a vehicle. Your score on \"Discovery\" is what matters here.</p>",
+      "challenge": {
+        "personaId": "james-okafor",
+        "minScore": 55,
+        "label": "James Okafor — Easy"
+      }
+    },
+    {
+      "id": "foundations-4",
+      "order": 4,
+      "title": "Handling Early Hesitation",
+      "objective": "Turn \"I'm just looking\" into a real conversation",
+      "lesson": "<h2>Handling Early Hesitation</h2><p>Almost every customer shows some form of early hesitation — \"I'm just browsing,\" \"I'm not in a rush,\" or \"I'm still comparing options.\" These aren't objections. They're shields. They go up automatically before the customer has any reason to trust you.</p><h3>Why It Happens</h3><p>Customers have been burned before — high-pressure tactics, surprise fees, wasted time. Their hesitation is not about you. It's a learned defense mechanism. Your job is to lower the shield without forcing it down.</p><h3>The Acknowledge-Pivot Technique</h3><p>Step 1: Fully acknowledge what they said. Don't fight it.<br>Step 2: Agree with it, even amplify it.<br>Step 3: Ask a genuine question that moves things forward.</p><p>Example: <em>\"Totally, no pressure at all — honestly I hate pushy car shopping too. Can I ask, is there a specific type of vehicle you're gravitating toward, or are you still wide open?\"</em></p><h3>What Not to Do</h3><ul><li>Don't say \"I understand but...\" — the \"but\" cancels the acknowledgment</li><li>Don't immediately throw incentives at hesitation — it signals desperation</li><li>Don't ask closed yes/no questions when they're already guarded</li></ul><h3>Practice Goal</h3><p>Margaret is warm but anxious — she's never bought a car on her own before. She'll hesitate early. Your job is to make her feel so at ease that she forgets to be nervous.</p>",
+      "challenge": {
+        "personaId": "margaret-kim",
+        "minScore": 55,
+        "label": "Margaret Kim — Easy"
+      }
+    },
+    {
+      "id": "foundations-5",
+      "order": 5,
+      "title": "Closing for the Appointment",
+      "objective": "Ask for the appointment with confidence and natural timing",
+      "lesson": "<h2>Closing for the Appointment</h2><p>The goal of a phone call is never to sell the car — it's to sell the appointment. Once you understand that, the entire call becomes simpler and less pressured.</p><h3>When to Ask</h3><p>Ask for the appointment after you've: (1) built rapport, (2) identified their main need or vehicle preference, and (3) created some excitement or curiosity about a specific option. Don't wait for perfection — if you've done those three things, it's time to ask.</p><h3>The Soft Tie-Down</h3><p>Before asking for the appointment, tie down their interest:<br><em>\"Based on what you've told me, it sounds like the [vehicle] might actually be a really strong fit for you — does that feel like the right direction?\"</em><br>If they say yes, you immediately follow with the appointment ask.</p><h3>The Assumptive Close</h3><p>Don't ask \"Would you like to come in?\" — it's too easy to say no. Instead, assume they're coming and just ask about timing:<br><em>\"Great — I've got some availability tomorrow afternoon or Saturday morning. Which of those works better for your schedule?\"</em></p><h3>Handling a Soft No</h3><p>If they hedge: \"I'm not sure yet\" — don't back off completely. Offer a lower-commitment next step: <em>\"Totally fair — I'll tell you what, let me send over the details on that vehicle so you have them. And if you want to pop by any time this week, no appointment necessary, just ask for me.\"</em></p><h3>Practice Goal</h3><p>Nina is analytical and businesslike. She'll ask good questions. Your job is to answer them efficiently and then confidently ask for the appointment without it feeling abrupt. Focus on your \"Closing\" score.</p>",
+      "challenge": {
+        "personaId": "nina-patel",
+        "minScore": 55,
+        "label": "Nina Patel — Medium"
+      }
+    }
+  ]
+}
