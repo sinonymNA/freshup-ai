@@ -19,6 +19,7 @@ const contactRoutes = require('./routes/contact');
 const gmRoutes = require('./routes/gm');
 const trainingRoutes = require('./routes/training');
 const trainingWebhookRoutes = require('./routes/trainingWebhook');
+const adminRoutes = require('./routes/admin');
 const { handleMediaStream } = require('./services/openai-realtime');
 const { handleTrainingMediaStream } = require('./services/openai-realtime-training');
 
@@ -72,6 +73,7 @@ app.use('/api', callRoutes);
 app.use('/webhook', webhookRoutes);
 app.use('/api', trainingRoutes);
 app.use('/training-webhook', trainingWebhookRoutes);
+app.use('/api/admin', adminRoutes);
 
 // SPA fallback — serve index.html for any unmatched GET
 app.get('/{*path}', (req, res) => {

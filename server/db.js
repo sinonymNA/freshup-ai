@@ -860,6 +860,17 @@ function consumeResetToken(token) {
   db.prepare('UPDATE password_resets SET usedAt = ? WHERE token = ?').run(Date.now(), token);
 }
 
+// ── Pilot reset (one-time admin operation) ──────────────────────────────────
+// Clears all call history/recordings while leaving user and team accounts intact.
+function wipeAllCallData() {
+  const counts = {
+    calls: db.prepare('DELETE FROM calls').run().changes,
+    trainingCalls: db.prepare('DELETE FROM training_calls').run().changes,
+    recordedCalls: db.prepare('DELETE FROM recorded_calls').run().changes,
+  };
+  return counts;
+}
+
 module.exports = {
   createUser, updateUser, getUserById, getUserByEmail, getSecurityQuestionByEmail,
   createTeam, getTeamByCode, getTeamByManagerId, getTeamById,
@@ -873,4 +884,5 @@ module.exports = {
   createRecordedCall, updateRecordedCall, getRecordedCallById, getRecordedCallBySid, getRecordedCallsByTeam,
   getTeamByTrackingNumber,
   createResetToken, validateResetToken, consumeResetToken,
+  wipeAllCallData,
 };
