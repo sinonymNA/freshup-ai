@@ -70,4 +70,44 @@ router.post('/pilot-reset', async (req, res) => {
   }
 });
 
+// Non-destructive: rename a manager's team and/or update its header logo
+// without touching call history, password, or account creation.
+router.post('/team-update', (req, res) => {
+  if (req.get('X-Admin-Secret') !== ADMIN_SECRET) {
+    res.status(403).json({ error: 'Forbidden' });
+    return;
+  }
+
+  try {
+    const { email, teamName, dealershipLogo } = req.body;
+    if (!email) {
+      res.status(400).json({ error: 'email is required' });
+      return;
+    }
+
+    const user = getUserByEmail(email.toLowerCase().trim());
+    if (!user) {
+      res.status(404).json({ error: 'No account found for that email' });
+      return;
+    }
+    const team = getTeamByManagerId(user.id);
+    if (!team) {
+      res.status(404).json({ error: 'That account has no team' });
+      return;
+    }
+
+    if (teamName && teamName.trim() && teamName.trim() !== team.name) {
+      updateTeamName(team.id, teamName.trim());
+    }
+    if (dealershipLogo) {
+      setTeamConfig(team.id, { ...getTeamConfig(team.id), dealershipLogo });
+    }
+
+    res.json({ ok: true, teamId: team.id, teamName: teamName?.trim() || team.name });
+  } catch (err) {
+    console.error('[admin/team-update] error:', err);
+    res.status(500).json({ error: 'Team update failed' });
+  }
+});
+
 module.exports = router;

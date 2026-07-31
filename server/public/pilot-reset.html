@@ -75,9 +75,10 @@
   <div class="card">
     <h1>Pilot Reset</h1>
     <p class="sub">
-      Wipes all call history (accounts stay intact), then creates/updates one manager
-      account and stamps the header logo for their team. Get the secret from the
-      Railway deploy log — look for a line starting with
+      "Run Pilot Reset" wipes all call history (accounts stay intact), then
+      creates/updates the manager account and header logo. "Just Rename" only
+      updates the team name/logo — no wipe, no account changes. Get the secret
+      from the Railway deploy log — look for a line starting with
       <code>[admin] No ADMIN_RESET_SECRET set…</code>.
     </p>
 
@@ -100,13 +101,16 @@
     <input id="logo" type="text" value="/brannen-logo.jpeg" />
 
     <button id="submitBtn">Run Pilot Reset</button>
+    <button id="renameBtn" style="background:#374151;margin-top:8px;">
+      Just Rename / Re-brand (no wipe)
+    </button>
     <div id="result"></div>
   </div>
 
 <script>
-document.getElementById('submitBtn').addEventListener('click', async () => {
-  const btn = document.getElementById('submitBtn');
-  const resultEl = document.getElementById('result');
+const resultEl = document.getElementById('result');
+
+async function runRequest(btn, defaultLabel, url, body, formatSuccess) {
   const secret = document.getElementById('secret').value.trim();
   if (!secret) {
     resultEl.className = 'err';
@@ -120,32 +124,56 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
   resultEl.textContent = '';
 
   try {
-    const res = await fetch('/api/admin/pilot-reset', {
+    const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Admin-Secret': secret },
-      body: JSON.stringify({
-        email: document.getElementById('email').value.trim(),
-        name: document.getElementById('name').value.trim(),
-        password: document.getElementById('password').value,
-        teamName: document.getElementById('teamName').value.trim(),
-        dealershipLogo: document.getElementById('logo').value.trim() || undefined,
-      }),
+      body: JSON.stringify(body),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
 
     resultEl.className = 'ok';
-    resultEl.textContent =
-      `Done.\nManager account: ${data.email}${data.managerCreated ? ' (created)' : ' (updated)'}\n` +
-      `Calls wiped — calls: ${data.wiped.calls}, training: ${data.wiped.trainingCalls}, recorded: ${data.wiped.recordedCalls}\n` +
-      `Header logo set to: ${data.dealershipLogo}`;
+    resultEl.textContent = formatSuccess(data);
   } catch (err) {
     resultEl.className = 'err';
     resultEl.textContent = err.message || 'Something went wrong.';
   } finally {
     btn.disabled = false;
-    btn.textContent = 'Run Pilot Reset';
+    btn.textContent = defaultLabel;
   }
+}
+
+document.getElementById('submitBtn').addEventListener('click', () => {
+  runRequest(
+    document.getElementById('submitBtn'),
+    'Run Pilot Reset',
+    '/api/admin/pilot-reset',
+    {
+      email: document.getElementById('email').value.trim(),
+      name: document.getElementById('name').value.trim(),
+      password: document.getElementById('password').value,
+      teamName: document.getElementById('teamName').value.trim(),
+      dealershipLogo: document.getElementById('logo').value.trim() || undefined,
+    },
+    (data) =>
+      `Done.\nManager account: ${data.email}${data.managerCreated ? ' (created)' : ' (updated)'}\n` +
+      `Calls wiped — calls: ${data.wiped.calls}, training: ${data.wiped.trainingCalls}, recorded: ${data.wiped.recordedCalls}\n` +
+      `Header logo set to: ${data.dealershipLogo}`
+  );
+});
+
+document.getElementById('renameBtn').addEventListener('click', () => {
+  runRequest(
+    document.getElementById('renameBtn'),
+    'Just Rename / Re-brand (no wipe)',
+    '/api/admin/team-update',
+    {
+      email: document.getElementById('email').value.trim(),
+      teamName: document.getElementById('teamName').value.trim(),
+      dealershipLogo: document.getElementById('logo').value.trim() || undefined,
+    },
+    (data) => `Done.\nTeam renamed to: ${data.teamName}\nNo call data or accounts touched.`
+  );
 });
 </script>
 </body>
